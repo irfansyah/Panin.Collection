@@ -165,6 +165,40 @@ Komponen kunci (sebagian di `Panin.Application`, implementasi di `Panin.Infrastr
 - **Fase 5** (Maintenance, modul 99) memakai DB LOGIN sebagai data utamanya (mengelola user/group/menu/parameter untuk modul 60 dan 99); `MaintainedModuleIDs` menjadi konfigurasi modul.
 - Aplikasi MIS (70) dan Maintenance (99) menjadi area dalam host yang sama, bukan project terpisah.
 
+## 2E. Hasil inspeksi database (lingkungan dev, hanya dibaca)
+
+Diperiksa langsung dengan akun baca dari user-secrets. Tidak ada perubahan ke DB sumber.
+
+**Modul dan DB DATA-nya (`RFMODULE`)**
+
+| ModuleID | Nama | DB DATA | Catatan |
+|---|---|---|---|
+| 60 | Collection Management | `LOSPANINCOLLECTION` (server dev yang sama dengan DB LOGIN) | Menu 35 item |
+| 70 | MIS Report | `PANINMIS` di **server lain** (instance `...\COLMISINS`) | Menu 10 item; login DB memakai akun `sa` |
+| 99 | Maintenance | **`LOSPANINLOGIN_COLLECTION` = DB LOGIN itu sendiri** | Menu 13 item |
+| (40) | menu lama "Loan Processing" dst. | — | Ada 5 baris menu `TYPEID=40` tanpa modul; sisa LOS lama |
+
+Jawaban pertanyaan 0c: modul 99 memakai DB LOGIN sebagai data; modul 70 memakai DB dan server **berbeda** dari 60.
+
+**DB LOGIN (`LOSPANINLOGIN_COLLECTION`, ±156 MB, SQL Server 2025)**
+- 31 tabel, 24 view, 11 stored procedure, 1 fungsi, 3 trigger. Tabel terbesar: `SCALLUSERLOG` (±1 juta baris), `AUDITTRAIL_DETAIL`, `AUDITTRAIL`, `ESAPPTOKEN` (token, tidak dibersihkan), `GRPMENUX`.
+- Berisi juga tabel milik modul Collection yang masih kosong (`TBL_NOTES`, `TBL_INPUT_LELANG`, `INPUT_DATA_RECOVERY`, `UPLOAD_DATA_AYDA`, `RFCOLLSTAT`, ...), jadi sebagian objek fitur baru ada di DB LOGIN.
+- **Ketergantungan lintas database**: view `AREA`, `RFBRANCH`, `RFPRODUCT`, `RFPRODUCTGROUP`, `RFPRODUCTTYPE`, `RFREGIONAL`, `RFDPD`, `RFREASON*`, `RFAPPTYPE`, `VW_RFBRANCH`, `VW_RFKCU`, `VW_RFMIS` membaca `LOSPANINCOLLECTION.dbo.*`, dan `SP_AUDITTRAIL` membaca `LOAN_MASTER`. Jadi DB LOGIN **tidak berdiri sendiri**.
+- `VW_SCALLGROUP` **rusak di sumber** (merujuk kolom `load_unit` yang tidak ada di `SCALLGROUP`); tidak ikut tersalin. Perlu dicek apakah ada halaman yang memakainya.
+- Tidak ada FK yang sepenuhnya bersih: salah satu FK (`FK_RFBRANCH_RFBRANCH`) dilanggar datanya, sehingga FK disalin `WITH NOCHECK`.
+- Akun baca yang diberikan ternyata punya hak **CONTROL** atas database. Dipakai hanya untuk `SELECT`, tetapi sebaiknya diganti akun `db_datareader`.
+- Sistem lama dipakai aktif: jumlah baris bertambah di antara dua pembacaan.
+
+**Salinan lokal (Docker)**
+- `tools/Panin.DbClone` menyalin DB LOGIN lengkap (skema, data, view, SP, fungsi, trigger) ke `localhost,14333/LOSPANINLOGIN`, ditambah salinan `LOSPANINCOLLECTION` yang hanya berisi 12 tabel referensi dan 3 view yang dibutuhkan view lintas-DB. Hasil verifikasi jumlah baris sama dengan sumber.
+- Di salinan lokal, `RFMODULE.DB_LOGINID/DB_LOGINPWD` **dikosongkan** supaya aplikasi tidak bisa tersambung ke server dev lewat fallback; koneksi DATA lokal diisi di user-secrets.
+- Tool menolak target non-lokal dan menolak sumber = target; sumber dibuka `ApplicationIntent=ReadOnly`.
+
+**Dampak ke desain**
+- `IModuleDbFactory` harus mendukung DB DATA di **server berbeda** (modul 70) dan modul yang DB DATA-nya sama dengan DB LOGIN (modul 99).
+- Pengembangan lokal modul 60 memerlukan DB DATA yang lebih lengkap daripada stub 12 tabel; salinan penuh `LOSPANINCOLLECTION` menunggu keputusan (ukuran dan data sensitif).
+- `ESAPPTOKEN` dan `SCALLUSERLOG` besar; pembersihan/retensi perlu didiskusikan, bukan bagian migrasi.
+
 ## 3. Arsitektur target
 
 ```
@@ -277,7 +311,7 @@ Total estimasi kasar (dinaikkan karena modul baru): **±9–11 bulan** untuk 1 t
 ## 6. Pertanyaan terbuka
 0. Apakah repo `irfansyah/Panin.Collection` perlu private, dan siapa saja yang diberi akses? (Repo lama dibiarkan apa adanya.)
 0a. ~~Tab modul: state dipertahankan atau dimulai ulang?~~ **Diputuskan: state tiap tab modul dipertahankan selama sesi.**
-0c. DB DATA modul 99 dan 70: dicek langsung ke database (connection string diisi user di user-secrets); sementara `ConnectionStrings:Data:<id>` dikosongkan sehingga memakai `RFMODULE`.
+0c. ~~DB DATA modul 99 dan 70~~ **Terjawab (bagian 2E):** modul 99 = DB LOGIN sendiri; modul 70 = DB `PANINMIS` di server lain. Masih terbuka: apakah salinan lokal penuh `LOSPANINCOLLECTION` boleh dibuat (ukuran, data sensitif)?
 0d. ~~Multi-sesi~~ **Diputuskan: user tidak boleh login di tempat/tab browser lain; satu sesi aktif per user (seperti `SU_LOGON` lama).**
 0b. Apakah pengembangan di `multibrowser` masih berjalan (UAT/produksi)? Apakah branch itu sudah yang dipakai di produksi?
 1. Apakah ada akses ke DB dev/UAT dan backup skema (agar bisa dump view/SP)?

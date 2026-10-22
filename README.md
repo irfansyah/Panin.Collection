@@ -64,3 +64,9 @@ docker compose -f docker/docker-compose.yml up -d
 
 - SQL Server 2022 di `localhost,14333`, database `LOSPANINLOGIN`. Password SA ada di `docker/.env` (tidak di-commit); buat file itu dengan isi `MSSQL_SA_PASSWORD=<password kuat>` sebelum menjalankan.
 - User-secrets: `ConnectionStrings:Login` menunjuk ke container ini; `ConnectionStrings:LoginSource` menunjuk ke DB LOGIN lama (hanya dibaca untuk menyalin data).
+
+Menyalin ulang data dari DB lama ke container (sumber hanya dibaca; target didrop dan dibuat ulang):
+
+```bash
+dotnet run --project tools/Panin.DbClone
+```
