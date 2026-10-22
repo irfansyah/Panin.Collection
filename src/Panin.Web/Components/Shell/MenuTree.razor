@@ -2,33 +2,49 @@
 
 @if (Nodes is null)
 {
-    <p class="p-2 text-xs text-slate-400">Memuat menu...</p>
+    <p class="px-3 py-2 text-xs text-slate-400">Memuat menu...</p>
 }
 else if (Nodes.Count == 0)
 {
-    <p class="p-2 text-xs text-slate-500">Menu belum tersedia.</p>
+    <p class="px-3 py-2 text-xs text-slate-400">Menu belum tersedia.</p>
+}
+else if (Level == 0)
+{
+    @* Tingkat-1 = judul kelompok (selalu terbuka); tingkat-2 = item berikon. Menu tingkat-1 yang tidak punya anak tampil sebagai item biasa. *@
+    @foreach (var node in Nodes)
+    {
+        @if (node.IsLeaf)
+        {
+            @Item(node, true)
+        }
+        else
+        {
+            <div @key="node.Id" class="nav-group" title="@node.Text">@node.Text</div>
+            <MenuTree Nodes="node.Children" Workspace="Workspace" OnSelect="OnSelect" Level="1" />
+        }
+    }
 }
 else
 {
-    <ul class="@(Level == 0 ? "space-y-0.5" : "mb-1 ml-4 space-y-0.5 border-l border-slate-200 pl-1.5")">
+    <ul class="@(Level == 1 ? "space-y-0.5" : "nav-sub")">
         @foreach (var node in Nodes)
         {
             <li @key="node.Id">
                 @if (node.IsLeaf)
                 {
-                    var selected = Workspace.ActiveMenuId == node.Id;
-                    <button type="button" @onclick="() => Select(node)"
-                            class="@(selected ? "bg-sky-50 font-semibold text-sky-800 ring-1 ring-sky-200" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900") block w-full rounded-lg px-2.5 py-2 text-left text-sm transition-colors">
-                        @node.Text
-                    </button>
+                    @Item(node, Level == 1)
                 }
                 else
                 {
                     var open = Workspace.Expanded.Contains(node.Id);
-                    <button type="button" @onclick="() => Toggle(node)" aria-expanded="@(open ? "true" : "false")"
-                            class="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-100">
-                        <span>@node.Text</span>
-                        <svg class="@(open ? "rotate-90" : "") h-4 w-4 text-slate-400 transition-transform" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.2 4.6a1 1 0 0 1 1.4 0l4.7 4.7a1 1 0 0 1 0 1.4l-4.7 4.7a1 1 0 1 1-1.4-1.4L11.2 10 7.2 6a1 1 0 0 1 0-1.4Z" clip-rule="evenodd" /></svg>
+                    <button type="button" @onclick="() => Toggle(node)" aria-expanded="@(open ? "true" : "false")" title="@node.Text"
+                            class="@(Level == 1 ? "nav-item" : "nav-item nav-item-sub") nav-parent">
+                        @if (Level == 1)
+                        {
+                            <Icon Name="@MenuIcons.For(node.Text)" />
+                        }
+                        <span class="nav-label">@node.Text</span>
+                        <svg class="nav-chev size-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.2 4.6a1 1 0 0 1 1.4 0l4.7 4.7a1 1 0 0 1 0 1.4l-4.7 4.7a1 1 0 1 1-1.4-1.4L11.2 10 7.2 6a1 1 0 0 1 0-1.4Z" clip-rule="evenodd" /></svg>
                     </button>
                     @if (open)
                     {
@@ -48,6 +64,20 @@ else
     [Parameter] public EventCallback<MenuNode> OnSelect { get; set; }
 
     [Parameter] public int Level { get; set; }
+
+    private RenderFragment Item(MenuNode node, bool withIcon) => @<div @key="node.Id">
+        @{
+            var selected = Workspace.ActiveMenuId == node.Id;
+        }
+        <button type="button" @onclick="() => Select(node)" title="@node.Text" aria-current="@(selected ? "page" : null)"
+                class="@(selected ? "nav-item active" : "nav-item") @(withIcon ? string.Empty : "nav-item-sub")">
+            @if (withIcon)
+            {
+                <Icon Name="@MenuIcons.For(node.Text)" />
+            }
+            <span class="nav-label">@node.Text</span>
+        </button>
+    </div>;
 
     private void Toggle(MenuNode node)
     {

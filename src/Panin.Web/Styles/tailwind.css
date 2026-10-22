@@ -98,6 +98,38 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+/* Menu samping (D1, lihat docs/design/DASHBOARD.md): rel ikon saat diciutkan, melebar saat disorot atau difokus. */
+.side { transition: width .25s ease, transform .25s ease; }
+.side-panel { transition: width .2s ease, box-shadow .2s ease; }
+.nav-group { padding: 1rem .75rem .25rem; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-item { position: relative; display: flex; width: 100%; align-items: center; gap: .65rem; border-radius: .625rem; padding: .55rem .75rem; text-align: left; font-size: .875rem; font-weight: 500; color: #cbd5e1; white-space: nowrap; transition: background-color .15s, color .15s; }
+.nav-item:hover { background: rgb(255 255 255 / .08); color: #fff; }
+.nav-item.active { background: rgb(255 255 255 / .12); color: #fff; }
+.nav-item.active::before { content: ""; position: absolute; left: -.75rem; top: .4rem; bottom: .4rem; width: 4px; border-radius: 0 4px 4px 0; background: var(--color-sky-300); }
+.nav-item-sub { padding: .45rem .65rem; font-size: .8125rem; }
+.nav-label { overflow: hidden; text-overflow: ellipsis; transition: opacity .15s ease, max-width .15s ease; max-width: 13rem; }
+.nav-chev { margin-left: auto; transition: transform .2s; }
+.nav-parent[aria-expanded=true] .nav-chev { transform: rotate(90deg); }
+.nav-sub { margin: .1rem 0 .4rem 1.35rem; padding-left: .6rem; border-left: 1px solid rgb(255 255 255 / .12); }
+.brand-text { overflow: hidden; transition: opacity .15s ease, max-width .15s ease; max-width: 13rem; }
+@media (min-width: 1024px) {
+    html[data-side=collapsed] .side { width: 4.25rem; }
+    html[data-side=collapsed] .side-panel { position: absolute; inset-block: 0; left: 0; width: 4.25rem; overflow-x: hidden; }
+    html[data-side=collapsed] .side-panel:hover, html[data-side=collapsed] .side-panel:has(:focus-visible) { width: 16rem; box-shadow: 0 25px 50px -12px rgb(0 0 0 / .5); transition: width .2s ease .15s, box-shadow .2s ease .15s; }
+    html[data-side=collapsed] .nav-label, html[data-side=collapsed] .brand-text { opacity: 0; max-width: 0; }
+    html[data-side=collapsed] .side-panel:hover .nav-label, html[data-side=collapsed] .side-panel:has(:focus-visible) .nav-label,
+    html[data-side=collapsed] .side-panel:hover .brand-text, html[data-side=collapsed] .side-panel:has(:focus-visible) .brand-text { opacity: 1; max-width: 13rem; transition: opacity .2s ease .15s, max-width .2s ease .15s; }
+    html[data-side=collapsed] .nav-group { position: relative; color: transparent; }
+    html[data-side=collapsed] .nav-group::after { content: ""; position: absolute; left: 1rem; right: 1rem; top: 55%; height: 1px; background: rgb(255 255 255 / .12); }
+    html[data-side=collapsed] .side-panel:hover .nav-group, html[data-side=collapsed] .side-panel:has(:focus-visible) .nav-group { color: #64748b; }
+    html[data-side=collapsed] .side-panel:hover .nav-group::after, html[data-side=collapsed] .side-panel:has(:focus-visible) .nav-group::after { opacity: 0; }
+    html[data-side=collapsed] .nav-chev { opacity: 0; }
+    html[data-side=collapsed] .side-panel:hover .nav-chev, html[data-side=collapsed] .side-panel:has(:focus-visible) .nav-chev { opacity: 1; }
+    html[data-side=collapsed] .nav-sub { display: none; }
+    html[data-side=collapsed] .side-panel:hover .nav-sub, html[data-side=collapsed] .side-panel:has(:focus-visible) .nav-sub { display: block; }
+}
+@media (prefers-reduced-motion: reduce) { .side, .side-panel, .nav-label, .brand-text { transition: none !important; } }
+
 /* Cetak (G5): hanya isi halaman; menu, header, footer, dan kontrol disembunyikan. */
 @media print {
     @page {

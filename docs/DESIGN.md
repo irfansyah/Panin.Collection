@@ -14,9 +14,9 @@ Dokumen ini menjelaskan tampilan baru dan cara memakainya. Tujuan: modern, respo
 
 | Area | Sebelum | Sesudah |
 |---|---|---|
-| Shell (`Components/Pages/Home.razor`) | Sidebar tetap 256 px di semua ukuran layar; di ponsel isi halaman terjepit | Di bawah 1024 px sidebar menjadi **drawer** dengan tombol menu dan tirai gelap; tab modul bisa digulir mendatar; tinggi memakai `dvh` agar tidak terpotong bilah alamat ponsel |
-| Header | Teks "Logout" | Logo, nama pengguna dan grup (sembunyi di ponsel), tombol logout |
-| Footer | Satu baris yang patah di ponsel | Membungkus rapi; info pengguna disembunyikan di ponsel karena sudah ada di header |
+| Shell (`Components/Pages/Home.razor`) | Sidebar tetap 256 px di semua ukuran layar; di ponsel isi halaman terjepit | **D1 (23 Okt 2026):** sidebar gelap penuh tinggi dengan merek, kelompok bertajuk, item berikon (`Icon.razor`, `Shell/MenuIcons.cs`), dan anak yang dapat dilipat; **diciutkan menjadi rel ikon 68 px** lewat tombol di header atau **Ctrl+B** (diingat di `localStorage` `panin.side-hidden`, `wwwroot/js/sidebar.js`), melebar saat disorot atau difokus dengan keyboard; di bawah 1024 px menjadi **drawer** dengan tirai gelap; tab modul bisa digulir mendatar; tinggi memakai `dvh` |
+| Header | Teks "Logout" | Tombol menu, chip "Data per ..." bila data basi, tombol Peringatan (lonceng), jam, avatar dan nama pengguna, logout. Kotak cari dan tombol tema menunggu tahap berikutnya |
+| Footer | Satu baris yang patah di ponsel | Dihapus (D1); isinya pindah ke header |
 | Menu (`MenuTree.razor`) | Tanda `+`/`−` | Ikon panah berputar, item aktif diberi latar dan cincin, ruang sentuh lebih besar |
 | Login (`AuthLayout.razor`, `Login.razor`) | Kartu putih di latar gelap | Dua panel di desktop (merek di kiri, formulir di kanan), satu kolom di ponsel |
 | Kartu (`Card.razor`) | Garis tipis | Bayangan lembut, judul dengan pemisah halus |

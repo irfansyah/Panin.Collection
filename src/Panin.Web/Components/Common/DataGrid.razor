@@ -93,7 +93,7 @@
                             {
                                 @col.Header
                             }
-                            @if (ShowFilters && ColumnFilters && !col.ActionOnly)
+                            @if (ShowFilters && ColumnFilters && !col.ActionOnly && col.Header.Length > 0)
                             {
                                 <input type="text" value="@FilterOf(index)" @oninput="e => OnColumnFilter(index, e)" list="@ListId(index)" autocomplete="off"
                                        placeholder="@(col.Numeric ? ">, <, =" : "cari")" aria-label="Filter kolom @col.Header"

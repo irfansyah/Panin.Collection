@@ -1,6 +1,6 @@
 # Rancangan menu samping dan dashboard modul
 
-Status: **rancangan untuk ditinjau**, belum ada kode di aplikasi. Mockup interaktif: [dashboard-mockup.html](dashboard-mockup.html) (buka langsung di browser; tab modul, Ctrl+B, tombol tema, dan ukuran layar dapat dicoba). Semua angka dan nama di mockup fiktif.
+Status: rancangan **disetujui** (23 Okt 2026). **D1 (shell) sudah dikerjakan**: sidebar rel ikon, Ctrl+B, ikon menu, header baru. Dashboard (D2 dan seterusnya) belum. Mockup interaktif: [dashboard-mockup.html](dashboard-mockup.html) (buka langsung di browser; tab modul, Ctrl+B, tombol tema, dan ukuran layar dapat dicoba). Semua angka dan nama di mockup fiktif.
 
 Acuan: menu samping dan dashboard di repo BNPL (`src/Bnpl.Portal`): `MainLayout.razor`, `NavMenu.razor`, `Icon.razor` (Heroicons, MIT), `Home.razor`, `StatCard.razor`, gaya `Styles/app.css`.
 
@@ -90,7 +90,7 @@ Catatan: beberapa SP report **sangat lambat** (lihat `docs/PERFORMANCE.md` baris
 
 | Tahap | Isi | Ukuran |
 |---|---|---|
-| D1 | Shell baru: sidebar rel ikon + Ctrl+B + ikon menu, header (chip data, tema, cari tersembunyi dulu); kamus ikon; tes E2E | M |
+| D1 ✅ | Shell baru: sidebar rel ikon + Ctrl+B + ikon menu, header (chip data, peringatan, pengguna); kamus ikon `Shell/MenuIcons.cs`; 24 tes unit baru dan uji browser (desktop, rel ikon, sorot, muat ulang, 3 tingkat menu, ponsel). Belum: tombol tema dan kotak cari | M |
 | D2 | Komponen dasar: `StatCard`, `Hero`, `WidgetCard` (skeleton, galat per widget), grafik kolom/garis/cincin/batang (SVG, tanpa pustaka) | M |
 | D3 | Dashboard Maintenance (data sudah ada, risiko terendah) | S |
 | D4 | Dashboard Collection: widget yang datanya sudah ada dulu, lalu sebaran DPD, janji, aturan "Perlu tindakan" | M–L |
