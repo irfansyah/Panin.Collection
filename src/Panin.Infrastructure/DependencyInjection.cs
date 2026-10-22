@@ -52,6 +52,8 @@ public static class DependencyInjection
         services.AddSingleton<ILetterService, LetterService>();
         services.AddSingleton<IActivityMonitoringService, ActivityMonitoringService>();
         services.AddSingleton<Panin.Application.Reports.Pivot.ICustomPivotCatalog, Panin.Infrastructure.Reports.Custom.CustomPivotCatalog>();
+        services.AddSingleton<IPromiseService, PromiseService>();
+        services.AddSingleton<INewsService, NewsService>();
         services.AddSingleton<IReportService, Panin.Infrastructure.Reports.ReportService>();
         services.Configure<Maintenance.MaintenanceOptions>(configuration.GetSection(Maintenance.MaintenanceOptions.SectionName));
         services.Configure<ParallelRunOptions>(configuration.GetSection(ParallelRunOptions.SectionName));

@@ -11,13 +11,26 @@
 <section class="space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
         <h1 class="text-xl font-semibold text-slate-800">@(Kind == MonitoringKind.Recovery ? "Monitoring Recovery" : "Monitoring Debitur")</h1>
-        @if (_trail.Count > 1)
-        {
-            <button type="button" @onclick="GoUpAsync" disabled="@_busy"
-                    class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-60">
-                ← Kembali ke @_trail[^2].Name
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="button" @onclick="() => Navigator?.Open<PromiseSearch>()"
+                    class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                Janji Debitur
             </button>
-        }
+            @if (Kind == MonitoringKind.Recovery)
+            {
+                <button type="button" @onclick="() => Navigator?.Open<Panin.Web.Modules.Collection.News.NewsView>()"
+                        class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                    View News
+                </button>
+            }
+            @if (_trail.Count > 1)
+            {
+                <button type="button" @onclick="GoUpAsync" disabled="@_busy"
+                        class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-60">
+                    ← Kembali ke @_trail[^2].Name
+                </button>
+            }
+        </div>
     </div>
 
     @if (!string.IsNullOrEmpty(_error))

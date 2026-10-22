@@ -120,6 +120,16 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+// Gambar berita lama (Image/News/*) berada di server aplikasi lama; salin foldernya lalu isi News:ImageDirectory agar tampil di halaman News.
+if (app.Configuration["News:ImageDirectory"] is { Length: > 0 } newsImages && Directory.Exists(newsImages))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(Path.GetFullPath(newsImages)),
+        RequestPath = "/Image/News",
+    });
+}
 app.MapHealthChecks("/healthz").AllowAnonymous();
 app.MapClientLog();
 

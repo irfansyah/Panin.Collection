@@ -1,0 +1,78 @@
+@attribute [ModulePage("60", "/collection/news")]
+@implements IDisposable
+@using System.Globalization
+@using Panin.Application.Collection
+@inject INewsService News
+@inject ILogger<NewsView> Logger
+
+<section class="space-y-4">
+    <h1 class="text-xl font-semibold text-slate-800">News</h1>
+
+    @if (_loading)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat...</p>
+    }
+    else if (_error is not null)
+    {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">@_error</div>
+    }
+    else if (_items.Count == 0)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500">Belum ada berita.</p>
+    }
+    else
+    {
+        <div class="space-y-3">
+            @foreach (var item in _items)
+            {
+                <article class="rounded-lg border border-slate-200 bg-white p-4">
+                    <header class="flex flex-wrap items-baseline justify-between gap-2">
+                        <h2 class="text-base font-semibold text-slate-800">@item.Subject</h2>
+                        @if (item.Date is { } date)
+                        {
+                            <time class="text-xs text-slate-500" datetime="@date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)">@date.ToString("dd MMMM yyyy", Id)</time>
+                        }
+                    </header>
+                    @* HTML sudah dibersihkan oleh NewsService (skrip, atribut peristiwa, dan skema berbahaya dibuang). *@
+                    <div class="mt-2 text-sm leading-relaxed text-slate-700 [&_a]:text-sky-800 [&_a]:underline [&_img]:max-w-full [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5">@((MarkupString)item.Html)</div>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private static readonly CultureInfo Id = CultureInfo.GetCultureInfo("id-ID");
+
+    private readonly CancellationTokenSource _cts = new();
+    private IReadOnlyList<NewsItem> _items = [];
+    private string? _error;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = await News.ListPublishedAsync(_cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Berita gagal dimuat");
+            _error = $"Berita gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}
