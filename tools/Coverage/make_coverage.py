@@ -125,9 +125,7 @@ w(f"**{done} dari {total}** menu yang punya halaman (modul 60, 70, 99) sudah pun
 w("| Modul | Menu | URL lama | Status | Halaman baru |")
 w("|---|---|---|---|---|")
 for typ, mid, desc, url, page in rows:
-    if "ChangePassword" in url:
-        status, where = "**BELUM**", "Halaman ganti password hanya ada di alur login (kata sandi kedaluwarsa); belum bisa dibuka dari menu oleh pengguna yang sudah masuk"
-    elif page:
+    if page:
         status, where = "Selesai", f"`{page}`"
     else:
         status, where = "**BELUM**", ""

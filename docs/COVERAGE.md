@@ -5,7 +5,7 @@ Data menu dan kontrol berasal dari DB **dev**; menu/kontrol di produksi bisa ber
 
 ## 1. Menu
 
-**30 dari 40** menu yang punya halaman (modul 60, 70, 99) sudah punya halaman baru.
+**32 dari 40** menu yang punya halaman (modul 60, 70, 99) sudah punya halaman baru.
 
 | Modul | Menu | URL lama | Status | Halaman baru |
 |---|---|---|---|---|
@@ -28,7 +28,7 @@ Data menu dan kontrol berasal dari DB **dev**; menu/kontrol di produksi bisa ber
 | 60 Collection | Print Memo Pengajuan Hapus Tagih | `~/Controls/CariHapusTagih.aspx` | **BELUM** |  |
 | 60 Collection | Print Memo Pengajuan Restrukturisasi | `~/Controls/CariRestrukturisasi.aspx` | **BELUM** |  |
 | 60 Collection | Print Memo Pengajuan Penyelesaian AYDA | `~/Controls/CariAYDA.aspx` | **BELUM** |  |
-| 60 Collection | Change Password | `~/ChangePassword.aspx` | **BELUM** | Halaman ganti password hanya ada di alur login (kata sandi kedaluwarsa); belum bisa dibuka dari menu oleh pengguna yang sudah masuk |
+| 60 Collection | Change Password | `~/ChangePassword.aspx` | Selesai | `src/Panin.Web/Modules/Account/ChangePasswordPage.razor` |
 | 60 Collection | Inquiry Status Debitur | `~/controls/search_debitur.aspx` | Selesai | `src/Panin.Web/Modules/Collection/Inquiry/DebiturSearch.razor` |
 | 60 Collection | Inquiry Data AYDA/WO | `~/controls/search_data_ayda.aspx` | **BELUM** |  |
 | 60 Collection | Add News | `~/Main/MainFacility.aspx?FUNC=news&status=add` | **BELUM** |  |
@@ -48,7 +48,7 @@ Data menu dan kontrol berasal dari DB **dev**; menu/kontrol di produksi bisa ber
 | 99 Maintenance | Approval | `~/parameter/ParamSet.aspx?set=GEN&ismaker=0&title=Collection Genera...` | Selesai | `src/Panin.Web/Modules/Maintenance/ParameterSetGenApproval.razor` |
 | 99 Maintenance | Maker | `~/parameter/ParamSet.aspx?set=PROC&ismaker=1&title=Collection Proce...` | Selesai | `src/Panin.Web/Modules/Maintenance/ParameterSetProcMaker.razor` |
 | 99 Maintenance | Approval | `~/parameter/ParamSet.aspx?set=PROC&ismaker=0&title=Collection Proce...` | Selesai | `src/Panin.Web/Modules/Maintenance/ParameterSetProcApproval.razor` |
-| 99 Maintenance | Change Password | `~/ChangePassword.aspx` | **BELUM** | Halaman ganti password hanya ada di alur login (kata sandi kedaluwarsa); belum bisa dibuka dari menu oleh pengguna yang sudah masuk |
+| 99 Maintenance | Change Password | `~/ChangePassword.aspx` | Selesai | `src/Panin.Web/Modules/Account/ChangePasswordPage.razor` |
 
 ## 2. Fungsi layar detail dan monitoring (`CONTROL_MENU`)
 

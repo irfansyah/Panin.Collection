@@ -123,3 +123,23 @@ public class PromiseNewsMenuTests
         Assert.False(page.IsLegacy);
     }
 }
+
+public class ChangePasswordMenuTests
+{
+    [Theory]
+    [InlineData("60")]
+    [InlineData("70")]
+    [InlineData("99")]
+    public void Change_password_menu_resolves_in_every_module(string module)
+    {
+        var c = new ModulePageCatalog(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Menu:LegacyUrlMap:~/changepassword.aspx"] = "/account/password",
+        }).Build());
+
+        var page = c.Resolve(module, "~/ChangePassword.aspx");
+
+        Assert.NotNull(page.PageType);
+        Assert.False(page.IsLegacy);
+    }
+}
