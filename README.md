@@ -20,6 +20,9 @@ tools/
   Panin.DbClone         salin DB sumber ke Docker lokal
   Panin.LoginSync       sinkronisasi satu arah DB LOGIN lama ke baru (masa paralel)
   Panin.LoadTest        uji beban (HTTP, sirkuit, browser Playwright)
+  Panin.ReportCheck     jalankan semua report, ukur waktu, periksa konsistensi (hanya baca)
+  Coverage              peta fitur lama -> baru (make_coverage.py)
+  ReportExtract         ekstraksi tata letak pivot dari kelas report lama
 docs/
   MIGRATION-PLAN.md     rencana migrasi, fase, risiko
   DMS-LEGACY-CONTRACT.md  kontrak DLL lama DMS.* (hasil inspeksi)
@@ -28,6 +31,11 @@ docs/
   LOAD-TESTING.md       uji beban (HTTP, sirkuit, browser sungguhan)
   QUERY-REGISTRY.md     ukuran dan keputusan per query/SP
   PERFORMANCE.md        temuan performa dan aturan
+  REPORTS.md            report: inventaris, mesin daftar/pivot, alat pemeriksa
+  WORKER.md             unggah harian (pengganti PANINSVC)
+  COVERAGE.md           peta fitur aplikasi lama -> aplikasi baru (dibuat otomatis)
+  BACKLOG.md            pekerjaan tertunda dan yang dibutuhkan agar bisa dilanjutkan
+  CUTOVER.md            serah terima dan daftar periksa cutover
 ```
 
 ## Menjalankan

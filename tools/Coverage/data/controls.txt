@@ -1,0 +1,59 @@
+00020|../Controls/personalinfo.ascx|Informasi Pelanggan|1
+00021|../Controls/personaljob.ascx|informasi pekerjaan|1
+00022|../Controls/spouseinfo.ascx|informasi pasangan|1
+00023|../Controls/spousejob.ascx|informasi pekerjaanpasangan|1
+accmon|../Controls/AccountMonitoring.ascx|no|1
+Account|../Controls/AccFinancialInfo.ascx|financial info general|1
+AccountOther|../Controls/AccFinancialInfoOther.ascx|financial info other|1
+AccRel|../Controls/AccFinancialInfo.ascx|financia linfo|1
+accsrcmon|../Controls/AccountSearchMonitoring.ascx|no|1
+agunan|../Controls/AgunanKredit.ascx|agunan kredit|1
+agunanCAR|../Controls/VerticalGrid.ascx|agunan mobil/motor|1
+agunanDEP|../Controls/VerticalGrid.ascx|agunan lain-lain|1
+agunanTNH|../Controls/VerticalGrid.ascx|agunan tanah & bangunan|1
+asuransijiwa|../Controls/asuransijiwa.ascx|asuransi jiwa|1
+asuransikerugian|../Controls/asuransikerugian.ascx|asuransi kerugian|1
+Call|../Controls/Call.ascx|Call|1
+callrec|../Controls/call_rec.ascx|call|1
+Cheque|NULL|NULL|0
+Contact|../Controls/CustContactInfo.ascx|contact info|1
+CorespAddr|../Controls/CoresspAddr.ascx|Corresp Edit|1
+Cust|../Controls/CustSumOfAccount.ascx|summary of account|0
+CustInfo|../Controls/CustGeneralInfo.ascx|general info|1
+customeraddresschange|../Controls/CustAddressChange.ascx|customer address change|1
+customersearch|../Controls/CustomerSearch.ascx|customer search|1
+DetailTunggakan|../Controls/DetailTunggakan.ascx|Detail Tunggakan|1
+ExceptionLetter|../Controls/LetterException.ascx|Account Exception Letter|1
+Ledger|../History/MainLedger.ascx|main ledger|0
+Legal|../Controls/Legal.ascx|legal|1
+Lelang|../Controls/BalaiLelang.ascx|Lelang|1
+Letter|../Controls/Letter.ascx|Letter Notice|1
+list|../Controls/List.ascx|no|1
+MAINCOL|../Controls/Collection.ascx|no|1
+Meeting|../Controls/Meeting.ascx|meeting|1
+monhist|../Controls/MonitoringHistory.ascx|no|1
+news|../Controls/News.ascx|News|1
+notes|../Controls/Notes.ascx|Notes|1
+OtherHist|../History/AccrInterestHistory.ascx|accrued interest history|1
+Payment Schedule|../Controls/PaymentSchedule.ascx|payment schedule|1
+PayOff|../Controls/PayOff.ascx|payoff|1
+Properti|../Controls/AccPropertyInfo.ascx|property info|1
+RecHist|../History/RecoveryHistory.ascx|recovery history|0
+recmon|../Controls/RecoveryMonitoring.ascx|Monitoring Recovery/NPL|1
+Recovery|../Controls/Recovery.ascx|Recovery|1
+Relation|../Controls/RelationInfo.ascx|Relation Account|1
+REPOPROPERTI|../Controls/AccPropertyInfo.ascx|repossessed item info|1
+REPOSEARCH|../Controls/RepoSearch.ascx|no|1
+Repossessed Item|../Controls/RepoItem.ascx|repossessed item|1
+Repossession Order|../Controls/RepoOrder.ascx|Repossession Order|1
+REPOVEHICLE|../Controls/AccVehicleInfo.ascx|repossessed item info|1
+riwayatbayar|../Controls/RiwayatPembayaran.ascx|riwayat bayar|1
+Skip Tracing|../Controls/SkipTracing.ascx|skip tracing|1
+SMS|../Controls/SMS.ascx|SMS|1
+Spooler Pending|../Controls/Spooler.ascx|no|1
+Statistic|../Controls/CustCustStatistic.ascx|customer statistic|1
+Transfer|../Controls/AccTransfer.ascx|transfer account|1
+Vehicle|../Controls/AccVehicleInfo.ascx|vehicle info|1
+Visitation|../Controls/Visit.ascx|Visitation|1
+visitrec|../Controls/visit_rec.ascx|visitation|1
+worklistmonitoring|../Controls/WorklistMonitoring.ascx|no|1

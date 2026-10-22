@@ -1,0 +1,63 @@
+40|01|Loan Processing||
+40|02|Approval Committee||
+40|03|Loan Disbursement||
+40|04|Facilities||
+40|05|MIS Report||
+60|10|Collection||
+60|20|Reporting||
+60|40|Inquiry||
+60|50|News||
+60|60|Simulasi||
+60|30|Administrasi||
+60|1010|Distribusi Debitur|~/Main/MainFacility.aspx?FUNC=worklistmonitoring|10
+60|1020|Monitoring||10
+60|1030|Bulk Surat||10
+60|102010|Monitoring Debitur|~/Main/MainFacility.aspx?FUNC=accmon|1020
+60|102020|Monitoring Aktifitas Collection|~/controls/Search_activity_collector.aspx|1020
+60|102030|Monitoring Recovery/NPL|~/Main/MainRecovery.aspx?FUNC=recmon|1020
+60|103020|Account Exception Letter|~/Main/MainFacility.aspx?FUNC=ExceptionLetter|1030
+60|103010|Bulk Surat (New)|~/Facilities/BulkSurat.aspx|1030
+60|2010|Laporan Kinerja||20
+60|2020|Laporan Recovery||20
+60|201010|Report|~/Report/ReportSet.aspx?setid=gen|2010
+60|201020|Daily Tracking|~/Report/ReportSet.aspx?setid=DT|2010
+60|201030|Leading Edge|~/Report/ReportSet.aspx?setid=LE|2010
+60|201040|Lag Delinquency|~/Report/ReportSet.aspx?setid=LD|2010
+60|201070|Daily Tracking PRK|~/Report/ReportSet.aspx?setid=PRK|2010
+60|201080|Report Khusus KPM|~/Report/ReportSet.aspx?setid=KPM|2010
+60|201050|Flow Rate|~/Report/ReportSet.aspx?setid=FR|2010
+60|201060|Was Is Reprot|~/Report/ReportSet.aspx?setid=WASIS|2010
+60|202010|Print Surat Kuasa Penarikan Agunan Mobil|~/Controls/CariSKPM.aspx|2020
+60|202020|Print Memo Pengajuan Hapus Buku|~/Controls/CariHapusBuku.aspx|2020
+60|202030|Print Memo Pengajuan Hapus Tagih|~/Controls/CariHapusTagih.aspx|2020
+60|202040|Print Memo Pengajuan Restrukturisasi|~/Controls/CariRestrukturisasi.aspx|2020
+60|202050|Print Memo Pengajuan Penyelesaian AYDA|~/Controls/CariAYDA.aspx|2020
+60|3050|Change Password|~/ChangePassword.aspx|30
+60|4010|Inquiry Status Debitur|~/controls/search_debitur.aspx|40
+60|4020|Inquiry Data AYDA/WO|~/controls/search_data_ayda.aspx|40
+60|5010|Add News|~/Main/MainFacility.aspx?FUNC=news&status=add|50
+60|5020|News View|~/Main/MainFacility.aspx?FUNC=news&status=view|50
+60|6010|Simulasi|~/Simulasi/Search_Debitur.aspx|60
+70|20|Reporting||
+70|2010|Laporan Kinerja||20
+70|201010|Report|~/Report/ReportSet.aspx?setid=gen|2010
+70|201020|Daily Tracking|~/Report/ReportSet.aspx?setid=DT|2010
+70|201030|Leading Edge|~/Report/ReportSet.aspx?setid=LE|2010
+70|201040|Lag Delinquency|~/Report/ReportSet.aspx?setid=LD|2010
+70|201070|Daily Tracking PRK|~/Report/ReportSet.aspx?setid=PRK|2010
+70|201080|Report Khusus KPM|~/Report/ReportSet.aspx?setid=KPM|2010
+70|201050|Flow Rate|~/Report/ReportSet.aspx?setid=FR|2010
+70|201060|Was Is Reprot|~/Report/ReportSet.aspx?setid=WASIS|2010
+99|20|Parameter Maintenance||
+99|30|Facilities||
+99|2010|User & Group Parameter||20
+99|2020|Collection Parameter||20
+99|201010|Maker|~/parameter/ParamSet.aspx?set=USER&ismaker=1&title=User and Group Parameter Maker&moduleid=99|2010
+99|201020|Approval|~/parameter/ParamSet.aspx?set=USER&ismaker=0&title=User and Group Parameter Approval&moduleid=99|2010
+99|202010|General||2020
+99|202020|Process||2020
+99|20201010|Maker|~/parameter/ParamSet.aspx?set=GEN&ismaker=1&title=Collection General Parameter Maker&moduleid=60|202010
+99|20201020|Approval|~/parameter/ParamSet.aspx?set=GEN&ismaker=0&title=Collection General Parameter Approval&moduleid=60|202010
+99|20202010|Maker|~/parameter/ParamSet.aspx?set=PROC&ismaker=1&title=Collection Process Parameter Maker&moduleid=60|202020
+99|20202020|Approval|~/parameter/ParamSet.aspx?set=PROC&ismaker=0&title=Collection Process Parameter Approval&moduleid=60|202020
+99|3010|Change Password|~/ChangePassword.aspx|30
