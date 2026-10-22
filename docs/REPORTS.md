@@ -79,12 +79,37 @@ dijalankan oleh tes integrasi terhadap view asli tanpa galat; uji browser: formu
 definisi `PV_COND` yang memerlukan keputusan (tulis ulang per report); `FRAMEWORK_FORMULAFIELD/FOREIGNKEY/LINDEDSERVER` (kosong di salinan lokal — bila produksi mengisinya,
 kolom rumus dan join antar-view akan membuat report ditandai tidak tersedia sampai didukung).
 
+## R2 dan R3 — Pivot (selesai, dengan catatan)
+
+Satu mesin pivot (`Panin.Application/Reports/Pivot`) untuk kedua jenis report; DevExpress `ASPxPivotGrid`/`XRPivotGrid` tidak dipakai lagi.
+
+| Komponen | Isi |
+|---|---|
+| `PivotBuilder` | Menyusun baris/kolom bertingkat, banyak ukuran, subtotal per level, total keseluruhan, urutan menurut ukuran bantu (`URUTAN`), persentase kolom/baris. Agregat dihitung dari agregat parsial (jumlah, banyak, min, maks) sehingga rata-rata di subtotal tepat (bukan rata-rata dari rata-rata). |
+| `PivotQuery` | **R2**: agregasi di SQL (`GROUP BY` semua field baris/kolom; `SUM/COUNT/MIN/MAX` hanya untuk kolom angka; interval tahun/bulan/hari hanya untuk kolom tanggal; tipe kolom diketahui lewat `SELECT TOP 0`). **R3**: pengelompokan baris hasil SP di memori. |
+| `PivotLayoutView` + `PivotView.razor` | Tabel HTML bertingkat dengan sel gabung; ekspor Excel datar (judul kolom digabung " / "). Tampilan dibatasi 30.000 sel; ekspor penuh. |
+| `CustomPivotCatalog` | `pivot-layouts.json` (resource tertanam) berisi SP, jumlah parameter, indeks result set, dan tata letak 53 kelas `PV_*`, diekstrak dari `*.Designer.cs` lama oleh `tools/ReportExtract/extract_pivot_layouts.py` (`python tools/ReportExtract/extract_pivot_layouts.py <repo-lama>`; dijalankan ulang bila kelas lama berubah). |
+
+Cakupan terhadap salinan lokal: seluruh set `DT` (13), `LE` (12), `LD` (12), `FR` (24), `WASIS` (1), `PRK` (4) tersedia; `KPM` 6 dari 7; di `GEN` kini 19 dari 26 (selain 15 daftar: Vintage 1/2,
+Time Spent, Perkiraan Kebutuhan Kolektor). Tes integrasi menjalankan 46 SP kustom plus semua pivot dinamis terhadap DB nyata tanpa galat.
+
+Beda/asumsi yang harus diketahui:
+
+- **Istilah total.** `ShowRowTotals` = baris subtotal, `ShowRowGrandTotals` = baris total di bawah, `ShowColumnTotals`/`ShowColumnGrandTotals` = kolom subtotal / kolom total di kanan (pemahaman istilah DevExpress; **belum dicocokkan dengan keluaran aplikasi lama**, karena data lokal untuk sebagian besar view report kosong).
+- **Pengurutan.** Nilai diurutkan menaik menurut tipe (angka, tanggal, teks tanpa membedakan huruf); `SortBySummaryInfo` lama dipetakan ke urutan menurut ukuran bantu (`URUTAN`). `SortMode` lain (9 pemakaian) tidak ditiru.
+- **Sumber data.** View `VW_REPORT_DEBITUR_LOAD`, `VW_REPORT_FLOWRATE_*`, dan `VW_REPORT_DAILY_TRACKING_FULL` kosong di salinan lokal, dan sebagian besar SP kustom mengembalikan sedikit atau nol baris; tampilan dan total pada data berukuran produksi **belum dibandingkan** dengan layar lama.
+- **Batas.** 200.000 kelompok data (R2), 400.000 sel hasil; di atasnya dipotong dengan pesan.
+- **`SP_REPORT_WAS_IS_ANALYSIS` (Was Is Report) sangat lambat**: 193 detik untuk rentang satu hari di salinan lokal (40 ribu pinjaman). Tidak dijalankan di tes; perlu ditinjau/diindeks sebelum dipakai di produksi (lihat `docs/QUERY-REGISTRY.md`).
+- Timeout SP kustom mengikuti nilai lama (dibagi sepuluh bila > 3600), mis. 1000 detik; semuanya lewat batas 6 report bersamaan.
+
 ## Status
 
 | Item | Status |
 |---|---|
 | Inventaris definisi dan jenis mesin | selesai |
-| R1 Daftar dinamis | selesai (15 dari 26 di set GEN; set lain isinya pivot/kustom) |
-| R1b `PV_COND` (4 report recovery/KPM) + Letter Status | belum |
-| R2 Pivot dinamis | belum |
-| R3 Pivot dari SP (ekstraksi tata letak) | belum |
+| R1 Daftar dinamis | selesai |
+| R2 Pivot dinamis | selesai (belum dibandingkan dengan keluaran lama pada data nyata) |
+| R3 Pivot dari SP | selesai untuk 53 kelas; 1 dengan laporan berpita (`PV_Alasan_NPL`: pivot + daftar alasan) belum |
+| R1b `PV_COND` (4 report recovery/KPM) | belum |
+| Collector Productivity (+ Recovery) — laporan berpita dari `usp_ViewReportCollProd` | belum |
+| Letter Status Report (filter dari dua view) | belum |

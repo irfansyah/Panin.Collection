@@ -1,4 +1,5 @@
 using System.Globalization;
+using Panin.Application.Reports.Pivot;
 
 namespace Panin.Application.Reports;
 
@@ -12,16 +13,16 @@ public sealed record ReportParseResult(ReportDefinition? Definition, ReportKind 
 /// </summary>
 public static class ReportDefinitionParser
 {
-    public static ReportParseResult Parse(string id, string title, string? columnList, string? rowList, string? dataList, string? filterList, string? cond, string? assemblyObj, DateOnly today)
+    public static ReportParseResult Parse(string id, string title, string? columnList, string? rowList, string? dataList, string? filterList, string? cond, string? assemblyObj, DateOnly today, string? setting = null, ICustomPivotCatalog? custom = null)
     {
+        CustomPivotSpec? spec = null;
         if (!string.IsNullOrWhiteSpace(assemblyObj))
         {
-            return new(null, ReportKind.Custom, "Laporan kustom (pivot dari SP) belum dimigrasi");
-        }
-
-        if (!string.IsNullOrWhiteSpace(rowList) && !string.IsNullOrWhiteSpace(dataList))
-        {
-            return new(null, ReportKind.Pivot, "Laporan pivot belum dimigrasi");
+            spec = custom?.Find(assemblyObj.Trim());
+            if (spec is null)
+            {
+                return new(null, ReportKind.Custom, "Laporan kustom ini belum dimigrasi");
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(cond))
@@ -29,9 +30,22 @@ public static class ReportDefinitionParser
             return new(null, ReportKind.List, "Memakai kondisi kustom (PV_COND) yang belum didukung");
         }
 
-        var columns = new List<ReportColumn>();
+        var isPivot = spec is not null || (!string.IsNullOrWhiteSpace(rowList) && !string.IsNullOrWhiteSpace(dataList));
         string? view = null;
-        foreach (var entry in Entries(columnList))
+        PivotLayout? pivot = spec?.Layout;
+        var columns = new List<ReportColumn>();
+        if (isPivot && spec is null)
+        {
+            var parsedPivot = ParsePivot(columnList, rowList!, dataList!, setting, ref view, out var pivotError);
+            if (parsedPivot is null)
+            {
+                return new(null, ReportKind.Pivot, pivotError);
+            }
+
+            pivot = parsedPivot;
+        }
+
+        foreach (var entry in isPivot ? Enumerable.Empty<string>() : Entries(columnList))
         {
             if (!TryField(entry, out var v, out var f, out var rest, out var error))
             {
@@ -48,7 +62,7 @@ public static class ReportDefinitionParser
             columns.Add(new ReportColumn(f, caption, parts.Length > 1 ? ParseSummary(parts[1]) : ReportSummary.None));
         }
 
-        if (columns.Count == 0 || view is null)
+        if (spec is null && (view is null || (!isPivot && columns.Count == 0)))
         {
             return Unavailable("Tidak ada kolom");
         }
@@ -87,7 +101,12 @@ public static class ReportDefinitionParser
             seq += filter.ParamCount;
         }
 
-        var definition = new ReportDefinition(id, title, view, columns, filters);
+        var definition = new ReportDefinition(id, title, view ?? spec!.Procedure, columns, filters, pivot, spec);
+        if (spec is not null && definition.ParamCount != spec.ParamCount)
+        {
+            return Unavailable($"SP {spec.Procedure} menerima {spec.ParamCount} parameter, filter report menghasilkan {definition.ParamCount}");
+        }
+
         foreach (var filter in filters)
         {
             if (filter.OptionDependsOnInvalid(definition.ParamCount))
@@ -96,10 +115,96 @@ public static class ReportDefinitionParser
             }
         }
 
-        return new(definition, ReportKind.List, null);
+        return new(definition, isPivot ? ReportKind.Pivot : ReportKind.List, null);
 
-        static ReportParseResult Unavailable(string reason) => new(null, ReportKind.List, reason);
+        ReportParseResult Unavailable(string reason) => new(null, isPivot ? ReportKind.Pivot : ReportKind.List, reason);
     }
+
+    // Susunan pivot dinamis: PV_COLUMNLIST = field kolom, PV_ROWLIST = field baris, PV_DATALIST = ukuran.
+    // Atribut field: Judul:interval (baris/kolom: year|month|day|date); ukuran: Judul:agregat:tampilkanTotal (agregat: sum|avg|count|min|max|col%|row%).
+    private static PivotLayout? ParsePivot(string? columnList, string rowList, string dataList, string? setting, ref string? view, out string error)
+    {
+        error = string.Empty;
+        var rows = new List<PivotField>();
+        var cols = new List<PivotField>();
+        var measures = new List<PivotMeasure>();
+        foreach (var (list, target) in new[] { (rowList, rows), (columnList, cols) })
+        {
+            foreach (var entry in Entries(list))
+            {
+                if (!TryField(entry, out var v, out var f, out var rest, out error))
+                {
+                    return null;
+                }
+
+                if (!SameView(ref view, v))
+                {
+                    error = "Field pivot berasal dari lebih dari satu view";
+                    return null;
+                }
+
+                var parts = rest.Split(':', 3);
+                var caption = parts.Length > 0 && parts[0].Trim().Length > 0 ? parts[0].Trim() : f;
+                target.Add(new PivotField(f, caption, parts.Length > 1 ? ParseInterval(parts[1]) : PivotInterval.None));
+            }
+        }
+
+        foreach (var entry in Entries(dataList))
+        {
+            if (!TryField(entry, out var v, out var f, out var rest, out error))
+            {
+                return null;
+            }
+
+            if (!SameView(ref view, v))
+            {
+                error = "Field pivot berasal dari lebih dari satu view";
+                return null;
+            }
+
+            var parts = rest.Split(':', 4);
+            var caption = parts.Length > 0 && parts[0].Trim().Length > 0 ? parts[0].Trim() : f;
+            var aggregate = parts.Length > 1 ? ParseAggregate(parts[1]) : PivotAggregate.Sum;
+            var grandTotal = parts.Length <= 2 || !string.Equals(parts[2].Trim(), "false", StringComparison.OrdinalIgnoreCase);
+            measures.Add(new PivotMeasure(f, caption, aggregate, ShowGrandTotal: grandTotal));
+        }
+
+        if (measures.Count == 0 || (rows.Count == 0 && cols.Count == 0))
+        {
+            error = "Pivot tanpa ukuran atau tanpa field baris/kolom";
+            return null;
+        }
+
+        // PV_SETTING "a:b": a = tampilkan subtotal baris (ShowRowTotals), b = boleh seret (diabaikan).
+        var showTotals = true;
+        var settingParts = (setting ?? string.Empty).Split(':');
+        if (settingParts.Length >= 2 && bool.TryParse(settingParts[0], out var parsed))
+        {
+            showTotals = parsed;
+        }
+
+        return new PivotLayout(rows, cols, measures, RowTotals: showTotals);
+    }
+
+    private static PivotInterval ParseInterval(string text) => text.Trim().ToLowerInvariant() switch
+    {
+        "year" => PivotInterval.Year,
+        "month" => PivotInterval.Month,
+        "day" => PivotInterval.Day,
+        "date" => PivotInterval.Date,
+        _ => PivotInterval.None,
+    };
+
+    private static PivotAggregate ParseAggregate(string text) => text.Trim().ToLowerInvariant() switch
+    {
+        "avg" => PivotAggregate.Average,
+        "count" => PivotAggregate.Count,
+        "min" => PivotAggregate.Min,
+        "max" => PivotAggregate.Max,
+        "col%" => PivotAggregate.PercentOfColumn,
+        "row%" => PivotAggregate.PercentOfRow,
+        _ => PivotAggregate.Sum,
+    };
 
     /// <summary>Memecah daftar entri: koma memisahkan, <c>,,</c> adalah koma literal di dalam entri.</summary>
     public static IEnumerable<string> Entries(string? list)

@@ -1,0 +1,71 @@
+@using Panin.Application.Reports.Pivot
+
+@* Tabel pivot bertingkat. Menampilkan paling banyak MaxCells sel; selebihnya hanya lewat ekspor, agar DOM sirkuit tetap kecil. *@
+<div class="overflow-auto rounded-lg border border-slate-200 bg-white">
+    <table class="min-w-full border-collapse text-sm">
+        <thead class="bg-slate-100 text-slate-700">
+            @{
+                var headers = PivotLayoutView.ColumnHeaders(Result);
+                var headerLevels = Math.Max(1, headers.Count);
+            }
+            @for (var level = 0; level < headerLevels; level++)
+            {
+                <tr>
+                    @if (level == 0)
+                    {
+                        <th rowspan="@headerLevels" colspan="@PivotLayoutView.RowHeaderWidth(Result)" class="border border-slate-200 px-3 py-2 text-left align-bottom font-semibold">
+                            @(string.Join(" › ", Result.RowCaptions))
+                            @if (Result.VisibleMeasures.Count == 1 && Result.ColumnCaptions.Count > 0)
+                            {
+                                <span class="block text-xs font-normal text-slate-500">@Result.VisibleMeasures[0].Caption</span>
+                            }
+                        </th>
+                    }
+
+                    @if (headers.Count > 0)
+                    {
+                        foreach (var cell in headers[level])
+                        {
+                            <th colspan="@cell.ColSpan" rowspan="@cell.RowSpan" class="@((cell.Total ? "bg-slate-200 " : string.Empty) + "border border-slate-200 px-3 py-2 text-center font-semibold whitespace-nowrap")">@cell.Text</th>
+                        }
+                    }
+                </tr>
+            }
+        </thead>
+        <tbody>
+            @for (var i = 0; i < _rowCount; i++)
+            {
+                var line = Result.Rows[i];
+                var totalLine = line.Kind != PivotLineKind.Leaf;
+                <tr class="@(totalLine ? "bg-slate-50 font-semibold" : string.Empty)">
+                    @foreach (var cell in PivotLayoutView.RowHeaders(Result, i))
+                    {
+                        <th rowspan="@cell.RowSpan" colspan="@cell.ColSpan" scope="row" class="@((cell.Total ? "bg-slate-100 " : "bg-white ") + "border border-slate-200 px-3 py-1.5 text-left align-top font-medium whitespace-nowrap")">@cell.Text</th>
+                    }
+
+                    @for (var j = 0; j < Result.Columns.Count; j++)
+                    {
+                        var col = Result.Columns[j];
+                        <td class="@((totalLine || col.Kind != PivotLineKind.Leaf ? "bg-slate-50 font-semibold " : string.Empty) + "border border-slate-200 px-3 py-1.5 text-right tabular-nums whitespace-nowrap")">@Result.Describe(Result.Cells[i][j], col.MeasureIndex)</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (_rowCount < Result.Rows.Count)
+{
+    <p class="mt-2 text-xs text-amber-800" role="status">Menampilkan @_rowCount.ToString("N0") dari @Result.Rows.Count.ToString("N0") baris; gunakan Ekspor Excel untuk seluruhnya.</p>
+}
+
+@code {
+    private int _rowCount;
+
+    [Parameter, EditorRequired] public PivotResult Result { get; set; } = default!;
+
+    [Parameter] public int MaxCells { get; set; } = 30_000;
+
+    protected override void OnParametersSet()
+        => _rowCount = Result.Columns.Count == 0 ? Result.Rows.Count : Math.Min(Result.Rows.Count, Math.Max(1, MaxCells / Result.Columns.Count));
+}

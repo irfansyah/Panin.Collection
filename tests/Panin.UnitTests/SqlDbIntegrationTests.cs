@@ -94,10 +94,12 @@ public class SqlDbIntegrationTests
         var table = await db.QueryTableAsync("SELECT PV_ID, PV_DESC, PV_COLUMNLIST, PV_ROWLIST, PV_DATALIST, PV_FILTERLIST, PV_COND, AssemblyObj FROM VW_REPORTSET", []);
         var failures = new List<string>();
         var supported = 0;
+        var customRun = 0;
+        var customRows = 0;
         foreach (System.Data.DataRow r in table.Rows)
         {
             string? T(string c) => r[c] is DBNull ? null : Convert.ToString(r[c], System.Globalization.CultureInfo.InvariantCulture);
-            var parsed = Panin.Application.Reports.ReportDefinitionParser.Parse(T("PV_ID")!, T("PV_DESC") ?? string.Empty, T("PV_COLUMNLIST"), T("PV_ROWLIST"), T("PV_DATALIST"), T("PV_FILTERLIST"), T("PV_COND"), T("AssemblyObj"), DateOnly.FromDateTime(DateTime.Today));
+            var parsed = Panin.Application.Reports.ReportDefinitionParser.Parse(T("PV_ID")!, T("PV_DESC") ?? string.Empty, T("PV_COLUMNLIST"), T("PV_ROWLIST"), T("PV_DATALIST"), T("PV_FILTERLIST"), T("PV_COND"), T("AssemblyObj"), DateOnly.FromDateTime(DateTime.Today), null, new Panin.Infrastructure.Reports.Custom.CustomPivotCatalog());
             if (parsed.Definition is not { } def)
             {
                 continue;
@@ -107,7 +109,33 @@ public class SqlDbIntegrationTests
             try
             {
                 var args = new object?[def.ParamCount];
-                await db.QueryTableAsync(Panin.Application.Reports.ReportSqlBuilder.Select(def, 3), args);
+                if (def.Custom is { Procedure: "SP_REPORT_WAS_IS_ANALYSIS" })
+                {
+                    // Terukur 193 detik untuk rentang satu hari di salinan lokal (docs/QUERY-REGISTRY.md); tidak dijalankan di tes.
+                    customRun++;
+                }
+                else if (def.Custom is { } spec)
+                {
+                    var set = await db.QueryDataSetAsync(spec.CallSql, args);
+                    var data = set.Tables[spec.DataTable];
+                    var built = Panin.Application.Reports.Pivot.PivotBuilder.Build(def.Pivot!, Panin.Application.Reports.Pivot.PivotQuery.FromRows(def.Pivot!, data));
+                    customRun++;
+                    customRows += data.Rows.Count;
+                    _ = built;
+                }
+                else if (def.Pivot is not null)
+                {
+                    var probe = await db.QueryTableAsync(Panin.Application.Reports.Pivot.PivotQuery.ProbeSql(def), []);
+                    var types = Panin.Application.Reports.Pivot.PivotQuery.TypesFromProbe(def, probe);
+                    var grouped = await db.QueryTableAsync(Panin.Application.Reports.Pivot.PivotQuery.Select(def, types, 50), args);
+                    var (records, _) = Panin.Application.Reports.Pivot.PivotQuery.Read(def.Pivot, grouped, 50);
+                    Panin.Application.Reports.Pivot.PivotBuilder.Build(def.Pivot, records);
+                }
+                else
+                {
+                    await db.QueryTableAsync(Panin.Application.Reports.ReportSqlBuilder.Select(def, 3), args);
+                }
+
                 foreach (var f in def.Filters.Where(f => f.OptionsSql is not null))
                 {
                     await db.QueryTableAsync(f.OptionsSql!, args);
@@ -120,6 +148,7 @@ public class SqlDbIntegrationTests
         }
 
         Assert.True(supported > 0, "tidak ada report daftar yang didukung");
-        Assert.True(failures.Count == 0, $"{failures.Count} dari {supported} report gagal:{Environment.NewLine}{string.Join(Environment.NewLine, failures)}");
+        Assert.True(failures.Count == 0, $"{failures.Count} dari {supported} report gagal ({customRun} kustom jalan, {customRows} baris):{Environment.NewLine}{string.Join(Environment.NewLine, failures)}");
+        Assert.True(customRun >= 40, $"hanya {customRun} report kustom yang didukung");
     }
 }

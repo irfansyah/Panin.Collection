@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Panin.Application.Abstractions;
 using Panin.Application.Modules;
 using Panin.Application.Reports;
+using Panin.Application.Reports.Pivot;
 using Panin.Infrastructure.Data;
 
 namespace Panin.Infrastructure.Reports;
@@ -13,7 +14,7 @@ namespace Panin.Infrastructure.Reports;
 /// satu view dengan parameter (lihat <c>docs/REPORTS.md</c>). Hanya membaca. Report pivot, kustom, atau yang memakai kondisi kustom
 /// ditandai belum tersedia dengan alasannya, tidak disembunyikan.
 /// </summary>
-public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache, ILogger<ReportService> logger) : IReportService
+public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache, ICustomPivotCatalog custom, ILogger<ReportService> logger) : IReportService
 {
     private static readonly TimeSpan DefinitionCache = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan OptionCache = TimeSpan.FromMinutes(2);
@@ -23,13 +24,13 @@ public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache,
     private static readonly SemaphoreSlim Gate = new(6, 6);
 
     public const string SetSql = """
-        SELECT PV_ID, PV_DESC, PV_COLUMNLIST, PV_ROWLIST, PV_DATALIST, PV_FILTERLIST, PV_COND, AssemblyObj
+        SELECT PV_ID, PV_DESC, PV_COLUMNLIST, PV_ROWLIST, PV_DATALIST, PV_FILTERLIST, PV_COND, AssemblyObj, PV_SETTING
         FROM VW_REPORTSET WHERE SETID = @1 ORDER BY PV_DESC
         """;
 
     // Hanya report yang memang tercantum di sebuah set menu yang dapat dibuka lewat id.
     public const string OneSql = """
-        SELECT TOP 1 PV_ID, PV_DESC, PV_COLUMNLIST, PV_ROWLIST, PV_DATALIST, PV_FILTERLIST, PV_COND, AssemblyObj
+        SELECT TOP 1 PV_ID, PV_DESC, PV_COLUMNLIST, PV_ROWLIST, PV_DATALIST, PV_FILTERLIST, PV_COND, AssemblyObj, PV_SETTING
         FROM VW_REPORTSET WHERE PV_ID = @1
         """;
 
@@ -106,6 +107,50 @@ public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache,
         }
     }
 
+    public async Task<PivotRunResult> RunPivotAsync(string moduleId, ReportDefinition report, object?[] values, CancellationToken ct = default)
+    {
+        if (report.Pivot is not { } layout)
+        {
+            throw new InvalidOperationException("Report ini bukan pivot");
+        }
+
+        var (args, errors) = ReportSqlBuilder.Coerce(report, values);
+        if (errors.Count > 0)
+        {
+            throw new ArgumentException(string.Join("; ", errors));
+        }
+
+        await Gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var db = await dbs.GetDataDbAsync(moduleId, ct).ConfigureAwait(false);
+            if (report.Custom is { } spec)
+            {
+                var set = await db.QueryDataSetAsync(spec.CallSql, args, new DbOptions(TimeoutSeconds: spec.TimeoutSeconds), ct).ConfigureAwait(false);
+                if (set.Tables.Count <= spec.DataTable)
+                {
+                    throw new InvalidOperationException($"SP {spec.Procedure} tidak mengembalikan result set ke-{spec.DataTable + 1}");
+                }
+
+                var subtitle = spec.SubtitleColumn is { } col && spec.DataTable > 0 && set.Tables[0].Rows.Count > 0 && set.Tables[0].Columns.Contains(col)
+                    ? System.Convert.ToString(set.Tables[0].Rows[0][col], CultureInfo.InvariantCulture)?.Trim()
+                    : null;
+                return new PivotRunResult(PivotBuilder.Build(layout, PivotQuery.FromRows(layout, set.Tables[spec.DataTable])), false, subtitle);
+            }
+
+            var types = await cache.GetOrCreateAsync($"rpt-types:{moduleId}:{report.Id}", DefinitionCache, async () =>
+                PivotQuery.TypesFromProbe(report, await db.QueryTableAsync(PivotQuery.ProbeSql(report), [], new DbOptions(TimeoutSeconds: 60)).ConfigureAwait(false))).ConfigureAwait(false)
+                ?? throw new InvalidOperationException("Tipe kolom pivot tidak terbaca");
+            var table = await db.QueryTableAsync(PivotQuery.Select(report, types), args, new DbOptions(TimeoutSeconds: 180), ct).ConfigureAwait(false);
+            var (records, truncated) = PivotQuery.Read(layout, table);
+            return new PivotRunResult(PivotBuilder.Build(layout, records), truncated);
+        }
+        finally
+        {
+            Gate.Release();
+        }
+    }
+
     public static ReportResult Map(ReportDefinition report, DataTable table, int max)
     {
         var truncated = table.Rows.Count > max;
@@ -133,8 +178,8 @@ public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache,
     {
         var id = Text(r, "PV_ID") ?? string.Empty;
         var result = ReportDefinitionParser.Parse(id, Text(r, "PV_DESC") ?? id, Text(r, "PV_COLUMNLIST"), Text(r, "PV_ROWLIST"), Text(r, "PV_DATALIST"),
-            Text(r, "PV_FILTERLIST"), Text(r, "PV_COND"), Text(r, "AssemblyObj"), today);
-        if (result.Kind == ReportKind.List && result.UnavailableReason is not null)
+            Text(r, "PV_FILTERLIST"), Text(r, "PV_COND"), Text(r, "AssemblyObj"), today, Text(r, "PV_SETTING"), custom);
+        if (result.UnavailableReason is not null && result.Kind != ReportKind.Custom)
         {
             logger.LogInformation("Report {ReportId} belum tersedia: {Reason}", id, result.UnavailableReason);
         }

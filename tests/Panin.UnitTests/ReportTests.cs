@@ -86,14 +86,6 @@ public class ReportParserTests
         Assert.Contains(reasonPart, r.UnavailableReason, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
-    public void Pivot_definitions_are_reported_as_pending()
-    {
-        var r = Parse("@[V|A]:A", rows: "@[V|R]:R", data: "@[V|D]:D");
-        Assert.Equal(ReportKind.Pivot, r.Kind);
-        Assert.NotNull(r.UnavailableReason);
-    }
-
     [Theory]
     [InlineData("SELECT a, b FROM T WHERE c=@2 ORDER BY b", true)]
     [InlineData("select code,  name from VW_RFKCU", true)]

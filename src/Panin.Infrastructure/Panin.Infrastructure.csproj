@@ -22,4 +22,8 @@
   <PropertyGroup>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Reports\Custom\pivot-layouts.json" LogicalName="Panin.Infrastructure.Reports.Custom.pivot-layouts.json" />
+  </ItemGroup>
+
 </Project>

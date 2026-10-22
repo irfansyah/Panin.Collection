@@ -1,3 +1,5 @@
+using Panin.Application.Reports.Pivot;
+
 namespace Panin.Application.Reports;
 
 public enum ReportKind
@@ -76,8 +78,12 @@ public sealed record ReportDefinition(
     string Title,
     string View,
     IReadOnlyList<ReportColumn> Columns,
-    IReadOnlyList<ReportFilter> Filters)
+    IReadOnlyList<ReportFilter> Filters,
+    PivotLayout? Pivot = null,
+    CustomPivotSpec? Custom = null)
 {
+    public bool IsPivot => Pivot is not null;
+
     public int ParamCount => Filters.Sum(f => f.ParamCount);
 }
 
@@ -104,6 +110,10 @@ public static class ReportLimits
     public const int ExportRows = 100_000;
 }
 
+/// <param name="GroupsTruncated">True bila jumlah kelompok data melampaui batas dan hasil dipotong.</param>
+/// <param name="Subtitle">Keterangan di atas laporan (mis. periode) yang dikembalikan SP kustom.</param>
+public sealed record PivotRunResult(PivotResult Table, bool GroupsTruncated, string? Subtitle = null);
+
 public interface IReportService
 {
     /// <summary>Report dalam satu set menu (<c>GEN</c>, <c>DT</c>, ...), urut judul.</summary>
@@ -114,6 +124,9 @@ public interface IReportService
 
     /// <summary>Pilihan filter daftar; <paramref name="values"/> memuat nilai filter lain (induk) pada posisi parameternya.</summary>
     Task<IReadOnlyList<ReportOption>> GetOptionsAsync(string moduleId, ReportDefinition report, ReportFilter filter, object?[] values, CancellationToken ct = default);
+
+    /// <summary>Menjalankan report pivot dinamis (agregasi di SQL, penyusunan di server).</summary>
+    Task<PivotRunResult> RunPivotAsync(string moduleId, ReportDefinition report, object?[] values, CancellationToken ct = default);
 
     /// <param name="forExport">True memakai batas ekspor, bukan batas tampilan.</param>
     Task<ReportResult> RunAsync(string moduleId, ReportDefinition report, object?[] values, bool forExport, CancellationToken ct = default);

@@ -1,0 +1,3213 @@
+{
+  "PV_Alasan_NPL": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Alasan_NPL",
+    "irregular": "1 panggilan data (Set); laporan berpita atau lebih dari satu dataset"
+  },
+  "PV_DailyTracking_Branch": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_Branch",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_BY_BRANCH",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "BRANCH",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_DailyTracking_Branch_PGroup": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_Branch_PGroup",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_BY_BRANCH_PGROUP",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "BRANCH",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_DailyTracking_Branch_PID": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_Branch_PID",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_BY_BRANCH_PID",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "BRANCH",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC",
+        "visible": false
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT TYPE",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "PRODUCT",
+        "field": "PRODUCTNAME"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 4,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_DailyTracking_Branch_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_Branch_PType",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_BY_BRANCH_PTYPE",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "BRANCH",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "PRODUCT TYPE",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 4,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_DailyTracking_National": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_National",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_NATIONAL",
+    "params": 2,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_DailyTracking_National_PGroup": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_National_PGroup",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_NATIONAL_PGROUP",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_DailyTracking_National_PID": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_National_PID",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_NATIONAL_PID",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "PRODUCT TYPE",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC",
+        "visible": false
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT",
+        "field": "PRODUCTNAME"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_DailyTracking_National_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_National_PType",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_NATIONAL_PTYPE",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT TYPE",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_DailyTracking_Region": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_Region",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_BY_REGION",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "REGION",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "cellFormat": "#,#.00",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "cellFormat": "#,#.00",
+        "field": "CERUKAN"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_DailyTracking_Region_PGroup": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_Region_PGroup",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_BY_REGION_PGROUP",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "REGION",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "cellFormat": "#,#.00",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "cellFormat": "#,#.00",
+        "field": "CERUKAN"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_DailyTracking_Region_PID": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_Region_PID",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_BY_REGION_PID",
+    "params": 5,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "REGION",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC",
+        "visible": false
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT TYPE",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "PRODUCT",
+        "field": "PRODUCTNAME"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 4,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "cellFormat": "#,#.00",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "cellFormat": "#,#.00",
+        "field": "CERUKAN"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_DailyTracking_Region_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_Region_PType",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_BY_REGION_PTYPE",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "REGION",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "PRODUCT TYPE",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 4,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "cellFormat": "#,#.00",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Daily_PRK_Branch": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Daily_PRK_Branch",
+    "sp": "SP_VW_REPORT_DAILY_PRK_BRANCH",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "BRANCH",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Daily_PRK_Branch_PID": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Daily_PRK_Branch_PID",
+    "sp": "SP_VW_REPORT_DAILY_PRK_BRANCH_PID",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "BRANCH",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT TYPE",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "PRODUCT",
+        "field": "PRODUCTNAME"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Daily_PRK_National": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Daily_PRK_National",
+    "sp": "SP_VW_REPORT_DAILY_PRK_NATIONAL",
+    "params": 2,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "cellFormat": "#,#.00",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "cellFormat": "#,#.00",
+        "field": "CERUKAN"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Daily_PRK_National_PID": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Daily_PRK_National_PID",
+    "sp": "SP_VW_REPORT_DAILY_PRK_NATIONAL_PID",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "PRODUCT TYPE",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT",
+        "field": "PRODUCTNAME"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_Branch": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_Branch",
+    "sp": "SP_VW_REPORT_DELINQUENCY_BRANCH",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Branch Name",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_Branch_PGroup": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_Branch_PGroup",
+    "sp": "SP_VW_REPORT_DELINQUENCY_BRANCH_PGROUP",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Branch",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_Branch_PID": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_Branch_PID",
+    "sp": "SP_VW_REPORT_DELINQUENCY_BRANCH_PID",
+    "params": 5,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Branch",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Group",
+        "field": "PG_DESC",
+        "visible": false
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Product",
+        "field": "PRODUCTNAME"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_Branch_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_Branch_PType",
+    "sp": "SP_VW_REPORT_DELINQUENCY_BRANCH_PTYPE",
+    "params": 5,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Branch",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_National": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_National",
+    "sp": "SP_VW_REPORT_DELINQUENCY_NATIONAL",
+    "params": 2,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_National_PGroup": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_National_PGroup",
+    "sp": "SP_VW_REPORT_DELINQUENCY_NATIONAL_PGROUP",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_National_PID": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_National_PID",
+    "sp": "SP_VW_REPORT_DELINQUENCY_NATIONAL_PID",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product",
+        "field": "PRODUCTNAME"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_National_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_National_PType",
+    "sp": "SP_VW_REPORT_DELINQUENCY_NATIONAL_PTYPE",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_Region": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_Region",
+    "sp": "SP_VW_REPORT_DELINQUENCY_REGION",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Region",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_Region_PGroup": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_Region_PGroup",
+    "sp": "SP_VW_REPORT_DELINQUENCY_REGION_PGROUP",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Region",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_Region_PID": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_Region_PID",
+    "sp": "SP_VW_REPORT_DELINQUENCY_REGION_PID",
+    "params": 5,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Region",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Product Group",
+        "field": "PG_DESC",
+        "visible": false
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Product",
+        "field": "PRODUCTNAME"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Delinquency_Region_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Delinquency_Region_PType",
+    "sp": "SP_VW_REPORT_DELINQUENCY_REGION_PTYPE",
+    "params": 5,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Region",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "Tunggakan",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Urutan",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "UNIT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Deliquency_Branch_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Deliquency_Branch_PType",
+    "sp": "SP_VW_REPORT_DEL_TYPE",
+    "params": 1,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "REGIONAL",
+        "field": "REGIONAL_NAME",
+        "grandTotal": false,
+        "totals": false
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "KCU",
+        "field": "BRANCH_CODE"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 4,
+        "caption": "DPD",
+        "field": "DPD_DESC"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "Tanggal",
+        "field": "_DATE",
+        "valueFormat": "dd MMM"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Count",
+        "field": "cnt"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Jml_Debitur": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Jml_Debitur",
+    "sp": "SP_VW_REPORT_JML_DEBITUR",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 1,
+    "periodColumn": "PERIODE",
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Keterangan",
+        "field": "KET"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Keterangan",
+        "field": "KOLEK_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "Periode",
+        "field": "PERIODE",
+        "sortBy": "THNBLN_ORDER"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Unit",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "%",
+        "cellFormat": "#,#.00",
+        "field": "UNIT_PERC"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "URUTAN",
+        "field": "THNBLN_ORDER",
+        "visible": false
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Kolek_Branch_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Kolek_Branch_PType",
+    "sp": "SP_VW_REPORT_DAILY_TRACKING_BY_BRANCH_PTYPE",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "BRANCH",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "PRODUCT TYPE",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "PA/NS",
+        "field": "APP_DESC"
+      },
+      {
+        "area": "row",
+        "index": 4,
+        "caption": "DPD",
+        "field": "DPD_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "AS_OF_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,#.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "PLAFOND",
+        "cellFormat": "#,#.00",
+        "field": "PLAFOND"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "OUTSTANDING",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "CERUKAN",
+        "field": "CERUKAN"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Kolek_National_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Kolek_National_PType",
+    "sp": "SP_VW_REKAP_KOLEK",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 1,
+    "periodColumn": "PERIODE",
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "PERIODE",
+        "field": "PERIODE",
+        "sortBy": "THNBLN_ORDER"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "KOLEKTIBILITAS",
+        "field": "KOLEK_DESC"
+      },
+      {
+        "area": "column",
+        "index": 1,
+        "caption": "Kolect ",
+        "field": "KOLEK_DESC_2"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "OS",
+        "cellFormat": "#,#.00",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "%",
+        "cellFormat": "#,#.00",
+        "field": "OUTSTANDING_PERC"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "URUTAN 2",
+        "field": "URUTAN_2",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "URUTAN 3",
+        "field": "THNBLN_ORDER",
+        "visible": false
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Kolek_National_PType_Unit": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Kolek_National_PType_Unit",
+    "sp": "SP_VW_REKAP_KOLEK",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 1,
+    "periodColumn": "PERIODE",
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "PERIODE",
+        "field": "PERIODE",
+        "sortBy": "THNBLN_ORDER"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "KOLEKTIBILITAS",
+        "field": "KOLEK_DESC"
+      },
+      {
+        "area": "column",
+        "index": 1,
+        "caption": "Kolect ",
+        "field": "KOLEK_DESC_2"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "cellFormat": "#,##.00",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "%",
+        "cellFormat": "#,##.00",
+        "field": "UNIT_PERC"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "URUTAN",
+        "field": "URUTAN_2",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "Urutan 3",
+        "field": "THNBLN_ORDER",
+        "visible": false
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_Branch": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_Branch",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_BRANCH",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "KCU",
+        "field": "KCP_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Flow",
+        "field": "FR_DESC"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_Branch_PGroup": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_Branch_PGroup",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_BRANCH_PGROUP",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Branch",
+        "field": "KCP_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "FLow",
+        "field": "FR_DESC",
+        "sortMode": "None"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_Branch_PID": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_Branch_PID",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_BRANCH_PID",
+    "params": 5,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Branch",
+        "field": "KCP_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Product",
+        "field": "PRODUCTNAME"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "FLow",
+        "field": "FR_DESC",
+        "sortMode": "None"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "CNT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_Branch_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_Branch_PType",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_BRANCH_PTYPE",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Branch",
+        "field": "KCP_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "FLow",
+        "field": "FR_DESC",
+        "sortMode": "None"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_National": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_National",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_NATIONAL",
+    "params": 2,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Flow",
+        "field": "FR_DESC"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_National_PGroup": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_National_PGroup",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_NATIONAL_PGROUP",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "FLow",
+        "field": "FR_DESC",
+        "sortMode": "None"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_National_PID": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_National_PID",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_NATIONAL_PID",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product",
+        "field": "PRODUCTNAME"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "FLow",
+        "field": "FR_DESC",
+        "sortMode": "None"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_National_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_National_PType",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_NATIONAL_PTYPE",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "FLow",
+        "field": "FR_DESC",
+        "sortMode": "None"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_Region": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_Region",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_REGION",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Region",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Flow",
+        "field": "FR_DESC"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_Region_PGroup": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_Region_PGroup",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_REGION_PGROUP",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Region",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "FLow",
+        "field": "FR_DESC",
+        "sortMode": "None"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_Region_PID": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_Region_PID",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_REGION_PID",
+    "params": 5,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Region",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Product",
+        "field": "PRODUCTNAME"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "FLow",
+        "field": "FR_DESC",
+        "sortMode": "None"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_LeadingEdge_Region_PType": {
+    "class": "LOSCOLLECTION.Report.Template.PV_LeadingEdge_Region_PType",
+    "sp": "SP_VW_REPORT_LEADING_EDGE_REGION_PTYPE",
+    "params": 5,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Region",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Product Group",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "row",
+        "index": 2,
+        "caption": "Product Type",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "row",
+        "index": 3,
+        "caption": "FLow",
+        "field": "FR_DESC",
+        "sortMode": "None"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TANGGAL",
+        "field": "_DATE",
+        "valueFormat": "dd MMM yyyy"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "UNIT",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Mutasi_Macet": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Mutasi_Macet",
+    "sp": "SP_VW_REKAP_MUTASI_MACET_BRANCH",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 1,
+    "periodColumn": "PERIODE",
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Branch(KCU)",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "Periode",
+        "field": "PERIODE",
+        "sortBy": "THNBLN_ORDER"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Unit",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "URUTAN",
+        "field": "THNBLN_ORDER",
+        "visible": false
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Outs_Due_Npl": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Outs_Due_Npl",
+    "sp": "SP_VW_REKAP_KOLEK_BRANCH",
+    "params": 2,
+    "timeoutSeconds": 1000,
+    "dataTable": 1,
+    "periodColumn": "PERIODE",
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Branch(KCU)",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "TOTAL/NPL",
+        "field": "KOLEK_DESC",
+        "sortBy": "URUTAN"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Unit",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "%",
+        "field": "UNIT_PERC"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "URUTAN",
+        "field": "URUTAN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "Rp(Jutaan)",
+        "field": "OUTSTANDING"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "%",
+        "field": "OUTSTANDING_PERC"
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "PV_Rincian_NPL": {
+    "class": "LOSCOLLECTION.Report.Template.PV_Rincian_NPL",
+    "sp": "SP_VW_REPORT_RINC_NPL",
+    "params": 4,
+    "timeoutSeconds": 1000,
+    "dataTable": 1,
+    "periodColumn": "PERIODE",
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Tenor",
+        "field": "TN_DESC",
+        "sortBy": "URUTAN_TN"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "Kategori",
+        "field": "RC_DESC",
+        "sortBy": "URUTAN_RC"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "Periode",
+        "field": "PERIODE",
+        "sortBy": "THNBLN_ORDER"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Unit",
+        "field": "UNIT"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "%",
+        "cellFormat": "#,#.00",
+        "field": "UNIT_PERC"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "URUTAN",
+        "field": "URUTAN_TN",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "URUTAN",
+        "field": "THNBLN_ORDER",
+        "visible": false
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "field": "URUTAN_RC",
+        "visible": false
+      }
+    ],
+    "options": {
+      "rowTotals": false,
+      "rowGrandTotals": false,
+      "columnTotals": false,
+      "columnGrandTotals": false
+    }
+  },
+  "Was_Is_Branch_PGroup": {
+    "class": "LOSCOLLECTION.Report.Template.Was_Is_Branch_PGroup",
+    "sp": "SP_VW_REPORT_WAS_IS_BRANCH_PGROUP",
+    "params": 5,
+    "timeoutSeconds": 1000,
+    "dataTable": 2,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "BRANCH",
+        "field": "BRANCH_NAME",
+        "visible": false
+      },
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "WAS",
+        "field": "DPDWAS"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC",
+        "visible": false
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "IS",
+        "field": "DPDIS"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Count",
+        "field": "CNT"
+      }
+    ],
+    "options": {}
+  },
+  "Was_Is_Branch_PID": {
+    "class": "LOSCOLLECTION.Report.Template.Was_Is_Branch_PID",
+    "sp": "SP_REPORT_WAS_IS_ANALYSIS",
+    "params": 7,
+    "timeoutSeconds": 1000,
+    "dataTable": 1,
+    "periodColumn": "KCU",
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "BRANCH",
+        "field": "BRANCH_NAME",
+        "visible": false
+      },
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "WAS",
+        "field": "DPDWAS"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC",
+        "visible": false
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "IS",
+        "field": "DPDIS"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Count",
+        "field": "CNT"
+      }
+    ],
+    "options": {}
+  },
+  "Was_Is_Branch_PType": {
+    "class": "LOSCOLLECTION.Report.Template.Was_Is_Branch_PType",
+    "sp": "SP_VW_REPORT_WAS_IS_BRANCH_PTYPE",
+    "params": 5,
+    "timeoutSeconds": 1000,
+    "dataTable": 2,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "BRANCH",
+        "field": "BRANCH_NAME",
+        "visible": false
+      },
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "WAS",
+        "field": "DPDWAS"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "PRODUCT GROUP",
+        "field": "PG_DESC",
+        "visible": false
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "IS",
+        "field": "DPDIS"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Count",
+        "field": "CNT"
+      }
+    ],
+    "options": {}
+  },
+  "XtraReport2": {
+    "class": "LOSCOLLECTION.Report.Template.XtraReport2",
+    "sp": "SP_REPORT_WAS_IS_ANALYSIS",
+    "params": 3,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "WAS",
+        "field": "DPDWAS"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "IS",
+        "field": "DPDIS"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Count",
+        "field": "CNT"
+      }
+    ],
+    "options": {}
+  },
+  "XtraReport3": {
+    "class": "LOSCOLLECTION.Report.Template.XtraReport3",
+    "sp": "SP_REPORT_LAG_DELINQUENCY",
+    "params": 2,
+    "timeoutSeconds": 1000,
+    "dataTable": 0,
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "REGIONAL",
+        "field": "REGIONAL_NAME"
+      },
+      {
+        "area": "row",
+        "index": 1,
+        "caption": "KCU",
+        "field": "KCU_NAME"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "PERIODE",
+        "field": "_MONTH"
+      },
+      {
+        "area": "column",
+        "index": 1,
+        "caption": "GROUP PRODUK",
+        "field": "PG_DESC"
+      },
+      {
+        "area": "column",
+        "index": 2,
+        "caption": "PRODUK TIPE",
+        "field": "PT_DESC"
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "field": "OS"
+      },
+      {
+        "area": "data",
+        "index": 1,
+        "caption": "OS_DUE",
+        "field": "OS_DUE"
+      },
+      {
+        "area": "data",
+        "index": 2,
+        "caption": "INT_DUE",
+        "field": "INT_DUE"
+      },
+      {
+        "area": "data",
+        "index": 3,
+        "caption": "PRINCIPLE_DUE",
+        "field": "PRINCIPLE_DUE"
+      }
+    ],
+    "options": {}
+  }
+}
