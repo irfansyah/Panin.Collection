@@ -40,8 +40,7 @@ aplikasi baru belum setara aplikasi lama, jadi **cutover belum boleh** (`docs/CU
 ## Paritas komponen DevExpress
 
 Aplikasi lama memakai DevExpress luas (48 grid, 3 pivot, 116 kelas XtraReport, TreeList, HtmlEditor, dll.). Hasil pemeriksaan di `docs/DEVEXPRESS-PARITY.md`:
-`DataGrid` baru **belum** setara untuk fitur yang dipakai lama: baris filter per kolom (26 berkas), pengelompokan (7 halaman), baris total (9), ekspor CSV/PDF/RTF, cetak.
-Pekerjaan G1–G6 ada di dokumen itu; butuh jawaban operasional apakah ekspor PDF dan RTF masih dipakai.
+`DataGrid` sudah dilengkapi (G1–G6): filter per kolom, pengelompokan, baris total, ekspor CSV, cetak, warna baris. **Sisa:** ekspor PDF/RTF/TXT, menunggu jawaban operasional apakah masih dipakai; cetak ke printer fisik belum diuji.
 
 ## Komponen pihak ketiga
 

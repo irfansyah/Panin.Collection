@@ -169,7 +169,7 @@
             new() { Header = "Nama", Value = m => m.Name, Template = m => @<button type="button" @onclick="() => DrillDownAsync(m)" class="text-left font-medium text-sky-800 hover:underline">@m.Name</button> },
             new() { Header = "User ID", Value = m => m.UserId },
             new() { Header = "Group", Value = m => m.Group },
-            new() { Header = "Jml Debitur", Value = m => m.DebitorCount, Numeric = true },
+            new() { Header = "Jml Debitur", Value = m => m.DebitorCount, Numeric = true, Summary = GridSummary.Sum },
             new() { Header = "Cabang", Value = m => m.Branch },
         ];
         _debitorColumns =

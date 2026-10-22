@@ -24,7 +24,7 @@
     <header class="flex items-center gap-3 bg-sky-950 px-3 py-2 text-white shadow-md sm:px-4">
         @if (_modules.Count > 0)
         {
-            <button type="button" @onclick="() => _menuOpen = !_menuOpen" aria-label="Buka menu" aria-expanded="@_menuOpen"
+            <button type="button" @onclick="() => _menuOpen = !_menuOpen" aria-label="Buka menu" aria-expanded="@(_menuOpen ? "true" : "false")"
                     class="rounded-lg p-2 text-sky-100 hover:bg-white/10 lg:hidden">
                 <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>

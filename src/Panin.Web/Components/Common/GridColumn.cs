@@ -26,5 +26,8 @@ public sealed class GridColumn<TItem>
     /// <summary>Kolom hanya tampilan (tombol aksi): tidak ikut urut, filter, dan ekspor.</summary>
     public bool ActionOnly { get; init; }
 
+    /// <summary>Ringkasan pada baris total dan baris kelompok (angka dihitung dari <see cref="Value"/>).</summary>
+    public GridSummary Summary { get; init; }
+
     public string Text(TItem item) => Display?.Invoke(item) ?? Convert.ToString(Value(item), System.Globalization.CultureInfo.CurrentCulture) ?? string.Empty;
 }

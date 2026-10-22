@@ -1,0 +1,11 @@
+@inject IJSRuntime JS
+
+<button type="button" @onclick="PrintAsync"
+        class="no-print rounded-md border border-slate-300 bg-white px-2 py-1 font-medium text-slate-600 hover:bg-slate-100">
+    Cetak
+</button>
+
+@code {
+    // Membuka dialog cetak browser; gaya cetak (tailwind.css) menyembunyikan menu, header, dan kontrol.
+    private async Task PrintAsync() => await JS.InvokeVoidAsync("window.print");
+}

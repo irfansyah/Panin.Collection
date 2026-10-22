@@ -109,7 +109,7 @@
             new() { Header = "Nomor Rekening", Value = r => r.AccountNo },
             new() { Header = "Nama Nasabah", Value = r => r.CustomerName },
             new() { Header = "Fasilitas", Value = r => r.Facility },
-            new() { Header = "Outstanding", Value = r => r.Outstanding, Display = r => r.Outstanding?.ToString("N0", Id), Numeric = true },
+            new() { Header = "Outstanding", Value = r => r.Outstanding, Display = r => r.Outstanding?.ToString("N0", Id), Numeric = true, Summary = GridSummary.Sum },
             new() { Header = "DPD", Value = r => r.Dpd, Numeric = true },
             new() { Header = "Kolektibilitas", Value = r => r.Collectibility },
             new() { Header = "Status Akhir", Value = r => r.LastAction },

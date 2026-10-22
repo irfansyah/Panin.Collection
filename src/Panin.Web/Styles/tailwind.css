@@ -98,3 +98,50 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+/* Cetak (G5): hanya isi halaman; menu, header, footer, dan kontrol disembunyikan. */
+@media print {
+    @page {
+        margin: 12mm;
+    }
+
+    body {
+        background: #fff;
+    }
+
+    header, aside, nav, footer, .no-print, #blazor-error-ui {
+        display: none !important;
+    }
+
+    .h-dvh {
+        display: block;
+        height: auto !important;
+    }
+
+    main {
+        overflow: visible !important;
+        padding: 0 !important;
+    }
+
+    .overflow-auto, .overflow-hidden {
+        overflow: visible !important;
+        max-height: none !important;
+    }
+
+    thead {
+        position: static !important;
+        display: table-header-group;
+    }
+
+    tfoot {
+        position: static !important;
+        display: table-footer-group;
+    }
+
+    tr {
+        break-inside: avoid;
+    }
+
+    * {
+        box-shadow: none !important;
+    }
+}

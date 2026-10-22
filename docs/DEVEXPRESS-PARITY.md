@@ -23,6 +23,8 @@ Karena itu tabel di bawah menghitung **pemakaian nyata di markup dan kode**, buk
 
 ## 2. Fitur grid: dipakai atau tidak
 
+*Kolom "`DataGrid` baru" menunjukkan keadaan **sebelum** G1–G6; keadaan sekarang di bagian 5.*
+
 Hitungan berkas yang memakai (dari markup; bukan fitur yang tersedia di DevExpress).
 
 | Fitur DevExpress | Dipakai? | Di mana | `DataGrid` baru | Tindakan |
@@ -59,21 +61,21 @@ Catatan: kolom dan ringkasan banyak yang dibuat lewat kode (`clsReportSys`), buk
 - Penampil hanya memakai tiga tombol: **Cetak, halaman berikut, halaman terakhir**. Cetak/pemenggalan halaman di aplikasi baru **belum diuji**: perlu gaya `@media print` pada `PivotView` dan pengecekan di printer/PDF pemakai, atau ekspor PDF.
 - Tidak ada pemakaian editor tata letak laporan untuk pengguna akhir (`ReportDesigner.aspx` hanya halaman kosong dengan kelas `MasterPage`; `ReportAdhock.aspx` membaca view `VW_RPT_ADHOCK` ke grid tanpa filter).
 
-## 5. Kesimpulan dan pekerjaan
+## 5. Status pekerjaan (23 Oktober 2026)
 
-Pengganti **belum** sepenuhnya setara untuk grid. Yang dipakai aplikasi lama dan belum ada di `DataGrid`:
+Dikerjakan di komponen bersama (`DataGrid.razor`, `GridEngine.cs`, `ExportButton.razor`, `PrintButton.razor`, `tailwind.css`) sehingga semua tabel mendapatkannya.
 
-| # | Pekerjaan | Ukuran | Dipakai oleh |
+| # | Pekerjaan | Status | Cara memakai |
 |---|---|---|---|
-| G1 | **Baris filter per kolom** (teks "mengandung", angka, tanggal, pilihan nilai unik) | M | 26 berkas |
-| G2 | **Pengelompokan**: pilih/seret kolom sebagai kelompok, buka-tutup kelompok, jumlah baris per kelompok, total per kelompok | M–L | 7 halaman (LOSMNT dan News) |
-| G3 | **Baris total** di bawah tabel (jumlah/rata-rata sesuai kolom) | S | 9 halaman |
-| G4 | **Ekspor CSV**, lalu **PDF/RTF** bila dikonfirmasi masih dipakai | S (CSV), M (PDF) | ReportList, ReportAdhock, ReportPivot |
-| G5 | Cetak halaman/pivot (gaya cetak + uji) | S | ReportCustom/ReportDetail |
-| G6 | Penanda baris berwarna per kondisi | S | 2 halaman |
+| G1 | Filter per kolom | **selesai** | Tombol "Filter kolom" (aktif bawaan). Kolom angka: `>100`, `<=5`, `=0`, `<>3`; kolom teks: "mengandung", awalan `=` untuk sama persis. Kolom teks dengan ≤ 60 nilai unik menyarankan nilainya (pengganti filter header). "Hapus filter" menghapus semua. Parameter `ColumnFilters`/`ColumnFiltersVisible` |
+| G2 | Pengelompokan | **selesai** | Seret judul kolom ke panel "Kelompokkan" atau pilih dari daftar; bertingkat; buka/tutup per kelompok, "Buka semua"/"Tutup semua"; jumlah baris per kelompok; total kolom ber-`Summary` per kelompok. Parameter `AllowGrouping` |
+| G3 | Baris total | **selesai** | `GridColumn.Summary = GridSummary.Sum/Count/Average/Min/Max`; baris menempel di bawah tabel, dihitung dari semua baris yang lolos filter. Sudah dipasang pada kolom jumlah/outstanding di Inquiry Debitur, Monitoring Debitur, Worklist, Bulk Surat, Surat Pengecualian |
+| G4 | Ekspor CSV | **selesai** (CSV); PDF/RTF/TXT **menunggu jawaban operasional** | Tombol "CSV" di semua tabel dan di halaman report (daftar dan pivot). Format mengikuti `WriteCsv` lama: pemisah `;`, angka berkoma desimal, UTF-8 dengan BOM; sel diawali `= + @` diberi apostrof agar tidak dibaca sebagai rumus |
+| G5 | Cetak | **selesai** (diuji dengan media cetak emulasi, bukan printer fisik) | Tombol "Cetak" membuka dialog cetak browser; gaya cetak menyembunyikan menu, header, footer, dan kontrol, melepas batas tinggi tabel, mengulang header/footer tabel di tiap halaman |
+| G6 | Warna baris | **tersedia** | Parameter `RowClass` (`Func<TItem,string?>`). Dua pemakai lama (`ProcJatuhTempo`, `UC_ListDetail`) ada di halaman Recovery (B07) yang belum dimigrasi; dipasang saat halaman itu dibuat |
 
-Semuanya dikerjakan di satu tempat (`DataGrid.razor`, `GridColumn.cs`, `ExportButton.razor`) sehingga seluruh halaman ikut mendapat manfaatnya.
-Urutan yang disarankan: G1, G3, G4 (CSV), G2, G5, G6. Ada satu pertanyaan untuk operasional: apakah ekspor **PDF dan RTF** masih dipakai?
+Uji: 22 tes unit baru (filter angka/teks, ringkasan, pengelompokan bertingkat dan lipat, CSV); uji browser di Inquiry Status Debitur (19 baris): filter DPD `>30` → 5 baris, filter nama → 1 baris, total outstanding 17.740.575.905, 3 kelompok Fasilitas dengan total per kelompok, seret kolom ke panel, unduh CSV (BOM, `;`, `2869422137,51`), media cetak (menu, header, footer, kontrol tersembunyi).
+**Belum:** cetak ke printer fisik/PDF di komputer pemakai; menjalankan seret-lepas di browser selain Chrome/Edge (Firefox butuh data seret, jadi di sana gunakan pilihan kolom dari daftar); ekspor PDF/RTF/TXT.
 
 ## Metode (agar bisa diulang)
 

@@ -28,6 +28,7 @@ Dokumen ini menjelaskan tampilan baru dan cara memakainya. Tujuan: modern, respo
 - Tombol utama: `rounded-lg bg-sky-700 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-800`. Tombol sekunder: `rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50`.
 - Isian: `rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200`.
 - Pesan: galat `border-red-200 bg-red-50 text-red-700` (`role="alert"`), sukses `border-green-200 bg-green-50 text-green-700` (`role="status"`), peringatan `border-amber-300 bg-amber-50 text-amber-800`.
+- Tabel: `DataGrid` sudah punya filter per kolom, pengelompokan, baris total (`GridColumn.Summary`), CSV, cetak, dan `RowClass`; lihat `docs/DEVEXPRESS-PARITY.md` bagian 5. Kelas `no-print` menyembunyikan elemen saat dicetak.
 - Daerah gulir: tambahkan kelas `scroll-thin`.
 - Jangan memakai lebar tetap; pakai `w-full` dan batas `sm:`/`lg:`. Titik patah: `sm` 640, `lg` 1024.
 

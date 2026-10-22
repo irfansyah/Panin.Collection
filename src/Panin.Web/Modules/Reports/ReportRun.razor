@@ -137,10 +137,15 @@
             }
 
             <div class="flex justify-end">
-                <button type="button" @onclick="ExportAsync" disabled="@_exporting"
-                        class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-40">
+                <button type="button" @onclick="() => ExportAsync(false)" disabled="@_exporting"
+                        class="no-print rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-40">
                     @(_exporting ? "Menyiapkan..." : "Ekspor Excel")
                 </button>
+                <button type="button" @onclick="() => ExportAsync(true)" disabled="@_exporting"
+                        class="no-print ml-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-40">
+                    CSV
+                </button>
+                <PrintButton />
             </div>
 
             @if (_pivot.Table.Rows.Count == 0 || _pivot.Table.Columns.Count == 0)
@@ -203,9 +208,13 @@
 
             <DataGrid TItem="object?[]" Items="_result.Rows" Columns="_columns" EmptyText="Tidak ada data.">
                 <Toolbar>
-                    <button type="button" @onclick="ExportAsync" disabled="@(_exporting || _result.Rows.Count == 0)"
-                            class="rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-40">
+                    <button type="button" @onclick="() => ExportAsync(false)" disabled="@(_exporting || _result.Rows.Count == 0)"
+                            class="no-print rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-40">
                         @(_exporting ? "Menyiapkan..." : "Ekspor Excel")
+                    </button>
+                    <button type="button" @onclick="() => ExportAsync(true)" disabled="@(_exporting || _result.Rows.Count == 0)"
+                            class="no-print rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-40">
+                        CSV
                     </button>
                 </Toolbar>
             </DataGrid>
@@ -462,7 +471,7 @@
         _ => Convert.ToString(value, Id),
     };
 
-    private async Task ExportAsync()
+    private async Task ExportAsync(bool csv)
     {
         if (_exporting || _def is null || (_result is null && _pivot is null))
         {
@@ -487,11 +496,11 @@
                     [.. full.Rows.Select(r => (IReadOnlyList<object?>)r)]);
             }
 
-            var bytes = Exporter.Export(table);
+            var bytes = csv ? CsvExporter.Export(table) : Exporter.Export(table);
             _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/download.js");
             using var stream = new MemoryStream(bytes);
             using var reference = new DotNetStreamReference(stream);
-            await _module.InvokeVoidAsync("downloadFromStream", $"report-{ReportId}-{DateTime.Now:yyyyMMdd-HHmmss}.xlsx", IExcelExporter.ContentType, reference);
+            await _module.InvokeVoidAsync("downloadFromStream", $"report-{ReportId}-{DateTime.Now:yyyyMMdd-HHmmss}.{(csv ? "csv" : "xlsx")}", csv ? CsvExporter.ContentType : IExcelExporter.ContentType, reference);
         }
         catch (OperationCanceledException)
         {

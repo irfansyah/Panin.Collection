@@ -25,7 +25,7 @@ else
                 else
                 {
                     var open = Workspace.Expanded.Contains(node.Id);
-                    <button type="button" @onclick="() => Toggle(node)" aria-expanded="@open"
+                    <button type="button" @onclick="() => Toggle(node)" aria-expanded="@(open ? "true" : "false")"
                             class="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-sm font-semibold text-slate-800 transition-colors hover:bg-slate-100">
                         <span>@node.Text</span>
                         <svg class="@(open ? "rotate-90" : "") h-4 w-4 text-slate-400 transition-transform" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.2 4.6a1 1 0 0 1 1.4 0l4.7 4.7a1 1 0 0 1 0 1.4l-4.7 4.7a1 1 0 1 1-1.4-1.4L11.2 10 7.2 6a1 1 0 0 1 0-1.4Z" clip-rule="evenodd" /></svg>

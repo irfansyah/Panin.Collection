@@ -2,11 +2,11 @@
 @using Panin.Application.Export
 
 <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
-    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-2">
+    <div class="no-print flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-2">
         <input type="search" placeholder="Filter hasil..." value="@_filter" @oninput="OnFilterInput"
                class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm sm:w-64 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" aria-label="Filter hasil" />
-        <div class="flex items-center gap-3 text-xs text-slate-500">
-            <span>@Visible.Count baris@(_filter.Length > 0 ? $" dari {Items.Count}" : string.Empty)</span>
+        <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <span>@Visible.Count baris@(HasFilter ? $" dari {Items.Count}" : string.Empty)</span>
             <label class="flex items-center gap-1">
                 Per halaman
                 <select @onchange="OnPageSize" class="rounded border border-slate-300 px-1 py-0.5 text-xs">
@@ -16,6 +16,18 @@
                     }
                 </select>
             </label>
+            @if (ColumnFilters)
+            {
+                <button type="button" @onclick="ToggleFilters" aria-pressed="@(ShowFilters ? "true" : "false")"
+                        class="@(ShowFilters ? "border-sky-300 bg-sky-50 text-sky-800" : "border-slate-300 bg-white text-slate-600") rounded-md border px-2 py-1 font-medium hover:bg-slate-100">
+                    Filter kolom
+                </button>
+                @if (_colFilters.Count > 0)
+                {
+                    <button type="button" @onclick="ClearColumnFilters" class="rounded-md px-1.5 py-1 text-slate-500 underline hover:text-slate-800">Hapus filter</button>
+                }
+            }
+            <PrintButton />
             @if (Toolbar is not null)
             {
                 @Toolbar
@@ -23,7 +35,42 @@
         </div>
     </div>
 
-    <div class="scroll-thin max-h-[70vh] overflow-auto">
+    @if (AllowGrouping)
+    {
+        <div class="no-print flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-3 py-1.5 text-xs text-slate-500"
+             @ondragover="NoOp" @ondragover:preventDefault @ondrop="OnDropGroup" @ondrop:preventDefault aria-label="Pengelompokan">
+            <span class="font-medium text-slate-600">Kelompokkan:</span>
+            @foreach (var g in _groups)
+            {
+                var gi = g;
+                <span @key="gi" class="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 font-medium text-sky-800">
+                    @Columns[gi].Header
+                    <button type="button" @onclick="() => RemoveGroup(gi)" class="rounded-full px-1 leading-none hover:bg-sky-200" aria-label="Hapus kelompok @Columns[gi].Header">×</button>
+                </span>
+            }
+            @if (_groups.Count == 0)
+            {
+                <span class="hidden sm:inline">seret judul kolom ke sini, atau pilih</span>
+            }
+            <select @onchange="OnAddGroup" class="rounded border border-slate-300 bg-white px-1 py-0.5 text-xs" aria-label="Tambah kelompok">
+                <option value="">+ kolom</option>
+                @for (var i = 0; i < Columns.Count; i++)
+                {
+                    if (!Columns[i].ActionOnly && !_groups.Contains(i))
+                    {
+                        <option value="@i">@Columns[i].Header</option>
+                    }
+                }
+            </select>
+            @if (_groups.Count > 0)
+            {
+                <button type="button" @onclick="ExpandAll" class="underline hover:text-slate-800">Buka semua</button>
+                <button type="button" @onclick="CollapseAll" class="underline hover:text-slate-800">Tutup semua</button>
+            }
+        </div>
+    }
+
+    <div class="scroll-thin max-h-[70vh] overflow-auto print:max-h-none">
         <table class="w-full text-left text-sm">
             <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 shadow-[0_1px_0_var(--color-slate-200)]">
                 <tr>
@@ -31,8 +78,10 @@
                     {
                         var index = i;
                         var col = Columns[i];
-                        <th scope="col" class="@(col.Numeric ? "text-right" : "") whitespace-nowrap px-3 py-2 font-medium"
-                            aria-sort="@(_sortColumn == index ? (_descending ? "descending" : "ascending") : "none")">
+                        <th scope="col" class="@(col.Numeric ? "text-right" : "") whitespace-nowrap px-3 py-2 align-top font-medium"
+                            aria-sort="@(_sortColumn == index ? (_descending ? "descending" : "ascending") : "none")"
+                            draggable="@(AllowGrouping && !col.ActionOnly ? "true" : null)"
+                            @ondragstart="() => _dragColumn = index" @ondragend="() => _dragColumn = -1">
                             @if (col.Sortable && !col.ActionOnly)
                             {
                                 <button type="button" @onclick="() => SortBy(index)" class="inline-flex items-center gap-1 uppercase hover:text-slate-800">
@@ -44,6 +93,21 @@
                             {
                                 @col.Header
                             }
+                            @if (ShowFilters && ColumnFilters && !col.ActionOnly)
+                            {
+                                <input type="text" value="@FilterOf(index)" @oninput="e => OnColumnFilter(index, e)" list="@ListId(index)" autocomplete="off"
+                                       placeholder="@(col.Numeric ? ">, <, =" : "cari")" aria-label="Filter kolom @col.Header"
+                                       class="no-print mt-1 block w-full min-w-20 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-xs font-normal normal-case tracking-normal text-slate-700 focus:border-sky-500 focus:outline-none" />
+                                @if (DistinctValues(index) is { Count: > 0 } choices)
+                                {
+                                    <datalist id="@ListId(index)">
+                                        @foreach (var choice in choices)
+                                        {
+                                            <option value="@choice"></option>
+                                        }
+                                    </datalist>
+                                }
+                            }
                         </th>
                     }
                 </tr>
@@ -53,31 +117,72 @@
                 {
                     <tr><td colspan="@Columns.Count" class="px-3 py-12 text-center text-slate-400">@EmptyText</td></tr>
                 }
-                @foreach (var item in Page)
+                @foreach (var row in Page)
                 {
-                    <tr @key="item" class="transition-colors even:bg-slate-50/50 hover:bg-sky-50">
-                        @foreach (var col in Columns)
+                    @if (row.IsGroup)
+                    {
+                        var path = row.GroupPath!;
+                        var firstSummary = Math.Max(1, FirstSummaryColumn());
+                        <tr @key="path" class="bg-slate-100/80 font-semibold text-slate-700">
+                            <td colspan="@firstSummary" class="px-3 py-1.5" style="padding-left:@(0.75 + row.Level * 1.25)rem">
+                                <button type="button" @onclick="() => ToggleGroup(path)" class="inline-flex items-center gap-1.5 text-left" aria-expanded="@(row.Collapsed ? "false" : "true")">
+                                    <span aria-hidden="true" class="inline-block w-3 text-slate-400">@(row.Collapsed ? "▸" : "▾")</span>
+                                    <span class="font-normal text-slate-500">@row.GroupCaption:</span> @(string.IsNullOrEmpty(row.GroupValue) ? "(kosong)" : row.GroupValue)
+                                    <span class="font-normal text-slate-400">(@row.GroupItems!.Count)</span>
+                                </button>
+                            </td>
+                            @for (var c = firstSummary; c < Columns.Count; c++)
+                            {
+                                var sc = Columns[c];
+                                <td class="@(sc.Numeric ? "text-right tabular-nums" : "") px-3 py-1.5">@SummaryText(sc, row.GroupItems!)</td>
+                            }
+                        </tr>
+                    }
+                    else
+                    {
+                        var item = row.Item!;
+                        <tr @key="item" class="@(RowClass?.Invoke(item)) transition-colors even:bg-slate-50/50 hover:bg-sky-50">
+                            @for (var c = 0; c < Columns.Count; c++)
+                            {
+                                var col = Columns[c];
+                                <td class="@(col.Numeric ? "text-right tabular-nums" : "") px-3 py-1.5 text-slate-700" style="@(c == 0 && row.Level > 0 ? $"padding-left:{0.75 + row.Level * 1.25}rem" : null)">
+                                    @if (col.Template is not null)
+                                    {
+                                        @col.Template(item)
+                                    }
+                                    else
+                                    {
+                                        @col.Text(item)
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                }
+            </tbody>
+            @if (HasFooter && Visible.Count > 0)
+            {
+                <tfoot class="sticky bottom-0 bg-slate-50 text-xs font-semibold text-slate-700 shadow-[0_-1px_0_var(--color-slate-200)]">
+                    <tr>
+                        @for (var c = 0; c < Columns.Count; c++)
                         {
-                            <td class="@(col.Numeric ? "text-right tabular-nums" : "") px-3 py-1.5 text-slate-700">
-                                @if (col.Template is not null)
+                            var col = Columns[c];
+                            <td class="@(col.Numeric ? "text-right tabular-nums" : "") whitespace-nowrap px-3 py-2">
+                                @if (col.Summary != GridSummary.None)
                                 {
-                                    @col.Template(item)
-                                }
-                                else
-                                {
-                                    @col.Text(item)
+                                    <span class="mr-1 font-normal uppercase text-slate-400">@GridEngine.SummaryLabel(col.Summary)</span>@SummaryText(col, Visible)
                                 }
                             </td>
                         }
                     </tr>
-                }
-            </tbody>
+                </tfoot>
+            }
         </table>
     </div>
 
     @if (PageCount > 1)
     {
-        <div class="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs text-slate-600">
+        <div class="no-print flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs text-slate-600">
             <span>Halaman @(_pageIndex + 1) dari @PageCount</span>
             <div class="flex gap-1">
                 <button type="button" @onclick="() => GoTo(0)" disabled="@(_pageIndex == 0)" class="rounded border border-slate-300 px-2 py-1 enabled:hover:bg-slate-100 disabled:opacity-40">«</button>
@@ -91,15 +196,26 @@
 
 @code {
     private static readonly int[] PageSizes = [10, 25, 50, 100];
+    private const int MaxChoices = 60;
 
+    private readonly string _uid = Guid.NewGuid().ToString("N")[..8];
+    private readonly Dictionary<int, string> _colFilters = [];
+    private readonly List<int> _groups = [];
+    private readonly HashSet<string> _collapsed = new(StringComparer.Ordinal);
     private string _filter = string.Empty;
     private int _sortColumn = -1;
     private bool _descending;
     private int _pageIndex;
     private int _pageSize = 25;
+    private int _dragColumn = -1;
+    private int _version;
+    private bool? _showFiltersOverride;
     private IReadOnlyList<TItem> _view = [];
+    private IReadOnlyList<GridRow<TItem>> _rows = [];
     private IReadOnlyList<TItem>? _viewSource;
     private string _viewKey = string.Empty;
+    private Dictionary<int, List<string>>? _choices;
+    private IReadOnlyList<TItem>? _choicesSource;
 
     [Parameter, EditorRequired] public IReadOnlyList<TItem> Items { get; set; } = [];
 
@@ -110,12 +226,46 @@
     /// <summary>Slot tambahan di bilah atas (mis. tombol ekspor).</summary>
     [Parameter] public RenderFragment? Toolbar { get; set; }
 
+    /// <summary>Kotak filter per kolom di bawah judul (angka mendukung &gt; &lt; = dan nilai unik tersedia sebagai saran).</summary>
+    [Parameter] public bool ColumnFilters { get; set; } = true;
+
+    /// <summary>Awal tampilan baris filter kolom; pengguna dapat menyembunyikannya.</summary>
+    [Parameter] public bool ColumnFiltersVisible { get; set; } = true;
+
+    /// <summary>Panel pengelompokan: seret judul kolom atau pilih kolom.</summary>
+    [Parameter] public bool AllowGrouping { get; set; } = true;
+
+    /// <summary>Kelas tambahan per baris (mis. warna menurut status).</summary>
+    [Parameter] public Func<TItem, string?>? RowClass { get; set; }
+
     /// <summary>Semua baris setelah filter dan urut (untuk ekspor), bukan hanya halaman aktif.</summary>
-    public IReadOnlyList<TItem> Visible => Compute();
+    public IReadOnlyList<TItem> Visible
+    {
+        get
+        {
+            Compute();
+            return _view;
+        }
+    }
 
-    private IReadOnlyList<TItem> Page => [.. Visible.Skip(_pageIndex * _pageSize).Take(_pageSize)];
+    private bool ShowFilters => _showFiltersOverride ?? ColumnFiltersVisible;
 
-    private int PageCount => Math.Max(1, (int)Math.Ceiling(Visible.Count / (double)_pageSize));
+    private bool HasFilter => _filter.Length > 0 || _colFilters.Count > 0;
+
+    private bool HasFooter => Columns.Any(c => c.Summary != GridSummary.None);
+
+    private IReadOnlyList<GridRow<TItem>> Rows
+    {
+        get
+        {
+            Compute();
+            return _rows;
+        }
+    }
+
+    private IReadOnlyList<GridRow<TItem>> Page => [.. Rows.Skip(_pageIndex * _pageSize).Take(_pageSize)];
+
+    private int PageCount => Math.Max(1, (int)Math.Ceiling(Rows.Count / (double)_pageSize));
 
     /// <summary>Tabel siap ekspor dari baris yang terlihat (hasil filter dan urut).</summary>
     public ExportTable ToExportTable(string sheetName)
@@ -129,21 +279,23 @@
 
     protected override void OnParametersSet()
     {
-        // Data baru (hasil pencarian baru) mengembalikan ke halaman pertama.
+        // Data baru (hasil pencarian baru) mengembalikan ke halaman pertama; kelompok yang dilipat dibuka lagi.
         if (!ReferenceEquals(_viewSource, Items))
         {
             _viewSource = Items;
             _pageIndex = 0;
             _viewKey = string.Empty;
+            _collapsed.Clear();
+            _groups.RemoveAll(g => g >= Columns.Count);
         }
     }
 
-    private IReadOnlyList<TItem> Compute()
+    private void Compute()
     {
-        var key = $"{_filter}|{_sortColumn}|{_descending}|{Items.Count}";
+        var key = $"{_version}|{Items.Count}";
         if (key == _viewKey && ReferenceEquals(_viewSource, Items))
         {
-            return _view;
+            return;
         }
 
         IEnumerable<TItem> q = Items;
@@ -153,21 +305,101 @@
             q = q.Where(item => visibleCols.Any(c => c.Text(item).Contains(_filter, StringComparison.OrdinalIgnoreCase)));
         }
 
-        if (_sortColumn >= 0 && _sortColumn < Columns.Count)
+        foreach (var (index, text) in _colFilters)
         {
-            var col = Columns[_sortColumn];
-            q = _descending ? q.OrderByDescending(i => col.Value(i), NullSafeComparer.Instance) : q.OrderBy(i => col.Value(i), NullSafeComparer.Instance);
+            if (index >= Columns.Count)
+            {
+                continue;
+            }
+
+            var col = Columns[index];
+            var f = text;
+            q = q.Where(item => GridEngine.MatchesColumnFilter(col.Text(item), col.Value(item), col.Numeric, f));
         }
 
-        _view = [.. q];
+        IOrderedEnumerable<TItem>? ordered = null;
+        foreach (var g in _groups)
+        {
+            var col = Columns[g];
+            ordered = ordered is null ? q.OrderBy(i => col.Value(i), NullSafeComparer.Instance) : ordered.ThenBy(i => col.Value(i), NullSafeComparer.Instance);
+        }
+
+        if (_sortColumn >= 0 && _sortColumn < Columns.Count && !_groups.Contains(_sortColumn))
+        {
+            var col = Columns[_sortColumn];
+            ordered = ordered is null
+                ? (_descending ? q.OrderByDescending(i => col.Value(i), NullSafeComparer.Instance) : q.OrderBy(i => col.Value(i), NullSafeComparer.Instance))
+                : (_descending ? ordered.ThenByDescending(i => col.Value(i), NullSafeComparer.Instance) : ordered.ThenBy(i => col.Value(i), NullSafeComparer.Instance));
+        }
+
+        _view = [.. ordered ?? q];
+        var groupDefs = _groups.Select(g => (Columns[g].Header, (Func<TItem, string>)(item => Columns[g].Text(item)))).ToList();
+        _rows = GridEngine.Flatten(_view, groupDefs, _collapsed);
         _viewKey = key;
-        return _view;
+        _pageIndex = Math.Clamp(_pageIndex, 0, Math.Max(0, (int)Math.Ceiling(_rows.Count / (double)_pageSize) - 1));
+    }
+
+    private void Touch()
+    {
+        _version++;
+        _pageIndex = 0;
     }
 
     private void OnFilterInput(ChangeEventArgs e)
     {
         _filter = e.Value?.ToString() ?? string.Empty;
-        _pageIndex = 0;
+        Touch();
+    }
+
+    private void OnColumnFilter(int index, ChangeEventArgs e)
+    {
+        var text = e.Value?.ToString() ?? string.Empty;
+        if (text.Trim().Length == 0)
+        {
+            _colFilters.Remove(index);
+        }
+        else
+        {
+            _colFilters[index] = text;
+        }
+
+        Touch();
+    }
+
+    private string FilterOf(int index) => _colFilters.TryGetValue(index, out var text) ? text : string.Empty;
+
+    private void ClearColumnFilters()
+    {
+        _colFilters.Clear();
+        Touch();
+    }
+
+    private void ToggleFilters() => _showFiltersOverride = !ShowFilters;
+
+    private string ListId(int index) => $"dg-{_uid}-{index}";
+
+    private List<string>? DistinctValues(int index)
+    {
+        if (Columns[index].Numeric)
+        {
+            return null;
+        }
+
+        if (_choices is null || !ReferenceEquals(_choicesSource, Items))
+        {
+            _choicesSource = Items;
+            _choices = [];
+        }
+
+        if (!_choices.TryGetValue(index, out var list))
+        {
+            var col = Columns[index];
+            var distinct = Items.Select(col.Text).Where(t => t.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Take(MaxChoices + 1).ToList();
+            list = distinct.Count > MaxChoices ? [] : [.. distinct.Order(StringComparer.OrdinalIgnoreCase)];
+            _choices[index] = list;
+        }
+
+        return list;
     }
 
     private void OnPageSize(ChangeEventArgs e)
@@ -191,10 +423,103 @@
             _descending = false;
         }
 
-        _pageIndex = 0;
+        Touch();
     }
 
     private void GoTo(int page) => _pageIndex = Math.Clamp(page, 0, PageCount - 1);
+
+    private static void NoOp()
+    {
+    }
+
+    private void AddGroup(int index)
+    {
+        if (index >= 0 && index < Columns.Count && !Columns[index].ActionOnly && !_groups.Contains(index))
+        {
+            _groups.Add(index);
+            _collapsed.Clear();
+            Touch();
+        }
+    }
+
+    private void OnAddGroup(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var index))
+        {
+            AddGroup(index);
+        }
+    }
+
+    private void OnDropGroup()
+    {
+        AddGroup(_dragColumn);
+        _dragColumn = -1;
+    }
+
+    private void RemoveGroup(int index)
+    {
+        _groups.Remove(index);
+        _collapsed.Clear();
+        Touch();
+    }
+
+    private void ToggleGroup(string path)
+    {
+        if (!_collapsed.Add(path))
+        {
+            _collapsed.Remove(path);
+        }
+
+        _version++;
+    }
+
+    private void ExpandAll()
+    {
+        _collapsed.Clear();
+        _version++;
+    }
+
+    private void CollapseAll()
+    {
+        // Tutup kelompok tingkat pertama; tingkat dalam ikut tersembunyi.
+        _collapsed.Clear();
+        if (_groups.Count > 0)
+        {
+            var col = Columns[_groups[0]];
+            foreach (var key in Visible.Select(col.Text).Distinct(StringComparer.Ordinal))
+            {
+                _collapsed.Add("\u001f" + key);
+            }
+        }
+
+        _version++;
+        _pageIndex = 0;
+    }
+
+    private int FirstSummaryColumn()
+    {
+        for (var i = 0; i < Columns.Count; i++)
+        {
+            if (Columns[i].Summary != GridSummary.None)
+            {
+                return i;
+            }
+        }
+
+        return Columns.Count;
+    }
+
+    private string SummaryText(GridColumn<TItem> col, IReadOnlyList<TItem> items)
+    {
+        if (col.Summary == GridSummary.None)
+        {
+            return string.Empty;
+        }
+
+        var value = GridEngine.Summarize(col.Summary, items.Select(col.Value));
+        var integer = col.Summary == GridSummary.Count || col.ExportFormat == ExportFormat.Count;
+        return GridEngine.FormatSummary(value, integer);
+    }
 
     private sealed class NullSafeComparer : IComparer<object?>
     {

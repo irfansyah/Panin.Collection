@@ -121,7 +121,7 @@
             new() { Header = "Tipe Produk", Value = p => p.ProductType },
             new() { Header = "PA/NS", Value = p => p.AppType },
             new() { Header = "Jenis Surat", Value = p => p.LetterType },
-            new() { Header = "Jumlah", Value = p => p.Count, Numeric = true },
+            new() { Header = "Jumlah", Value = p => p.Count, Numeric = true, Summary = GridSummary.Sum },
         ];
         _unconfirmedColumns =
         [
@@ -137,7 +137,7 @@
         [
             new() { Header = "Nama", Value = b => b.Name },
             new() { Header = "Tanggal", Value = b => b.Date, Display = b => b.Date.ToString("dd-MMM-yyyy HH:mm", Id) },
-            new() { Header = "Jumlah Surat", Value = b => b.Total, Numeric = true },
+            new() { Header = "Jumlah Surat", Value = b => b.Total, Numeric = true, Summary = GridSummary.Sum },
             new() { Header = "Status", Value = b => b.Finished, Display = b => b.Finished ? "Selesai" : "Belum selesai" },
             new() { Header = "Berkas", Value = b => b.BulkId, ActionOnly = true, Sortable = false, Template = b => @<div class="flex gap-1">
                 @if (b.FileName is not null) { <a href="@($"/api/surat/{b.BulkId}")" download="@b.FileName" class="@ActionClass">Unduh</a> }
