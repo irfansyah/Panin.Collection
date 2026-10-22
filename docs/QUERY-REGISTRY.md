@@ -45,6 +45,21 @@ Angka login/logout di bawah diambil dari pengamat query aplikasi (`/_diag/querie
 | `SP_GET_OS` | total outstanding | 127–161 ms (dalam aplikasi 0,45 s rata-rata) | Pakai, cache 60 s | baca-saja |
 | `TEMP_DOWNLINE` / `SCUSER.UPLINER` | otorisasi: boleh melihat data bawahan | 32–45 ms | Pakai | layar lama mempercayai field tersembunyi di browser; baru memeriksa di server |
 
+## Penulisan: Call ("Place A Call")
+
+Diukur pada salinan lokal DB DATA (Docker), bukan server dev bersama; aplikasi tidak menulis ke DB bersama (penjaga baca-saja menolak).
+
+| Objek | Dipakai oleh | Ukur | Keputusan | Catatan |
+|---|---|---|---|---|
+| `SAVE_CALL_HISTORY` (40 parameter) | simpan call | ±42 ms rata-rata (maks 74 ms) di salinan lokal | Pakai, **di dalam transaksi** (`SET XACT_ABORT ON; BEGIN TRAN; exec ...; COMMIT`) | SP lama tidak bertransaksi dan menulis ke 6 tabel: `CALL_HISTORY` (+ foto kondisi rekening dari `VW_SEARCH_DEBITUR`), `PAYMENT_PLAN_HISTORY`, bila ada rekomendasi `LOAN_MASTER` (rekening pindah ke atasan), `NEXT_ACTION_HISTORY`, `MEMO`, `LOAN_HANDLING_HISTORY`; juga `CUST_CONTACT`/`CUSTOMER`/`SURAT_HISTORY` bila 23 kolom "Hasil Call" diisi. Layar baru mengirim NULL untuk 23 kolom itu (belum dimigrasi). Perilaku diverifikasi: owner rekening pindah ke `UPLINER`, NAH/MEMO/LHH +1. |
+| `SP_PTP_CHANGELIST` (@FUNC, @RELATIONSHIP) | daftar hasil call | cepat, di-cache 10 menit per hubungan | Pakai (baca-saja) | "Info Restrukturisasi" hanya untuk hubungan 00000 (debitur sendiri) |
+| `SP_GET_REASON`, `SP_GET_ACTION`, `GET_RELATIONSHIP_TYPE`, `GET_PAYMENT_TYPE`, `RFPURPOSE` | pilihan dropdown | cepat, di-cache 10 menit bersama | Pakai (baca-saja) | |
+| `SP_GET_CONTACT` (@ACC_NO, `COMB`/`NAMA`) | no. yang dihubungi, orang yang akan setor | per rekening, tidak di-cache | Pakai (baca-saja) | |
+| `SP_TREATMENTRESULT_MAXDAY` | batas hari tanggal janji | cepat | Pakai (baca-saja) | |
+| `SP_GET_TREATMENT_MENU` (@USERID) | tombol tindakan (Call/Letter/Visitation) sesuai hak user | cepat, di-cache 10 menit per user | Pakai (baca-saja) | grup Admin KCU hanya punya Letter: tombol Place A Call tidak tampil |
+| `CALL_HISTORY` (TOP 30 per rekening) | riwayat call | berindeks ACC_NO | Pakai | tabel ±8 juta baris di produksi; selalu berbatas |
+| kepemilikan rekening (`LOAN_MASTER` + `TEMP_DOWNLINE`) | otorisasi simpan | beberapa ms | Pakai | layar lama tidak memeriksa |
+
 ## Belum diukur / menunggu halaman
 
 `SP_ALL_HISTORY`, `SP_ALL_HISTORY_RECOVERY`, `SP_GET_RESULT`, `SP_GET_CONTACT`, `SP_GET_TREATMENT_MENU`, `SP_WORKLIST_*`, `SP_PTP_CHANGELIST`, `SP_VW_REPORT_*`, `SP_SAVE_*`, `VW_*` lain: ukur saat halaman terkait dikerjakan dan tambahkan baris di atas **sebelum** dipakai.

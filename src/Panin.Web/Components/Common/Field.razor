@@ -1,0 +1,18 @@
+<div>
+    <label class="mb-1 block text-sm font-medium text-slate-700">
+        @Label
+        @if (Required)
+        {
+            <span class="text-red-600" aria-hidden="true">*</span>
+        }
+    </label>
+    @ChildContent
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    [Parameter] public bool Required { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

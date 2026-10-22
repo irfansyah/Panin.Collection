@@ -1,0 +1,24 @@
+@using Panin.Application.Collection
+
+<select value="@Value" @onchange="OnChange"
+        class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500">
+    <option value="">- pilih -</option>
+    @foreach (var item in Items)
+    {
+        <option value="@item.Code" selected="@(item.Code == Value)">@item.Text</option>
+    }
+</select>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<LookupItem> Items { get; set; } = [];
+
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    private Task OnChange(ChangeEventArgs e)
+    {
+        var value = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
+        return ValueChanged.InvokeAsync(value);
+    }
+}

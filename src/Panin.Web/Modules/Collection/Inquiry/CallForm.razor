@@ -1,0 +1,255 @@
+@attribute [ModulePage("60", "/collection/debitur/call")]
+@implements IDisposable
+@using System.Globalization
+@using Panin.Application.Collection
+@using Panin.Web.Components.Common
+@inject ICallService Calls
+@inject ILogger<CallForm> Logger
+
+<section class="space-y-4">
+    <div class="flex items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold text-slate-800">Place A Call <span class="text-base font-normal text-slate-500">· @AccountNo</span></h1>
+        @if (Navigator is { CanGoBack: true })
+        {
+            <button type="button" @onclick="Navigator.Back" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">← Kembali</button>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat form...</p>
+    }
+    else if (_denied)
+    {
+        <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">
+            Anda tidak berwenang mencatat aktivitas pada rekening ini. Hanya pemilik rekening dan atasannya yang dapat melakukannya.
+        </div>
+    }
+    else if (_options is not null)
+    {
+        @if (_saved)
+        {
+            <div class="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700" role="status">Data call tersimpan.</div>
+        }
+
+        @if (_errors.Count > 0)
+        {
+            <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                <ul class="list-disc pl-5">
+                    @foreach (var e in _errors)
+                    {
+                        <li>@e</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <EditForm Model="_entry" OnSubmit="SaveAsync" class="rounded-lg border border-slate-200 bg-white p-4">
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Field Label="Tujuan" Required>
+                    <Select Items="_options.Purposes" @bind-Value="_entry.PurposeCode" />
+                </Field>
+                <Field Label="No. yang dihubungi" Required>
+                    <Select Items="_options.Contacts" @bind-Value="_entry.ContactNo" />
+                </Field>
+                <Field Label="Berbicara dengan">
+                    <InputText @bind-Value="_entry.SpokeTo" maxlength="100" class="@InputClass" />
+                </Field>
+                <Field Label="Hubungan" Required>
+                    <Select Items="_options.Relationships" Value="_entry.RelationshipCode" ValueChanged="OnRelationshipChangedAsync" />
+                </Field>
+                <Field Label="Janji Debitur" Required>
+                    <Select Items="_results" @bind-Value="_entry.ResultCode" />
+                </Field>
+
+                @if (_entry.ResultCode == CallRules.PromiseResultCode)
+                {
+                    <Field Label="Tanggal Janji" Required>
+                        <InputDate TValue="DateTime?" Type="InputDateType.DateTimeLocal" @bind-Value="_entry.PromiseAt" class="@InputClass" />
+                    </Field>
+                    <Field Label="Tipe Pembayaran" Required>
+                        <Select Items="_options.PaymentTypes" @bind-Value="_entry.PaymentTypeCode" />
+                    </Field>
+                    <Field Label="Orang yang Akan Setor">
+                        <Select Items="_options.PtpPersons" @bind-Value="_entry.PtpPersonId" />
+                    </Field>
+                    <Field Label="Jumlah yang Akan Setor" Required>
+                        <InputNumber TValue="decimal?" @bind-Value="_entry.PtpAmount" min="0" step="1" class="@InputClass" />
+                    </Field>
+                }
+
+                <Field Label="Alasan tidak bayar" Required>
+                    <Select Items="_options.Reasons" @bind-Value="_entry.ReasonCode" />
+                </Field>
+                <Field Label="Rekomendasi">
+                    <Select Items="_options.NextActions" @bind-Value="_entry.NextActionCode" />
+                </Field>
+                <Field Label="Tanggal Rekomendasi">
+                    <InputDate TValue="DateTime?" Type="InputDateType.DateTimeLocal" @bind-Value="_entry.NextActionAt" class="@InputClass" />
+                </Field>
+            </div>
+
+            <div class="mt-4">
+                <label for="notes" class="mb-1 block text-sm font-medium text-slate-700">Catatan <span class="text-red-600" aria-hidden="true">*</span></label>
+                <InputTextArea id="notes" @bind-Value="_entry.Notes" rows="4" maxlength="@CallRules.MaxNotesLength" class="@InputClass" />
+            </div>
+
+            <p class="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                Rekomendasi (selain Update Status ke AYDA) memindahkan rekening ke atasan Anda, sama seperti sistem lama.
+            </p>
+
+            <div class="mt-4 flex gap-2">
+                <button type="submit" disabled="@_busy"
+                        class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">
+                    @(_busy ? "Menyimpan..." : "Simpan")
+                </button>
+            </div>
+        </EditForm>
+
+        <Card Title="Riwayat Call">
+            <DataGrid TItem="CallHistoryRow" Items="_history" Columns="_historyColumns" EmptyText="Belum ada riwayat call." />
+        </Card>
+    }
+</section>
+
+@code {
+    private const string InputClass = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+
+    private readonly CancellationTokenSource _cts = new();
+    private readonly CallEntry _entry = new();
+    private CallFormOptions? _options;
+    private IReadOnlyList<LookupItem> _results = [];
+    private IReadOnlyList<CallHistoryRow> _history = [];
+    private IReadOnlyList<GridColumn<CallHistoryRow>> _historyColumns = [];
+    private IReadOnlyList<string> _errors = [];
+    private string? _userId, _loadedFor;
+    private bool _loading = true, _denied, _busy, _saved;
+
+    [Parameter] public string AccountNo { get; set; } = string.Empty;
+
+    [Parameter] public string? CustomerRef { get; set; }
+
+    [CascadingParameter] private IModuleNavigator? Navigator { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedFor == AccountNo)
+        {
+            return;
+        }
+
+        _loadedFor = AccountNo;
+        _loading = true;
+        _entry.AccountNo = AccountNo;
+        try
+        {
+            _userId = (await AuthState).User.ToSessionUser()?.UserId;
+            if (_userId is null || !await Calls.CanActAsync(_userId, AccountNo, _cts.Token))
+            {
+                _denied = true;
+                return;
+            }
+
+            var options = Calls.GetOptionsAsync(AccountNo, _cts.Token);
+            var results = Calls.GetResultsAsync(null, _cts.Token);
+            var history = Calls.GetHistoryAsync(AccountNo, 30, _cts.Token);
+            await Task.WhenAll(options, results, history);
+            _options = options.Result;
+            _results = results.Result;
+            _history = history.Result;
+            _historyColumns = BuildHistoryColumns();
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Gagal memuat form call");
+            _errors = ["Form gagal dimuat. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnRelationshipChangedAsync(string? relationship)
+    {
+        _entry.RelationshipCode = relationship;
+        // Daftar hasil bergantung pada hubungan; pilihan yang tidak ada lagi dikosongkan.
+        _results = await Calls.GetResultsAsync(relationship, _cts.Token);
+        if (_entry.ResultCode is not null && _results.All(r => r.Code != _entry.ResultCode))
+        {
+            _entry.ResultCode = null;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy || _userId is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _saved = false;
+        try
+        {
+            var result = await Calls.SaveAsync(_userId, _entry, _cts.Token);
+            _errors = result.Errors;
+            if (result.Success)
+            {
+                _saved = true;
+                ResetEntry();
+                _history = await Calls.GetHistoryAsync(AccountNo, 30, _cts.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Simpan call gagal");
+            _errors = ["Data gagal disimpan. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void ResetEntry()
+    {
+        _entry.PurposeCode = _entry.ContactNo = _entry.SpokeTo = _entry.RelationshipCode = _entry.ResultCode = null;
+        _entry.PaymentTypeCode = _entry.PtpPersonId = _entry.ReasonCode = _entry.NextActionCode = _entry.Notes = null;
+        _entry.PromiseAt = _entry.NextActionAt = null;
+        _entry.PtpAmount = null;
+    }
+
+    private IReadOnlyList<GridColumn<CallHistoryRow>> BuildHistoryColumns()
+    {
+        string? Name(IReadOnlyList<LookupItem> items, string? code) => items.FirstOrDefault(i => i.Code == code)?.Text ?? code;
+        var id = CultureInfo.GetCultureInfo("id-ID");
+        return
+        [
+            new() { Header = "Tanggal", Value = r => r.Date, Display = r => r.Date.ToString("dd-MMM-yyyy HH:mm", id) },
+            new() { Header = "Oleh", Value = r => r.UserId },
+            new() { Header = "Hasil", Value = r => Name(_results, r.ResultCode) },
+            new() { Header = "Tgl Janji", Value = r => r.PromiseAt, Display = r => r.PromiseAt?.ToString("dd-MMM-yyyy", id) },
+            new() { Header = "Alasan", Value = r => Name(_options!.Reasons, r.ReasonCode) },
+            new() { Header = "Rekomendasi", Value = r => Name(_options!.NextActions, r.NextActionCode) },
+            new() { Header = "Berbicara dengan", Value = r => System.Net.WebUtility.HtmlDecode(r.SpokeTo ?? string.Empty) },
+            new() { Header = "Catatan", Value = r => r.Notes },
+        ];
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}
