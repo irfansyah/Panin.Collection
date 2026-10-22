@@ -33,6 +33,22 @@ if (string.Equals(source.DataSource, target.DataSource, StringComparison.Ordinal
 Console.WriteLine($"Sumber : {source.DataSource} / {source.InitialCatalog} (read-only)");
 Console.WriteLine($"Target : {target.DataSource} / {target.InitialCatalog}");
 
+if (args.Length > 0 && args[0].Equals("data", StringComparison.OrdinalIgnoreCase))
+{
+    if (args.Contains("--objects-only"))
+    {
+        await RedoDataObjects();
+        return 0;
+    }
+
+    var picked = args.Length > 2 && args[1] == "--users"
+        ? args[2].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        : await PickSampleUsers();
+    await CloneDataSample(picked);
+    Console.WriteLine("Selesai.");
+    return 0;
+}
+
 // 1) DB DATA: hanya objek referensi yang dipakai view/SP di DB LOGIN (lintas database).
 //    View di DB LOGIN seperti RFBRANCH membaca LOSPANINCOLLECTION.dbo.RFBRANCH.
 var dataDb = "LOSPANINCOLLECTION";
@@ -159,6 +175,242 @@ async Task CloneDatabase(string srcDb, string dstDb, string[]? tables, string[]?
     }
 
     Console.WriteLine(bad == 0 ? $"  verifikasi OK ({tableNames.Count} tabel)" : $"  verifikasi: {bad} tabel berbeda");
+}
+
+async Task<string[]> PickSampleUsers()
+{
+    var src = new SqlConnectionStringBuilder(source.ConnectionString) { InitialCatalog = "LOSPANINCOLLECTION" };
+    await using var s = new SqlConnection(src.ConnectionString);
+    await s.OpenAsync();
+    var users = await Strings(s, "select top 12 USERID from LOAN_MASTER where CONFIRMED = '1' and USERID is not null group by USERID having count(*) between 20 and 300 order by newid()");
+    Console.WriteLine("User contoh (otomatis): " + string.Join(", ", users));
+    return [.. users];
+}
+
+// Salinan lokal DB DATA modul 60: skema lengkap (tabel, view, SP, fungsi, trigger) + data contoh.
+// Data contoh: semua tabel kecil (<= SmallTableRows baris); untuk tabel besar yang punya indeks ACC_NO/CU_REF hanya baris milik
+// rekening contoh (seek, murah bagi server sumber); tabel besar lain hanya TOP N baris; tabel sementara/unduhan hanya skema.
+// Sumber dibuka ReadOnly + READ UNCOMMITTED agar tidak mengganggu DB dev bersama.
+async Task<List<(string Name, string Type, string Sql)>> CreatableModules(SqlConnection s, SqlConnection d)
+{
+    // View di DB DATA membaca DB LOGIN lewat nama tiga bagian (LOSPANINLOGIN_COLLECTION di sumber); di salinan lokal DB LOGIN bernama LOSPANINLOGIN.
+    var existing = (await Strings(d, "select name from sys.objects where type in ('FN','IF','TF','V','P','TR')")).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    return (await Modules(s, null))
+        .Where(m => !existing.Contains(m.Name))
+        .Select(m => (m.Name, m.Type, m.Sql.Replace("LOSPANINLOGIN_COLLECTION", "LOSPANINLOGIN", StringComparison.OrdinalIgnoreCase)))
+        .ToList();
+}
+
+async Task RedoDataObjects()
+{
+    var src = new SqlConnectionStringBuilder(source.ConnectionString) { InitialCatalog = "LOSPANINCOLLECTION" };
+    var dst = new SqlConnectionStringBuilder(target.ConnectionString) { InitialCatalog = "LOSPANINCOLLECTION" };
+    await using var s = new SqlConnection(src.ConnectionString);
+    await s.OpenAsync();
+    await using var d = new SqlConnection(dst.ConnectionString);
+    await d.OpenAsync();
+    var modules = await CreatableModules(s, d);
+    var failed = 0;
+    foreach (var type in new[] { "FN", "IF", "TF", "V", "P", "TR" })
+    {
+        var pending = modules.Where(x => x.Type == type).ToList();
+        for (var pass = 0; pass < 8 && pending.Count > 0; pass++)
+        {
+            var next = new List<(string Name, string Type, string Sql)>();
+            foreach (var mod in pending)
+            {
+                try { await Exec(d, mod.Sql); }
+                catch (SqlException) { next.Add(mod); }
+            }
+
+            pending = next;
+        }
+
+        foreach (var f in pending)
+        {
+            failed++;
+            Console.WriteLine($"  !! GAGAL {f.Type} {f.Name}");
+        }
+    }
+
+    Console.WriteLine($"  objek dibuat ulang; masih gagal: {failed}");
+}
+
+async Task CloneDataSample(string[] sampleUsers)
+{
+    const int SmallTableRows = 100_000;
+    const int TopRowsForOtherBigTables = 2_000;
+    var dstDb = "LOSPANINCOLLECTION";
+    var src = new SqlConnectionStringBuilder(source.ConnectionString) { InitialCatalog = dstDb };
+    var master = new SqlConnectionStringBuilder(target.ConnectionString) { InitialCatalog = "master" };
+    var dst = new SqlConnectionStringBuilder(target.ConnectionString) { InitialCatalog = dstDb };
+    var skipData = new System.Text.RegularExpressions.Regex(
+        @"(_TEMP\d*$|_TEMP_|_DOWNLOAD|_BCK_|BACKUP|^TBL_TEMP|^UPLOAD_.*TEMP|^tempdbtblcompare|^tempcheck|^dtproperties)",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    Console.WriteLine($"\n=== DB DATA {src.InitialCatalog} -> {dstDb} (skema lengkap + data contoh)");
+    await using var s = new SqlConnection(src.ConnectionString);
+    await s.OpenAsync();
+    await Exec(s, "SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
+
+    var collation = (string)(await Scalar(s, "select convert(nvarchar(128), DATABASEPROPERTYEX(db_name(), 'Collation'))"))!;
+    await using (var m = new SqlConnection(master.ConnectionString))
+    {
+        await m.OpenAsync();
+        await Exec(m, $"IF DB_ID('{dstDb}') IS NOT NULL BEGIN ALTER DATABASE [{dstDb}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{dstDb}]; END");
+        await Exec(m, $"CREATE DATABASE [{dstDb}] COLLATE {collation}");
+        await Exec(m, $"ALTER DATABASE [{dstDb}] SET RECOVERY SIMPLE");
+    }
+
+    await using var d = new SqlConnection(dst.ConnectionString);
+    await d.OpenAsync();
+
+    // Rekening contoh: milik user contoh (LOAN_MASTER.USERID), lalu CIF-nya dari ACCOUNT_MASTER.
+    var userList = string.Join(",", sampleUsers.Select(u => "'" + u.Replace("'", "''", StringComparison.Ordinal) + "'"));
+    var accounts = await Strings(s, $"select distinct ACC_NO from LOAN_MASTER where USERID in ({userList})");
+    var customers = new List<string>();
+    foreach (var chunk in accounts.Chunk(500))
+    {
+        customers.AddRange(await Strings(s, $"select distinct CU_REF from ACCOUNT_MASTER where ACC_NO in ({Literals(chunk)})"));
+    }
+
+    customers = [.. customers.Distinct()];
+    Console.WriteLine($"  user contoh: {sampleUsers.Length}, rekening: {accounts.Count:n0}, nasabah: {customers.Count:n0}");
+
+    string SampleCte(string column, IReadOnlyList<string> values)
+        => "WITH S(V) AS (" + string.Join(" UNION ALL ", values.Chunk(900).Select(c => "SELECT V FROM (VALUES " + string.Join(",", c.Select(v => "('" + v.Replace("'", "''", StringComparison.Ordinal) + "')")) + ") X(V)")) + ")";
+
+    var stats = await Rows(s, @"
+select t.name, isnull(sum(ps.row_count), 0),
+  (select count(*) from sys.columns c where c.object_id = t.object_id and c.name = 'ACC_NO'),
+  (select count(*) from sys.columns c where c.object_id = t.object_id and c.name = 'CU_REF'),
+  (select count(*) from sys.indexes i join sys.index_columns ic on ic.object_id = i.object_id and ic.index_id = i.index_id and ic.key_ordinal = 1
+     join sys.columns c on c.object_id = ic.object_id and c.column_id = ic.column_id where i.object_id = t.object_id and c.name = 'ACC_NO'),
+  (select count(*) from sys.indexes i join sys.index_columns ic on ic.object_id = i.object_id and ic.index_id = i.index_id and ic.key_ordinal = 1
+     join sys.columns c on c.object_id = ic.object_id and c.column_id = ic.column_id where i.object_id = t.object_id and c.name = 'CU_REF')
+from sys.tables t left join sys.dm_db_partition_stats ps on ps.object_id = t.object_id and ps.index_id in (0, 1)
+where t.is_ms_shipped = 0 group by t.name, t.object_id order by t.name");
+
+    var tableNames = stats.Select(r => (string)r[0]!).ToList();
+    var total = 0L;
+    foreach (var r in stats)
+    {
+        var table = (string)r[0]!;
+        var approx = Convert.ToInt64(r[1], System.Globalization.CultureInfo.InvariantCulture);
+        var hasAcc = Convert.ToInt32(r[2], System.Globalization.CultureInfo.InvariantCulture) > 0;
+        var hasCu = Convert.ToInt32(r[3], System.Globalization.CultureInfo.InvariantCulture) > 0;
+        var accIdx = Convert.ToInt32(r[4], System.Globalization.CultureInfo.InvariantCulture) > 0;
+        var cuIdx = Convert.ToInt32(r[5], System.Globalization.CultureInfo.InvariantCulture) > 0;
+
+        await Exec(d, await ScriptTable(s, table));
+
+        string? select;
+        string how;
+        if (skipData.IsMatch(table) && !table.Equals("TEMP_DOWNLINE", StringComparison.OrdinalIgnoreCase))
+        {
+            select = null;
+            how = "skema saja";
+        }
+        else if (approx <= SmallTableRows)
+        {
+            select = $"select * from [dbo].[{table}]";
+            how = "penuh";
+        }
+        else if (hasAcc && accIdx)
+        {
+            select = $"{SampleCte("ACC_NO", accounts)} select T.* from [dbo].[{table}] T join S on S.V = T.ACC_NO";
+            how = "rekening contoh";
+        }
+        else if (hasCu && cuIdx)
+        {
+            select = $"{SampleCte("CU_REF", customers)} select T.* from [dbo].[{table}] T join S on S.V = T.CU_REF";
+            how = "nasabah contoh";
+        }
+        else
+        {
+            select = $"select top ({TopRowsForOtherBigTables}) * from [dbo].[{table}]";
+            how = $"TOP {TopRowsForOtherBigTables:n0}";
+        }
+
+        long copied = 0;
+        if (select is not null)
+        {
+            copied = await CopyQuery(s, d, table, select);
+        }
+
+        total += copied;
+        Console.WriteLine($"  tabel {table,-40} {copied,10:n0} baris  ({how}; sumber ±{approx:n0})");
+    }
+
+    foreach (var t in tableNames)
+    {
+        foreach (var ddl in await ScriptIndexes(s, t))
+        {
+            try { await Exec(d, ddl); }
+            catch (SqlException ex) { Console.WriteLine($"  !! indeks {t}: {ex.Message.Split('\n')[0]}"); }
+        }
+    }
+
+    foreach (var ddl in await ScriptForeignKeys(s, tableNames))
+    {
+        try { await Exec(d, ddl); }
+        catch (SqlException ex) { Console.WriteLine($"  !! FK: {ex.Message.Split('\n')[0]}"); }
+    }
+
+    var modules = await CreatableModules(s, d);
+    var failedModules = 0;
+    foreach (var type in new[] { "FN", "IF", "TF", "V", "P", "TR" })
+    {
+        var pending = modules.Where(x => x.Type == type).ToList();
+        for (var pass = 0; pass < 8 && pending.Count > 0; pass++)
+        {
+            var failed = new List<(string Name, string Type, string Sql)>();
+            foreach (var mod in pending)
+            {
+                try { await Exec(d, mod.Sql); }
+                catch (SqlException) { failed.Add(mod); }
+            }
+
+            pending = failed;
+        }
+
+        foreach (var f in pending)
+        {
+            failedModules++;
+            Console.WriteLine($"  !! GAGAL {f.Type} {f.Name}");
+        }
+    }
+
+    Console.WriteLine($"  total {total:n0} baris disalin; objek gagal dibuat: {failedModules}");
+}
+
+static string Literals(IEnumerable<string> values)
+    => string.Join(",", values.Select(v => "'" + v.Replace("'", "''", StringComparison.Ordinal) + "'"));
+
+static async Task<long> CopyQuery(SqlConnection s, SqlConnection d, string table, string select)
+{
+    await using var cmd = new SqlCommand(select, s) { CommandTimeout = 0 };
+    await using var reader = await cmd.ExecuteReaderAsync();
+    using var bulk = new SqlBulkCopy(d, SqlBulkCopyOptions.KeepIdentity | SqlBulkCopyOptions.KeepNulls | SqlBulkCopyOptions.TableLock, null)
+    {
+        DestinationTableName = $"[dbo].[{table}]",
+        BatchSize = 10000,
+        BulkCopyTimeout = 0,
+        EnableStreaming = true,
+    };
+    var schema = reader.GetColumnSchema();
+    foreach (var c in schema)
+    {
+        if (string.Equals(c.DataTypeName, "timestamp", StringComparison.OrdinalIgnoreCase))
+        {
+            continue; // rowversion: tidak dapat diisi
+        }
+
+        bulk.ColumnMappings.Add(c.ColumnName!, c.ColumnName!);
+    }
+
+    await bulk.WriteToServerAsync(reader);
+    return bulk.RowsCopied;
 }
 
 static async Task<string> ScriptTable(SqlConnection s, string table)

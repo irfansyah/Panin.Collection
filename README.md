@@ -71,3 +71,19 @@ Menyalin ulang data dari DB lama ke container (sumber hanya dibaca; target didro
 ```bash
 dotnet run --project tools/Panin.DbClone
 ```
+
+### Salinan lokal DB DATA (skema lengkap + data contoh)
+
+DB DATA asli (`LOSPANINCOLLECTION`) ±64 GB, jadi tidak disalin penuh. Alat yang sama membuat salinan yang boleh ditulis untuk pengembangan halaman yang menyimpan data:
+
+```bash
+dotnet run --project tools/Panin.DbClone -c Release -- data
+# atau pilih user contoh sendiri:
+dotnet run --project tools/Panin.DbClone -c Release -- data --users USER1,USER2,USER3
+```
+
+- Skema lengkap (409 tabel, 233 view, 432 SP/fungsi/trigger). Data: tabel kecil (≤ 100 ribu baris) penuh; tabel besar yang berindeks ACC_NO/CU_REF hanya berisi rekening/nasabah milik 12 user contoh; tabel besar lain hanya 2.000 baris pertama; tabel sementara/unduhan hanya skema. Hasil ±680 ribu baris, ±460 MB.
+- Sumber hanya dibaca (`ReadOnly`, `READ UNCOMMITTED`), target wajib server lokal.
+- View DATA yang membaca DB LOGIN (`SCUSER`, `RFGROUP`, `TEMP_DOWNLINE`) diarahkan ke `LOSPANINLOGIN` lokal, sehingga user dan hak akses sama dengan salinan DB LOGIN.
+- 3 objek tidak dapat dibuat karena rusak di sumber atau butuh linked server: `FNC_VW_REKOMENDASI` (merujuk `VW_REKOMENDASI` yang tidak ada), `VW_REPORT_FLOW_RATE` (kolom `PRODUCT_TYPE` tidak ada), `SP_MOVE_HIS_TO_MIS` (linked server `SVRMIS`).
+- Untuk menjalankan aplikasi terhadap salinan ini (boleh menulis), arahkan `ConnectionStrings:Data:60` ke nilai `ConnectionStrings:DataLocal:60` di user-secrets. Untuk kembali membaca data asli (baca-saja), kembalikan ke koneksi server dev.
