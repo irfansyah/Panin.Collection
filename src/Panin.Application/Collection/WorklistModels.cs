@@ -125,12 +125,27 @@ public interface IWorklistService
     /// <summary>Validasi, otorisasi (user tujuan, user terpilih, dan setiap rekening harus diri sendiri atau bawahan), lalu pindah dalam satu transaksi.</summary>
     Task<ReassignResult> ReassignAsync(string actorUserId, ReassignRequest request, CancellationToken ct = default);
 
+    /// <summary>Validasi dan otorisasi pilihan yang sama dengan <see cref="ReassignAsync"/>, tanpa mengubah data (dipakai juga oleh Generate Excel agen visit).</summary>
+    Task<SelectionCheck> ValidateSelectionAsync(string actorUserId, ReassignRequest request, CancellationToken ct = default);
+
+    /// <summary>Membuang cache daftar tim dan debitur milik user-user ini (setelah kepemilikan debitur berubah).</summary>
+    void InvalidateWorklists(IEnumerable<string> userIds);
+
     /// <summary>
     /// Redistribusi otomatis. <paramref name="dryRun"/> menjalankan SP di dalam transaksi lalu membatalkannya dan hanya melaporkan jumlah rekening
     /// yang akan berpindah. Hanya satu redistribusi berjalan pada satu waktu; tanpa <paramref name="dryRun"/> hasilnya disimpan dalam satu transaksi.
     /// <see cref="RedistributionKind.Template"/> selalu atas nama pengguna yang login; <see cref="RedistributionKind.Index"/> hanya untuk dirinya atau bawahannya.
     /// </summary>
     Task<RedistributionResult> RedistributeAsync(string actorUserId, RedistributionKind kind, string targetUserId, bool dryRun, CancellationToken ct = default);
+}
+
+/// <param name="AccountChunks">Daftar rekening terpilih dipecah menjadi potongan teks "''," + koma-terpisah yang muat di parameter SP.</param>
+/// <param name="Owners">Pemilik rekening terpilih (untuk membuang cache).</param>
+public sealed record SelectionCheck(IReadOnlyList<string> Errors, IReadOnlyList<string> AccountChunks, IReadOnlyCollection<string> Owners, string? TargetName)
+{
+    public bool Ok => Errors.Count == 0;
+
+    public static SelectionCheck Fail(IReadOnlyList<string> errors) => new(errors, [], [], null);
 }
 
 /// <summary>Dua cara redistribusi otomatis di layar Distribusi Debitur (tombol "Redistribusi berdasarkan ...").</summary>

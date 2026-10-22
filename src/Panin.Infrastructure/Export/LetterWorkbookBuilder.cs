@@ -23,9 +23,9 @@ public static partial class LetterWorkbookBuilder
     [GeneratedRegex(@"@(\d+)")]
     private static partial Regex Placeholder();
 
-    private sealed record CellSnap(int Column, ICellStyle Style, CellType Type, string? Text, double Number, bool Boolean, string? Formula, string[] Fields);
+    internal sealed record CellSnap(int Column, ICellStyle Style, CellType Type, string? Text, double Number, bool Boolean, string? Formula, string[] Fields);
 
-    private sealed record RowSnap(int Index, float Height, List<CellSnap> Cells);
+    internal sealed record RowSnap(int Index, float Height, List<CellSnap> Cells);
 
     public static byte[] Build(
         Stream template,
@@ -79,7 +79,7 @@ public static partial class LetterWorkbookBuilder
         return output.ToArray();
     }
 
-    private static void Fill(ISheet sheet, IReadOnlyList<IReadOnlyDictionary<string, object?>> rows)
+    internal static void Fill(ISheet sheet, IReadOnlyList<IReadOnlyDictionary<string, object?>> rows)
     {
         var (snapshot, height, merged) = Snapshot(sheet);
         Clear(sheet);
@@ -108,7 +108,7 @@ public static partial class LetterWorkbookBuilder
         }
     }
 
-    private static (List<RowSnap> Rows, int Height, List<CellRangeAddress> Merged) Snapshot(ISheet sheet)
+    internal static (List<RowSnap> Rows, int Height, List<CellRangeAddress> Merged) Snapshot(ISheet sheet)
     {
         var rows = new List<RowSnap>();
         for (var r = sheet.FirstRowNum; r <= sheet.LastRowNum; r++)
@@ -141,7 +141,7 @@ public static partial class LetterWorkbookBuilder
         return (rows, Math.Max(1, sheet.LastRowNum + 1), merged);
     }
 
-    private static void Clear(ISheet sheet)
+    internal static void Clear(ISheet sheet)
     {
         for (var i = sheet.NumMergedRegions - 1; i >= 0; i--)
         {
@@ -170,7 +170,7 @@ public static partial class LetterWorkbookBuilder
         }
     }
 
-    private static void WriteCell(ICell cell, CellSnap snap, IReadOnlyDictionary<string, object?> data)
+    internal static void WriteCell(ICell cell, CellSnap snap, IReadOnlyDictionary<string, object?> data)
     {
         if (snap.Fields.Length == 0)
         {

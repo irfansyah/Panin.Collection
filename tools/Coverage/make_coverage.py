@@ -53,7 +53,7 @@ KONTROL = {
     "ExceptionLetter": (SELESAI, "Account Exception Letter"),
     "accmon": (SELESAI, "Monitoring Debitur"),
     "recmon": (SELESAI, "Monitoring Recovery/NPL (tautan Janji Debitur dan View News ada; Upload Data AYDA, Upload Visit belum)"),
-    "worklistmonitoring": (SEBAGIAN, "Distribusi Debitur: pindah debitur selesai; tombol distribusi ulang (`SP_WORKLIST_DISTRIBUTION_*`) dan Excel agen visit (`SP_GENERATE_EXCEL_VISIT*`) belum"),
+    "worklistmonitoring": (SELESAI, "Distribusi Debitur: pindah debitur, redistribusi otomatis (template/index), dan Generate Excel agen visit"),
     "news": (SEBAGIAN, "News View selesai; Add News (editor HTML, unggah gambar) dan edit berita belum"),
     "MAINCOL": (SELESAI, "Digantikan oleh layar detail debitur (`/collection/debitur/detail`)"),
     "00020": (SEBAGIAN, "Data nasabah tampil di kartu Nasabah; penyuntingan hanya telepon/alamat lewat bagian Hasil Call/Visit"),

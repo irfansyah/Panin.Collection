@@ -123,19 +123,19 @@ public sealed partial class WorklistService(IModuleDbFactory dbs, SingleFlightCa
             }
         }).ConfigureAwait(false) ?? new WorklistDebitorResult([], 0, WorklistRules.MaxDebitors);
 
-    public async Task<ReassignResult> ReassignAsync(string actorUserId, ReassignRequest request, CancellationToken ct = default)
+    public async Task<SelectionCheck> ValidateSelectionAsync(string actorUserId, ReassignRequest request, CancellationToken ct = default)
     {
         var errors = WorklistRules.Validate(request, DateTime.Today);
         if (errors.Count > 0)
         {
-            return new ReassignResult(false, errors);
+            return SelectionCheck.Fail(errors);
         }
 
         var db = await Db(ct).ConfigureAwait(false);
         var target = await db.QueryFirstOrDefaultAsync(TargetSql, [actorUserId, request.TargetUserId.Trim()], ct: ct).ConfigureAwait(false);
         if (target is null)
         {
-            return ReassignResult.Fail($"User ID: {request.TargetUserId} tidak ditemukan, tidak aktif, atau bukan bawahan Anda");
+            return SelectionCheck.Fail([$"User ID: {request.TargetUserId} tidak ditemukan, tidak aktif, atau bukan bawahan Anda"]);
         }
 
         foreach (var group in request.GroupUserIds)
@@ -143,7 +143,7 @@ public sealed partial class WorklistService(IModuleDbFactory dbs, SingleFlightCa
             if (!await CanViewAsync(actorUserId, group, ct).ConfigureAwait(false))
             {
                 LogDenied(logger, actorUserId, group);
-                return ReassignResult.Fail("Ada user terpilih yang bukan bawahan Anda.");
+                return SelectionCheck.Fail(["Ada user terpilih yang bukan bawahan Anda."]);
             }
         }
 
@@ -154,12 +154,38 @@ public sealed partial class WorklistService(IModuleDbFactory dbs, SingleFlightCa
             if (await db.ExecuteScalarAsync<int>(ForeignAccountsSql, [actorUserId, chunk], ct: ct).ConfigureAwait(false) > 0)
             {
                 LogDenied(logger, actorUserId, "rekening");
-                return ReassignResult.Fail("Ada rekening terpilih yang bukan milik Anda atau bawahan Anda.");
+                return SelectionCheck.Fail(["Ada rekening terpilih yang bukan milik Anda atau bawahan Anda."]);
             }
 
             var table = await db.QueryTableAsync(OwnersSql, [chunk], ct: ct).ConfigureAwait(false);
             owners.UnionWith(table.Rows.Cast<System.Data.DataRow>().Select(r => Convert.ToString(r[0], CultureInfo.InvariantCulture)!.Trim()));
         }
+
+        return new SelectionCheck([], chunks, owners, Convert.ToString(target[0], CultureInfo.InvariantCulture)?.Trim());
+    }
+
+    /// <summary>Daftar tim/debitur pemindah, penerima, dan pemilik lama sudah berubah.</summary>
+    public void InvalidateWorklists(IEnumerable<string> userIds)
+    {
+        foreach (var user in userIds)
+        {
+            cache.Remove(TeamKey(user));
+            cache.Remove(DebitorKey(user));
+        }
+    }
+
+    public async Task<ReassignResult> ReassignAsync(string actorUserId, ReassignRequest request, CancellationToken ct = default)
+    {
+        var check = await ValidateSelectionAsync(actorUserId, request, ct).ConfigureAwait(false);
+        if (!check.Ok)
+        {
+            return new ReassignResult(false, check.Errors);
+        }
+
+        var db = await Db(ct).ConfigureAwait(false);
+        var chunks = check.AccountChunks;
+        var owners = check.Owners;
+        var target = new object?[] { check.TargetName };
 
         try
         {

@@ -114,6 +114,6 @@ Setiap baris adalah satu fungsi yang bisa dipanggil layar lama (`GET_CONTROL`). 
 | `Vehicle` | `AccVehicleInfo.ascx` | Tidak ada kode | Berkas tidak ada di repo |
 | `Visitation` | `Visit.ascx` | Selesai | Form Visit (`/collection/debitur/visit`) |
 | `visitrec` | `visit_rec.ascx` | **BELUM** | Visit versi Recovery (`visit_rec.ascx`) |
-| `worklistmonitoring` | `WorklistMonitoring.ascx` | Sebagian | Distribusi Debitur: pindah debitur selesai; tombol distribusi ulang (`SP_WORKLIST_DISTRIBUTION_*`) dan Excel agen visit (`SP_GENERATE_EXCEL_VISIT*`) belum |
+| `worklistmonitoring` | `WorklistMonitoring.ascx` | Selesai | Distribusi Debitur: pindah debitur, redistribusi otomatis (template/index), dan Generate Excel agen visit |
 
-Ringkasan: Selesai 7, Sebagian 6, **BELUM 24**, tidak ada kode 22.
+Ringkasan: Selesai 8, Sebagian 5, **BELUM 24**, tidak ada kode 22.

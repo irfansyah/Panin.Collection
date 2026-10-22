@@ -54,6 +54,8 @@ public static class DependencyInjection
         services.AddSingleton<Panin.Application.Reports.Pivot.ICustomPivotCatalog, Panin.Infrastructure.Reports.Custom.CustomPivotCatalog>();
         services.Configure<Panin.Infrastructure.Memos.MemoOptions>(configuration.GetSection(Panin.Infrastructure.Memos.MemoOptions.SectionName));
         services.AddSingleton<Panin.Application.Memos.IMemoService, Panin.Infrastructure.Memos.MemoService>();
+        services.Configure<VisitAgencyOptions>(configuration.GetSection(VisitAgencyOptions.SectionName));
+        services.AddSingleton<IVisitAgencyService, VisitAgencyService>();
         services.AddSingleton<IPromiseService, PromiseService>();
         services.AddSingleton<INewsService, NewsService>();
         services.AddSingleton<IReportService, Panin.Infrastructure.Reports.ReportService>();
