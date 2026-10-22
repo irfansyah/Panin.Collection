@@ -124,4 +124,27 @@ public interface IWorklistService
 
     /// <summary>Validasi, otorisasi (user tujuan, user terpilih, dan setiap rekening harus diri sendiri atau bawahan), lalu pindah dalam satu transaksi.</summary>
     Task<ReassignResult> ReassignAsync(string actorUserId, ReassignRequest request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Redistribusi otomatis. <paramref name="dryRun"/> menjalankan SP di dalam transaksi lalu membatalkannya dan hanya melaporkan jumlah rekening
+    /// yang akan berpindah. Hanya satu redistribusi berjalan pada satu waktu; tanpa <paramref name="dryRun"/> hasilnya disimpan dalam satu transaksi.
+    /// <see cref="RedistributionKind.Template"/> selalu atas nama pengguna yang login; <see cref="RedistributionKind.Index"/> hanya untuk dirinya atau bawahannya.
+    /// </summary>
+    Task<RedistributionResult> RedistributeAsync(string actorUserId, RedistributionKind kind, string targetUserId, bool dryRun, CancellationToken ct = default);
+}
+
+/// <summary>Dua cara redistribusi otomatis di layar Distribusi Debitur (tombol "Redistribusi berdasarkan ...").</summary>
+public enum RedistributionKind
+{
+    /// <summary><c>SP_WORKLIST_DISTRIBUTION_TEMPLATE</c>: seluruh bawahan pengguna yang login, menurut templat distribusi.</summary>
+    Template,
+
+    /// <summary><c>SP_WORKLIST_DISTRIBUTION_INDEX</c>: dibagi rata ke bawahan langsung user yang sedang dilihat, menurut urutan distribusi.</summary>
+    Index,
+}
+
+/// <param name="AccountsMoved">Rekening yang pemiliknya berubah (pada pratinjau: yang akan berubah).</param>
+public sealed record RedistributionResult(bool Success, int AccountsMoved, bool DryRun, IReadOnlyList<string> Errors)
+{
+    public static RedistributionResult Fail(string message) => new(false, 0, false, [message]);
 }

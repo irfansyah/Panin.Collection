@@ -143,3 +143,28 @@ public class ChangePasswordMenuTests
         Assert.False(page.IsLegacy);
     }
 }
+
+public class RedistributionSqlTests
+{
+    [Theory]
+    [InlineData(Panin.Application.Collection.RedistributionKind.Template, "SP_WORKLIST_DISTRIBUTION_TEMPLATE")]
+    [InlineData(Panin.Application.Collection.RedistributionKind.Index, "SP_WORKLIST_DISTRIBUTION_INDEX")]
+    public void Batch_is_transactional_locked_and_counts_moved_accounts(Panin.Application.Collection.RedistributionKind kind, string procedure)
+    {
+        var sql = Panin.Infrastructure.Collection.WorklistService.BuildRedistribute(kind);
+
+        Assert.Contains("SET XACT_ABORT ON", sql, StringComparison.Ordinal);
+        Assert.Contains("BEGIN TRAN", sql, StringComparison.Ordinal);
+        Assert.Contains("sp_getapplock", sql, StringComparison.Ordinal);
+        Assert.Contains("EXEC " + procedure + " @1", sql, StringComparison.Ordinal);
+        Assert.Contains("IF @2 = 1 ROLLBACK TRAN ELSE COMMIT TRAN", sql, StringComparison.Ordinal);
+        Assert.Contains("INTO #before", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Template_scope_includes_orphan_and_inactive_owners_but_index_does_not()
+    {
+        Assert.Contains("USERID IS NULL", Panin.Infrastructure.Collection.WorklistService.BuildRedistribute(Panin.Application.Collection.RedistributionKind.Template), StringComparison.Ordinal);
+        Assert.DoesNotContain("USERID IS NULL", Panin.Infrastructure.Collection.WorklistService.BuildRedistribute(Panin.Application.Collection.RedistributionKind.Index), StringComparison.Ordinal);
+    }
+}

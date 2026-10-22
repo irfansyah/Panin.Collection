@@ -181,4 +181,32 @@ public class SqlDbIntegrationTests
             Assert.NotNull(await db.QueryFirstOrDefaultAsync($"SELECT {columns} FROM {def.ReportView} WHERE ACC_NO = @1", [row["ACC_NO"]]));
         }
     }
+
+    [Theory]
+    [InlineData(Panin.Application.Collection.RedistributionKind.Template)]
+    [InlineData(Panin.Application.Collection.RedistributionKind.Index)]
+    public async Task Redistribution_preview_runs_the_real_procedures_and_leaves_the_data_untouched(Panin.Application.Collection.RedistributionKind kind)
+    {
+        if (Connect() is not { } db)
+        {
+            return;
+        }
+
+        const string Checksum = "SELECT CHECKSUM_AGG(CHECKSUM(ACC_NO, USERID, TUSERID, TUSERID2, TUSERID3, MANUALMOVE, CONFIRMED)) FROM LOAN_MASTER";
+        const string History = "SELECT COUNT(*) FROM LOAN_HANDLING_HISTORY";
+        var supervisor = await db.ExecuteScalarAsync<string?>("SELECT TOP 1 UPLINER FROM SCUSER WHERE UPLINER IS NOT NULL AND ISNULL(ACTIVE,0)=1 GROUP BY UPLINER ORDER BY COUNT(*) DESC", []);
+        if (supervisor is null)
+        {
+            return;
+        }
+
+        var before = await db.ExecuteScalarAsync<int?>(Checksum, []);
+        var historyBefore = await db.ExecuteScalarAsync<int>(History, []);
+
+        var moved = await db.ExecuteScalarAsync<int>(Panin.Infrastructure.Collection.WorklistService.BuildRedistribute(kind), [supervisor, 1], new Panin.Application.Abstractions.DbOptions(TimeoutSeconds: 600));
+
+        Assert.True(moved >= 0, "kunci dianggap terpakai");
+        Assert.Equal(before, await db.ExecuteScalarAsync<int?>(Checksum, []));
+        Assert.Equal(historyBefore, await db.ExecuteScalarAsync<int>(History, []));
+    }
 }

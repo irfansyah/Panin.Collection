@@ -203,6 +203,101 @@ public sealed partial class WorklistService(IModuleDbFactory dbs, SingleFlightCa
         return (sql.ToString(), [.. args]);
     }
 
+    private static readonly SemaphoreSlim RedistributionGate = new(1, 1);
+
+    public const string RedistributionLock = "PANIN_WORKLIST_REDISTRIBUTE";
+
+    // Lingkup rekening yang diperiksa sebelum/sesudah SP untuk menghitung yang berpindah. Template juga menyentuh rekening tanpa pemilik atau
+    // berpemilik user yang sudah tidak ada/aktif (SP melepas lalu menugaskan ulang), jadi ikut dihitung.
+    private const string TemplateScope = """
+        USERID IN (SELECT DOWNLINE FROM TEMP_DOWNLINE WHERE USERID = @1 UNION SELECT @1)
+        OR USERID IS NULL
+        OR USERID NOT IN (SELECT USERID FROM SCUSER)
+        OR USERID IN (SELECT USERID FROM SCUSER WHERE ISNULL(ACTIVE, 0) = 0)
+        """;
+
+    private const string IndexScope = "USERID IN (SELECT USERID FROM SCUSER WHERE UPLINER = @1 UNION SELECT @1)";
+
+    /// <summary>
+    /// SP lama tidak memakai transaksi dan mengubah ribuan baris bertahap; di sini dibungkus satu transaksi (gagal di tengah = batal semua),
+    /// dikunci agar tidak dua kali sekaligus, dan menghitung rekening yang berpindah. Parameter: @1 user, @2 pratinjau (1/0).
+    /// </summary>
+    public static string BuildRedistribute(RedistributionKind kind)
+    {
+        var (procedure, scope) = kind == RedistributionKind.Template
+            ? ("SP_WORKLIST_DISTRIBUTION_TEMPLATE", TemplateScope)
+            : ("SP_WORKLIST_DISTRIBUTION_INDEX", IndexScope);
+        return $"""
+            SET XACT_ABORT ON;
+            DECLARE @r int, @moved int;
+            BEGIN TRAN;
+            EXEC @r = sp_getapplock @Resource = N'{RedistributionLock}', @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 0;
+            IF @r < 0
+            BEGIN
+                ROLLBACK TRAN;
+                SELECT -1;
+                RETURN;
+            END
+            SELECT ACC_NO, USERID INTO #before FROM LOAN_MASTER WHERE {scope};
+            EXEC {procedure} @1;
+            SELECT @moved = COUNT(*) FROM LOAN_MASTER L JOIN #before B ON B.ACC_NO = L.ACC_NO WHERE ISNULL(L.USERID, '') <> ISNULL(B.USERID, '');
+            IF @2 = 1 ROLLBACK TRAN ELSE COMMIT TRAN;
+            SELECT @moved;
+            """;
+    }
+
+    public async Task<RedistributionResult> RedistributeAsync(string actorUserId, RedistributionKind kind, string targetUserId, bool dryRun, CancellationToken ct = default)
+    {
+        var user = kind == RedistributionKind.Template ? actorUserId : targetUserId?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(actorUserId) || string.IsNullOrWhiteSpace(user) || !await CanViewAsync(actorUserId, user, ct).ConfigureAwait(false))
+        {
+            LogDenied(logger, actorUserId, user);
+            return RedistributionResult.Fail("Anda tidak berwenang melakukan redistribusi untuk user tersebut.");
+        }
+
+        if (!await RedistributionGate.WaitAsync(0, ct).ConfigureAwait(false))
+        {
+            return RedistributionResult.Fail("Redistribusi lain sedang berjalan. Coba lagi beberapa saat.");
+        }
+
+        try
+        {
+            var db = await Db(ct).ConfigureAwait(false);
+            int moved;
+            try
+            {
+                moved = await db.ExecuteScalarAsync<int>(BuildRedistribute(kind), [user, dryRun ? 1 : 0], new DbOptions(TimeoutSeconds: 900), ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                LogRedistributionFailed(logger, ex, actorUserId, kind.ToString(), user);
+                return RedistributionResult.Fail($"Redistribusi gagal. Tidak ada perubahan yang tercatat; coba lagi atau hubungi administrator. {ErrorReference.Tag}");
+            }
+
+            if (moved < 0)
+            {
+                return RedistributionResult.Fail("Redistribusi lain sedang berjalan di server. Coba lagi beberapa saat.");
+            }
+
+            if (!dryRun)
+            {
+                var affected = await db.QueryTableAsync("SELECT USERID FROM SCUSER WHERE USERID = @1 OR USERID IN (SELECT DOWNLINE FROM TEMP_DOWNLINE WHERE USERID = @1)", [user], ct: ct).ConfigureAwait(false);
+                foreach (var id in affected.Rows.Cast<System.Data.DataRow>().Select(r => Convert.ToString(r[0], CultureInfo.InvariantCulture)!.Trim()))
+                {
+                    cache.Remove(TeamKey(id));
+                    cache.Remove(DebitorKey(id));
+                }
+            }
+
+            LogRedistributed(logger, actorUserId, kind.ToString(), user, moved, dryRun);
+            return new RedistributionResult(true, moved, dryRun, []);
+        }
+        finally
+        {
+            RedistributionGate.Release();
+        }
+    }
+
     private static string TeamKey(string userId) => $"wl-team:{userId}";
 
     private static string DebitorKey(string userId) => $"wl-deb:{userId}";
@@ -214,6 +309,12 @@ public sealed partial class WorklistService(IModuleDbFactory dbs, SingleFlightCa
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Pemindahan debitur gagal: user {UserId} ke {Target}")]
     private static partial void LogFailed(ILogger logger, Exception ex, string userId, string target);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Redistribusi gagal: oleh {UserId}, {Kind} untuk {Target}")]
+    private static partial void LogRedistributionFailed(ILogger logger, Exception ex, string userId, string kind, string target);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Redistribusi {Kind} oleh {UserId} untuk {Target}: {Moved} rekening berpindah (pratinjau={DryRun})")]
+    private static partial void LogRedistributed(ILogger logger, string userId, string kind, string target, int moved, bool dryRun);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Debitur dipindahkan: oleh {UserId} ke {Target}, {Accounts} rekening, {Groups} user")]
     private static partial void LogMoved(ILogger logger, string userId, string target, int accounts, int groups);
