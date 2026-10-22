@@ -1,0 +1,29 @@
+@using Panin.Application.Memos
+
+<section class="space-y-3">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold text-slate-800">@(MemoRules.TryParseSlug(Kind, out var kind) ? MemoRules.Title(kind) : "Memo")</h1>
+        <div class="flex gap-2">
+            <a href="@DownloadUrl" class="rounded-md bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-800">Export to Word</a>
+            @if (Navigator is { CanGoBack: true })
+            {
+                <button type="button" @onclick="Navigator.Back" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">← Kembali</button>
+            }
+        </div>
+    </div>
+
+    @* Dokumen disajikan oleh /api/memo (butuh login dan hak menu) di dalam iframe satu-asal agar gayanya tidak bercampur dengan halaman ini. *@
+    <iframe title="Pratinjau memo" src="@ViewUrl" class="h-[75vh] w-full rounded-lg border border-slate-200 bg-white"></iframe>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Kind { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public string AccountNo { get; set; } = string.Empty;
+
+    [CascadingParameter] private Panin.Web.Shell.IModuleNavigator? Navigator { get; set; }
+
+    private string ViewUrl => $"/api/memo/{Uri.EscapeDataString(Kind)}/{Uri.EscapeDataString(AccountNo)}";
+
+    private string DownloadUrl => ViewUrl + "?doc=1";
+}

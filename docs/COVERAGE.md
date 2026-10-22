@@ -5,7 +5,7 @@ Data menu dan kontrol berasal dari DB **dev**; menu/kontrol di produksi bisa ber
 
 ## 1. Menu
 
-**32 dari 40** menu yang punya halaman (modul 60, 70, 99) sudah punya halaman baru.
+**37 dari 40** menu yang punya halaman (modul 60, 70, 99) sudah punya halaman baru.
 
 | Modul | Menu | URL lama | Status | Halaman baru |
 |---|---|---|---|---|
@@ -23,11 +23,11 @@ Data menu dan kontrol berasal dari DB **dev**; menu/kontrol di produksi bisa ber
 | 60 Collection | Report Khusus KPM | `~/Report/ReportSet.aspx?setid=KPM` | Selesai | `src/Panin.Web/Modules/Reports/ReportCatalog.razor` |
 | 60 Collection | Flow Rate | `~/Report/ReportSet.aspx?setid=FR` | Selesai | `src/Panin.Web/Modules/Reports/ReportCatalog.razor` |
 | 60 Collection | Was Is Reprot | `~/Report/ReportSet.aspx?setid=WASIS` | Selesai | `src/Panin.Web/Modules/Reports/ReportCatalog.razor` |
-| 60 Collection | Print Surat Kuasa Penarikan Agunan Mobil | `~/Controls/CariSKPM.aspx` | **BELUM** |  |
-| 60 Collection | Print Memo Pengajuan Hapus Buku | `~/Controls/CariHapusBuku.aspx` | **BELUM** |  |
-| 60 Collection | Print Memo Pengajuan Hapus Tagih | `~/Controls/CariHapusTagih.aspx` | **BELUM** |  |
-| 60 Collection | Print Memo Pengajuan Restrukturisasi | `~/Controls/CariRestrukturisasi.aspx` | **BELUM** |  |
-| 60 Collection | Print Memo Pengajuan Penyelesaian AYDA | `~/Controls/CariAYDA.aspx` | **BELUM** |  |
+| 60 Collection | Print Surat Kuasa Penarikan Agunan Mobil | `~/Controls/CariSKPM.aspx` | Selesai | `src/Panin.Web/Modules/Collection/Memos/MemoSearch.razor` |
+| 60 Collection | Print Memo Pengajuan Hapus Buku | `~/Controls/CariHapusBuku.aspx` | Selesai | `src/Panin.Web/Modules/Collection/Memos/MemoSearch.razor` |
+| 60 Collection | Print Memo Pengajuan Hapus Tagih | `~/Controls/CariHapusTagih.aspx` | Selesai | `src/Panin.Web/Modules/Collection/Memos/MemoSearch.razor` |
+| 60 Collection | Print Memo Pengajuan Restrukturisasi | `~/Controls/CariRestrukturisasi.aspx` | Selesai | `src/Panin.Web/Modules/Collection/Memos/MemoSearch.razor` |
+| 60 Collection | Print Memo Pengajuan Penyelesaian AYDA | `~/Controls/CariAYDA.aspx` | Selesai | `src/Panin.Web/Modules/Collection/Memos/MemoSearch.razor` |
 | 60 Collection | Change Password | `~/ChangePassword.aspx` | Selesai | `src/Panin.Web/Modules/Account/ChangePasswordPage.razor` |
 | 60 Collection | Inquiry Status Debitur | `~/controls/search_debitur.aspx` | Selesai | `src/Panin.Web/Modules/Collection/Inquiry/DebiturSearch.razor` |
 | 60 Collection | Inquiry Data AYDA/WO | `~/controls/search_data_ayda.aspx` | **BELUM** |  |

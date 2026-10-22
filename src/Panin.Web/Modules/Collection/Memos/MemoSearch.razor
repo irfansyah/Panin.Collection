@@ -1,0 +1,109 @@
+@attribute [ModulePage("60", "/collection/memo")]
+@implements IDisposable
+@using Panin.Application.Memos
+@using Panin.Web.Components.Common
+@inject IMemoService Memos
+@inject ILogger<MemoSearch> Logger
+
+<section class="space-y-4">
+    <h1 class="text-xl font-semibold text-slate-800">@MemoRules.Title(_kind)</h1>
+
+    <form @onsubmit="SearchAsync" class="rounded-lg border border-slate-200 bg-white p-4">
+        <div class="max-w-sm">
+            <Field Label="No Account" Required="true">
+                <input id="acc" @bind="_accountNo" @bind:event="oninput" maxlength="30" autocomplete="off" class="@InputClass" />
+            </Field>
+        </div>
+        <div class="mt-3 flex gap-2">
+            <button type="submit" disabled="@_busy" class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">CARI</button>
+            <button type="button" @onclick="Reset" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">BATAL</button>
+        </div>
+    </form>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">@_error</div>
+    }
+
+    @if (_rows is not null)
+    {
+        <DataGrid TItem="MemoSearchRow" Items="_rows" Columns="_columns" EmptyText="Data tidak ditemukan." />
+    }
+</section>
+
+@code {
+    private const string InputClass = "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+
+    private readonly CancellationTokenSource _cts = new();
+    private IReadOnlyList<MemoSearchRow>? _rows;
+    private IReadOnlyList<GridColumn<MemoSearchRow>> _columns = [];
+    private MemoKind _kind = MemoKind.Skpm;
+    private string? _accountNo, _error;
+    private bool _busy;
+
+    /// <summary>Slug jenis memo (<c>skpm</c>, <c>hapus-buku</c>, <c>hapus-tagih</c>, <c>restrukturisasi</c>, <c>ayda</c>); datang dari peta URL menu lama.</summary>
+    [Parameter] public string Kind { get; set; } = "skpm";
+
+    [CascadingParameter] private Panin.Web.Shell.IModuleNavigator? Navigator { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (MemoRules.TryParseSlug(Kind, out var kind))
+        {
+            _kind = kind;
+        }
+
+        _columns =
+        [
+            new() { Header = "No Account", Value = r => r.AccountNo },
+            new() { Header = "Nama Debitur", Value = r => r.DebtorName },
+            new() { Header = "Cetak", Value = r => r.AccountNo, ActionOnly = true, Sortable = false, Template = r => @<button type="button" @onclick="() => Open(r)" class="rounded border border-sky-300 px-2 py-0.5 text-xs font-medium text-sky-800 hover:bg-sky-50">Lihat dan cetak</button> },
+        ];
+    }
+
+    private async Task SearchAsync()
+    {
+        _error = null;
+        if (!MemoRules.IsValidAccount(_accountNo))
+        {
+            _error = "No Account wajib diisi (huruf dan angka saja).";
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            _rows = await Memos.SearchAsync(_kind, _accountNo!, _cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Pencarian memo {Kind} gagal", _kind);
+            _rows = null;
+            _error = $"Pencarian gagal. Coba lagi atau hubungi administrator. {ErrorReference.Tag}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Reset()
+    {
+        _accountNo = null;
+        _rows = null;
+        _error = null;
+    }
+
+    private void Open(MemoSearchRow row)
+        => Navigator?.Open<MemoPreview>(new Dictionary<string, object?> { [nameof(MemoPreview.Kind)] = MemoRules.Slug(_kind), [nameof(MemoPreview.AccountNo)] = row.AccountNo });
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

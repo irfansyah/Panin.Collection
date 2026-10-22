@@ -1,0 +1,1070 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Print Restrukturisasi</title>
+    <style type="text/css">
+        .tbl0
+        {
+            border: 2px solid #000000;
+            font-family: Times New Roman;
+            font-size: 12px;
+        }
+        .tdR
+        {
+            border-right: 2px solid #000000;
+        }
+        .style1
+        {
+            height: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div align="center">
+    </div>
+    <div style="font-size: 16px">
+        <strong>Memorandum Permohonan Restrukturisasi Kredit KPR</strong>
+    </div>
+    <div style="font-size: 12px">
+        <table width="100%" border="1" bordercolor="Black" cellpadding="0" cellspacing="0">
+            <tr>
+                <td width="25%">
+                    Cab. :
+                    {{BRANCHNAME}}
+                </td>
+                <td width="25%">
+                    Nomor :
+                    {{NOMOR}}
+                </td>
+                <td width="25%">
+                    Tanggal :
+                    {{TANGGAL}}
+                </td>
+                <td width="25%">
+                    A/C :
+                    {{AC}}
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>1. TUJUAN PERMOHONAN</strong>
+        <br />
+        <table width="100%" cellpadding="2" cellspacing="2" class="tbl0">
+            <tr>
+                <td width="50%">
+                    <input type="checkbox" /> <label>Penurunan Suku Bunga</label>
+                </td>
+                <td>
+                    <input type="checkbox" /> <label>Pengurangan Tunggakan Pokok Kredit</label>
+                </td>
+            </tr>
+            <tr>
+                <td width="50%">
+                    <input type="checkbox" /> <label>Pengurangan Tunggakan Bunga kredit </label>
+                </td>
+                <td>
+                    <input type="checkbox" /> <label>Perpanjangan Jangka Waktu Kredit</label>
+                </td>
+            </tr>
+            <tr>
+                <td width="50%">
+                    <input type="checkbox" /> <label>Penambahan Fasilitas Kredit</label>
+                </td>
+                <td>
+                    <input type="checkbox" /> <label>Grace Period</label>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>2. DATA DEBITUR</strong>
+        <br />
+        <table width="100%" cellpadding="2" cellspacing="2" class="tbl0">
+            <tr>
+                <td width="25%">
+                    Nama Debitur
+                </td>
+                <td width="2%">
+                    :
+                </td>
+                <td>
+                    {{lblNama}}
+                </td>
+            </tr>
+            <tr>
+                <td width="25%">
+                    No. KTP
+                </td>
+                <td width="2%">
+                    :
+                </td>
+                <td>
+                    {{lblNoKTP}}
+                </td>
+            </tr>
+            <tr>
+                <td width="25%">
+                    NPWP
+                </td>
+                <td width="2%">
+                    :
+                </td>
+                <td>
+                    {{lblNPWP}}
+                </td>
+            </tr>
+            <tr>
+                <td width="25%">
+                    Alamat Kantor
+                </td>
+                <td width="2%">
+                    :
+                </td>
+                <td>
+                    {{lblOfficeAdd}}
+                </td>
+            </tr>
+            <tr>
+                <td width="25%">
+                    Alamat Rumah
+                </td>
+                <td width="2%">
+                    :
+                </td>
+                <td>
+                    {{lblHomeAdd}}
+                </td>
+            </tr>
+            <tr>
+                <td width="25%">
+                    Nomor Telepon
+                </td>
+                <td width="2%">
+                    :
+                </td>
+                <td>
+                    {{lblPhoneNum}}
+                </td>
+            </tr>
+            <tr>
+                <td width="25%">
+                    Jenis Usaha
+                </td>
+                <td width="2%">
+                    :
+                </td>
+                <td>
+                    {{lblJenisUsaha}}
+                </td>
+            </tr>
+            <tr>
+                <td width="25%">
+                    Kolektibilitas
+                </td>
+                <td width="2%">
+                    :
+                </td>
+                <td>
+                    {{lblKolektibilitas}}
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>3. RINGKASAN FASILITAS SAAT INI ( POSISI SAAT PENGAJUAN )</strong>
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td align="center" width="20%">
+                    Fasilitas
+                </td>
+                <td align="center" width="10%">
+                    Outstanding (Rp.)
+                </td>
+                <td align="center" width="10%">
+                    Tunggakan Pokok (Rp.)
+                </td>
+                <td align="center" width="10%">
+                    Tunggakan Bunga (Rp.)
+                </td>
+                <td align="center" width="10%">
+                    Denda (Rp.)
+                </td>
+                <td align="center" width="15%">
+                    Jatuh Tempo
+                </td>
+                <td align="center" width="10%">
+                    Kol
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        Catatan :
+        <br />
+        <br />
+        <br />
+        <strong>4. RINGKASAN FASILITAS SETELAH RESTRUKTURISASI</strong>
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td align="center" width="20%">
+                    Fasilitas
+                </td>
+                <td align="center" width="10%">
+                    Outstanding (Rp.)
+                </td>
+                <td align="center" width="10%">
+                    Tunggakan Pokok (Rp.)
+                </td>
+                <td align="center" width="10%">
+                    Tunggakan Bunga (Rp.)
+                </td>
+                <td align="center" width="10%">
+                    Denda (Rp.)
+                </td>
+                <td align="center" width="15%">
+                    Jatuh Tempo
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        Catatan :
+        <br />
+        <br />
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td align="center" width="20%">
+                    JENIS
+                </td>
+                <td align="center" width="10%">
+                    JADWAL ANGSURAN
+                </td>
+                <td align="center" width="10%">
+                    JUMLAH ANGSURAN
+                </td>
+                <td align="center" width="10%">
+                    MULAI TGL s/d TGL
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>5. LATAR BELAKANG DILAKUKANNYA RESTRUKTURISASI</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td style="height: 100px">
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>6. LATAR BELAKANG USAHA / PEKERJAAN</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td style="height: 100px">
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>7.</strong>
+        <center>
+            <strong>CASHFLOW</strong>
+        </center>
+        <table width="100%" cellpadding="0" cellspacing="0" class="tbl0">
+            <tr>
+                <td class="tdR">
+                    <table>
+                        <tr>
+                            <td align="center" colspan="3">
+                                <strong><u>MRK Awal Pengajuan</u></strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">
+                                &nbsp;
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Omset/Pendapatan
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{lblOmset}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                COGS
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{lblCOGS}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                NOP
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{lblNOP}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Biaya Hidup
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{lblBiaya}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Emergency Cost (30%)
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{lblEmergency}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Saving
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{lblSaving}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Angsuran Lain
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{lblAngsuran}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Angsuran KPR
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{lblKPR}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                &nbsp;
+                            </td>
+                            <td>
+                                -----------------------------
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Cushion
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{lblCushion}}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td class="tdR">
+                    <table>
+                        <tr>
+                            <td align="center" colspan="3">
+                                <strong><u>Kondisi Saat Ini</u></strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">
+                                &nbsp;
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Omset/Pendapatan
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label1}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                COGS
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label2}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                NOP
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label3}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Biaya Hidup
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label4}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Emergency Cost (30%)
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label5}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Saving
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label6}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Angsuran Lain
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label7}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Angsuran KPR
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label8}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                &nbsp;
+                            </td>
+                            <td>
+                                -----------------------------
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Cushion
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label9}}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    <table>
+                        <tr>
+                            <td align="center" colspan="3">
+                                <strong><u>Setelah Restrukturisasi</u></strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">
+                                &nbsp;
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Omset/Pendapatan
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label10}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                COGS
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label11}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                NOP
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label12}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Biaya Hidup
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label13}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Emergency Cost (30%)
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label14}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Saving
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label15}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Angsuran Lain
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label16}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Angsuran KPR
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label17}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                &nbsp;
+                            </td>
+                            <td>
+                                -----------------------------
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                Cushion
+                            </td>
+                            <td>
+                                :
+                            </td>
+                            <td>
+                                {{Label18}}
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>8. MUTASI REKENING</strong>
+        <br />
+        <table width="100%" cellpadding="3" cellspacing="0">
+            <tr>
+                <td>
+                    Nama Bank
+                </td>
+                <td>
+                    :
+                </td>
+                <td>
+                    {{lblBank}}
+                </td>
+                <td>
+                    Jenis Simpanan
+                </td>
+                <td>
+                    :
+                </td>
+                <td>
+                    {{lblJenSimpanan}}
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    No. Rekening
+                </td>
+                <td>
+                    :
+                </td>
+                <td>
+                    {{lblNoRek}}
+                </td>
+                <td>
+                    Mata Uang
+                </td>
+                <td>
+                    :
+                </td>
+                <td>
+                    IDR
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Atas Nama
+                </td>
+                <td>
+                    :
+                </td>
+                <td>
+                    {{lblAtasNama}}
+                </td>
+            </tr>
+        </table>
+        <br />
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr style="background-color: Aqua" align="center">
+                <td width="25%">
+                    Bulan
+                </td>
+                <td width="25%">
+                    Debet
+                </td>
+                <td width="25%">
+                    Kredit
+                </td>
+                <td width="25%">
+                    Saldo Rata-rata
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td align="center">
+                    Rata-Rata
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        *) Jika buku tabungan lebih dari 1(satu) tetap menggunakan kolom diatas , dengan
+        cara dikonsolidasi dahulu sebelum di input
+        <br />
+        <br />
+        <strong>9. AGUNAN</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td style="height: 100px">
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        *) Menambahkan data jatuh tempo dan jumlah pertanggungan asuransi
+        <br />
+        <br />
+        <strong>10. SECURITY COVERAGE RATIO</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td style="height: 100px">
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>11. HUBUNGAN DENGAN KREDITUR</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" class="tbl0">
+            <tr>
+                <td>
+                    PANIN BANK
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 40px">
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    BANK / LEMBAGA KEUANGAN LAINNYA
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 40px">
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>12. REVIEW DOKUMENTASI KREDIT, COVENANT DAN JAMINAN TAMBAHAN</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" class="tbl0">
+            <tr>
+                <td>
+                    DOKUMENTASI
+                </td>
+            </tr>
+            <tr>
+                <td class="style1">
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    COVENANT
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 40px">
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    JAMINAN TAMBAHAN
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 40px">
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>13. PENYIMPANGAN</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td style="height: 100px">
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>14. KESIMPULAN DAN REKOMENDASI</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td style="height: 100px">
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table border="0" width="100%">
+            <tr>
+                <td width="33%">
+                    Diajukan Oleh,
+                </td>
+                <td width="33%">
+                    &nbsp;
+                </td>
+                <td width="33%">
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 75px">
+                </td>
+                <td>
+                </td>
+                <td>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <u>SAM Retail Lending</u>
+                </td>
+                <td>
+                </td>
+                <td align="center">
+                    <u>SAM Supervisor</u>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td colspan="3" align="left">
+                    Mengetahui,
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" align="left">
+                    KOMITE KREDIT CABANG
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td align="left">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td colspan="3" align="left">
+                    Direkomendasi,
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" align="left">
+                    Tim Restrukturisasi Kredit
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td align="left">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td colspan="3" align="left">
+                    <strong>KOMITE KREDIT DIREKSI</strong>
+                </td>
+            </tr>
+            <tr>
+                <td width="33%" align="left">
+                    Disetujui/ditolak
+                </td>
+                <td width="33%" align="center">
+                    Disetujui/ditolak
+                </td>
+                <td width="33%" align="center">
+                    Disetujui/ditolak
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td align="left">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

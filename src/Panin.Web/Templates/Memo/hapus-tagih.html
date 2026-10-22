@@ -1,0 +1,467 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Print Hapus Tagih</title>
+</head>
+<body>
+    <div align="center">
+    </div>
+    <div style="font-size: 16px">
+        <strong>Memorandum Permohonan Hapus Tagih</strong>
+    </div>
+    <div style="font-size: 12px">
+        <table width="100%" border="1" bordercolor="Black" cellpadding="0" cellspacing="0">
+            <tr>
+                <td width="25%">
+                    Cab. :
+                    {{BRANCHNAME}}
+                </td>
+                <td width="25%">
+                    Nomor :
+                    {{NOMOR}}
+                </td>
+                <td width="25%">
+                    Tanggal :
+                    {{TANGGAL}}
+                </td>
+                <td width="25%">
+                    A/C :
+                    {{AC}}
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td>
+                    <table width="100%" border="0" cellspacing="3" cellpadding="3">
+                        <tr>
+                            <td width="30%">
+                                NAMA DEBITUR
+                            </td>
+                            <td width="2%">
+                                :
+                            </td>
+                            <td width="68%" colspan="4">
+                                {{lblNmdebitur}}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="30%">
+                                TANGGAL KREDIT DIBERIKAN
+                            </td>
+                            <td width="2%">
+                                :
+                            </td>
+                            <td width="68%" colspan="4">
+                                {{lblTglKredit}}&nbsp;
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="30%">
+                                TANGGAL KREDIT MACET
+                            </td>
+                            <td width="2%">
+                                :
+                            </td>
+                            <td width="68%" colspan="4">
+                                {{lblTglMacet}}&nbsp;
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="30%">
+                                TANGGAL HAPUS BUKU
+                            </td>
+                            <td width="2%">
+                                :
+                            </td>
+                            <td width="68%" colspan="4">
+                                {{lblTglHapusBuku}}&nbsp;
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="30%">
+                                KOLEKTIBILITAS
+                            </td>
+                            <td width="2%">
+                                :
+                            </td>
+                            <td width="68%" colspan="4">
+                                {{lblKolektibilitas}}&nbsp;
+                            </td>
+                        </tr>
+                        <tr>
+                            <td width="30%">
+                                <strong>FASILITAS YANG DIAJUKAN UNTUK</strong>
+                            </td>
+                            <td width="2%">
+                                <strong>:</strong>
+                            </td>
+                            <td width="68%" colspan="4">
+                                <strong>Permohonan Hapus Tagih</strong>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table width="100%" cellspacing="0" cellpadding="0" border="1" bordercolor="Black">
+            <tr>
+                <td align="center" width="20%">
+                    <strong>Kewajiban</strong>
+                </td>
+                <td align="center" width="15%">
+                    <strong>Total (Rp.)</strong>
+                </td>
+                <td align="center" width="15%">
+                    <strong>Dibayar (Rp.)</strong>
+                </td>
+                <td align="center" width="15%">
+                    <strong>Penghapusan (Rp.)</strong>
+                </td>
+                <td align="center" width="15%">
+                    <strong>Persentase (%)</strong>
+                </td>
+                <td align="center" width="15%">
+                    <strong>Recovery (%)</strong>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Plafond awal
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Outstanding
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Bunga
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Denda
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Total Kewajiban
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>JAMINAN</strong>
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td align="center" width="36%">
+                    JENIS
+                </td>
+                <td align="center" width="32%">
+                    NILAI PASAR (Rp.)
+                </td>
+                <td align="center" width="32%">
+                    NILAI LIKUIDASI (Rp.)
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>SEBAB-SEBAB MACET</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>UPAYA YANG TELAH DILAKUKAN</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>JURNAL PEMBUKUAN HAPUS TAGIH</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <strong>KESIMPULAN DAN REKOMENDASI</strong>
+        <br />
+        <table width="100%" cellpadding="0" cellspacing="0" border="1" bordercolor="Black">
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table border="0" width="100%">
+            <tr>
+                <td width="33%">
+                    Diajukan Oleh,
+                </td>
+                <td width="33%"></td>
+                <td width="33%">
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 75px">
+                </td>
+                <td></td>
+                <td>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <u>SAM Officer / Litigasi</u>
+                </td>
+                <td></td>
+                <td align="center">
+                    <u>SAM Supervisor</u>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td colspan="3" align="left">
+                    Mengetahui,
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" align="left">
+                    KOMITE KREDIT CABANG
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td align="left">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td colspan="3" align="left">
+                    Direkomendasi,
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" align="left">
+                    DIVISI PERKREDITAN
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td align="left">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td colspan="3" align="left">
+                    Mengetahui RBG
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td align="left">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+                <td colspan="3" align="left">
+                    <strong>KOMITE KREDIT DIREKSI</strong>
+                </td>
+            </tr>
+            <tr>
+                <td width="33%" align="left">
+                    Disetujui/ditolak
+                </td>
+                <td width="33%" align="center">
+                    Disetujui/ditolak
+                </td>
+                <td width="33%" align="center">
+                    Disetujui/ditolak
+                </td>
+            </tr>
+            <tr>
+                <td style="height: 75px">
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+                <td>
+                    &nbsp;
+                </td>
+            </tr>
+            <tr>
+                <td align="left">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+                <td align="center">
+                    <u>...............................</u>
+                </td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

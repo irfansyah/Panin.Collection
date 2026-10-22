@@ -14,6 +14,8 @@
   <ItemGroup>
     <!-- Template surat dari aplikasi lama (Upload/Template/surat.xls); nama sheet dan comment field harus tetap. -->
     <Content Include="Templates\*.xls" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Templat memo cetak (SKPM, Hapus Buku, ...) disalin dari markup lama oleh tools/ReportExtract/convert_memos.py. -->
+    <Content Include="Templates\Memo\*.html" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <PropertyGroup>

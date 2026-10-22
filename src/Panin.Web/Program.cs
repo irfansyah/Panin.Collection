@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Panin.Application.Auth;
 using Panin.Application.Diagnostics;
 using Panin.Application.Letters;
+using Panin.Application.Memos;
 using Panin.Application.Modules;
 using Panin.Application.Sessions;
 using Panin.Infrastructure;
@@ -139,6 +140,33 @@ app.MapGet("/api/surat/{bulkId:guid}", async (Guid bulkId, HttpContext http, IBu
     var user = http.User.ToSessionUser();
     var file = user is null ? null : await letters.OpenFileAsync(user.UserId, bulkId, http.RequestAborted);
     return file is null ? Results.NotFound() : Results.File(file.Content, "application/vnd.ms-excel", file.FileName);
+}).RequireAuthorization();
+
+// Memo cetak (Laporan Recovery): hanya untuk group yang memiliki menu memo itu; ?doc=1 mengunduh sebagai Word seperti layar lama.
+app.MapGet("/api/memo/{slug}/{accountNo}", async (string slug, string accountNo, string? doc, HttpContext http, IMemoService memos, IMenuService menus) =>
+{
+    var user = http.User.ToSessionUser();
+    if (user is null || !MemoRules.TryParseSlug(slug, out var kind) || !MemoRules.IsValidAccount(accountNo))
+    {
+        return Results.NotFound();
+    }
+
+    static bool Has(IEnumerable<MenuNode> nodes, string id) => nodes.Any(n => n.Id == id || Has(n.Children, id));
+    if (!Has(await menus.GetMenuAsync("60", user.GroupId, http.RequestAborted), MemoRules.MenuId(kind)))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    var memo = await memos.BuildAsync(kind, accountNo, http.RequestAborted);
+    if (memo is null)
+    {
+        return Results.NotFound();
+    }
+
+    http.Response.Headers.CacheControl = "no-store";
+    return doc == "1"
+        ? Results.File(System.Text.Encoding.UTF8.GetBytes(memo.Html), "application/msword", memo.FileName)
+        : Results.Content(memo.Html, "text/html; charset=utf-8");
 }).RequireAuthorization();
 
 app.MapPost("/auth/logout", async (HttpContext http, IAuthService auth, IAntiforgery antiforgery) =>

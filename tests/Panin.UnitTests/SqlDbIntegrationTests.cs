@@ -157,4 +157,28 @@ public class SqlDbIntegrationTests
         Assert.True(failures.Count == 0, $"{failures.Count} dari {supported} report gagal ({customRun} kustom jalan, {customRows} baris):{Environment.NewLine}{string.Join(Environment.NewLine, failures)}");
         Assert.True(customRun >= 40, $"hanya {customRun} report kustom yang didukung");
     }
+
+    [Fact]
+    public async Task Every_memo_builds_from_the_real_views_with_the_debtor_name_filled_in()
+    {
+        if (Connect() is not { } db)
+        {
+            return;
+        }
+
+        foreach (var def in Panin.Infrastructure.Memos.MemoCatalog.All)
+        {
+            var row = await db.QueryFirstOrDefaultAsync($"SELECT TOP 1 ACC_NO, NAMA_DEBITUR FROM {def.ReportView} WHERE NAMA_DEBITUR IS NOT NULL");
+            if (row is null)
+            {
+                continue;
+            }
+
+            var search = await db.QueryTableAsync($"SELECT [NO ACCOUNT], [NAMA DEBITUR] FROM {def.SearchView} WHERE [NO ACCOUNT] = @1", [Convert.ToString(row["ACC_NO"], System.Globalization.CultureInfo.InvariantCulture)!.Trim()]);
+            Assert.NotEmpty(search.Rows);
+
+            var columns = string.Join(", ", def.Map.Values.Distinct());
+            Assert.NotNull(await db.QueryFirstOrDefaultAsync($"SELECT {columns} FROM {def.ReportView} WHERE ACC_NO = @1", [row["ACC_NO"]]));
+        }
+    }
 }
