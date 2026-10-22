@@ -1,0 +1,434 @@
+@attribute [ModulePage("99", "/maintenance/group/maker")]
+@implements IDisposable
+@using Panin.Application.Collection
+@using Panin.Application.Maintenance
+@using Panin.Web.Components.Common
+@inject IGroupMaintenanceService Groups
+@inject ILogger<GroupMaker> Logger
+
+<section class="space-y-4">
+    <div class="flex items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold text-slate-800">Group Parameter - Maker</h1>
+        <div class="flex gap-2">
+            @if (_allowed)
+            {
+                <button type="button" @onclick="RefreshAsync" disabled="@_busy" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-60">Muat ulang</button>
+            }
+            @if (Navigator is { CanGoBack: true })
+            {
+                <button type="button" @onclick="Navigator.Back" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">← Kembali</button>
+            }
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat...</p>
+    }
+    else if (!_allowed)
+    {
+        <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">
+            Group Anda tidak punya hak Maker untuk Group Parameter.
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <div class="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700" role="status">@_message</div>
+        }
+
+        @if (_errors.Count > 0)
+        {
+            <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                <ul class="list-disc pl-5">
+                    @foreach (var e in _errors)
+                    {
+                        <li>@e</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        @if (_confirm is not null)
+        {
+            <div class="flex flex-wrap items-center gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alertdialog" aria-label="Konfirmasi">
+                <span>@_confirm.Prompt</span>
+                <button type="button" @onclick="RunConfirmedAsync" disabled="@_busy" class="rounded-md bg-red-700 px-3 py-1 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60">Ya</button>
+                <button type="button" @onclick="() => _confirm = null" class="rounded-md border border-slate-300 bg-white px-3 py-1 text-sm hover:bg-slate-100">Tidak</button>
+            </div>
+        }
+
+        <EditForm Model="_draft" OnSubmit="SaveAsync" class="rounded-lg border border-slate-200 bg-white p-4">
+            <h2 class="mb-3 text-sm font-semibold text-slate-700">@(_draft.IsEdit ? $"Ubah group {_draft.GroupId}" : "Tambah group")</h2>
+            <div class="grid gap-4 sm:grid-cols-3">
+                <Field Label="Group ID" Required>
+                    <InputText @bind-Value="_draft.GroupId" disabled="@_draft.IsEdit" maxlength="20" class="@InputClass" />
+                </Field>
+                <Field Label="Nama group" Required>
+                    <InputText @bind-Value="_draft.Name" maxlength="150" class="@InputClass" />
+                </Field>
+                <Field Label="Aktif">
+                    <label class="flex items-center gap-2 py-2 text-sm"><InputCheckbox @bind-Value="_draft.Active" /> Aktif</label>
+                </Field>
+            </div>
+            <p class="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                Perubahan group baru berlaku setelah disetujui di menu Approval. Akses menu (di bawah) langsung berlaku saat disimpan.
+            </p>
+            <div class="mt-4 flex gap-2">
+                <button type="submit" disabled="@_busy" class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">Simpan ke pending</button>
+                <button type="button" @onclick="ResetForm" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Batal</button>
+            </div>
+        </EditForm>
+
+        <Card Title="Menunggu persetujuan">
+            <DataGrid TItem="PendingGroupRow" Items="_pending" Columns="_pendingColumns" EmptyText="Tidak ada ajuan." />
+        </Card>
+
+        <Card Title="Daftar group">
+            <DataGrid TItem="GroupRow" Items="_rows" Columns="_groupColumns" EmptyText="Tidak ada group." />
+        </Card>
+
+        @if (_accessGroup is not null)
+        {
+            <Card Title="@($"Akses menu group {_accessGroup}")">
+                <div class="mb-3 flex flex-wrap items-center gap-3">
+                    <label class="text-sm font-medium text-slate-700" for="module">Modul</label>
+                    <select id="module" value="@_module" @onchange="OnModuleChangedAsync" class="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm">
+                        <option value="">- pilih modul -</option>
+                        @foreach (var m in _modules)
+                        {
+                            <option value="@m.ModuleId" selected="@(m.ModuleId == _module)">@m.Name</option>
+                        }
+                    </select>
+                    <button type="button" @onclick="CloseAccess" class="rounded-md border border-slate-300 bg-white px-3 py-1 text-sm hover:bg-slate-100">Tutup</button>
+                </div>
+
+                @if (_module is not null)
+                {
+                    <ul class="space-y-0.5" aria-label="Menu modul">
+                        @foreach (var (menu, depth) in Flatten())
+                        {
+                            <li @key="menu.MenuId" style="@($"padding-left:{depth * 1.25}rem")">
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" checked="@_selectedMenus.Contains(menu.MenuId)" @onchange="e => ToggleMenu(menu, e)" aria-label="@menu.Text" />
+                                    <span>@menu.Text</span>
+                                    <span class="text-xs text-slate-400">@menu.MenuId</span>
+                                </label>
+                            </li>
+                        }
+                    </ul>
+                    <p class="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                        Induk menu otomatis ikut dipilih. Mengosongkan semua menu sebuah modul mencabut akses group ke modul itu. Berlaku langsung untuk semua user group ini.
+                    </p>
+                    <div class="mt-3">
+                        <button type="button" @onclick="AskSaveAccess" disabled="@_busy" class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">Simpan akses menu</button>
+                    </div>
+                }
+            </Card>
+        }
+    }
+</section>
+
+@code {
+    private const string InputClass = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+    private const string ActionClass = "rounded border border-sky-300 px-2 py-0.5 text-xs font-medium text-sky-800 hover:bg-sky-50";
+
+    private sealed record Confirm(string Prompt, Func<Task<MaintenanceResult>> Run, string Done);
+
+    private readonly CancellationTokenSource _cts = new();
+    private readonly HashSet<string> _selectedMenus = new(StringComparer.Ordinal);
+    private Confirm? _confirm;
+    private GroupDraft _draft = new();
+    private IReadOnlyList<GroupRow> _rows = [];
+    private IReadOnlyList<PendingGroupRow> _pending = [];
+    private IReadOnlyList<ModuleItem> _modules = [];
+    private IReadOnlyList<MenuAccessItem> _menus = [];
+    private IReadOnlyList<string> _errors = [];
+    private IReadOnlyList<GridColumn<GroupRow>> _groupColumns = [];
+    private IReadOnlyList<GridColumn<PendingGroupRow>> _pendingColumns = [];
+    private string? _actor, _actorGroup, _message, _accessGroup, _module;
+    private bool _loading = true, _allowed, _busy;
+
+    [CascadingParameter] private IModuleNavigator? Navigator { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _groupColumns =
+        [
+            new() { Header = "Group ID", Value = g => g.GroupId },
+            new() { Header = "Nama", Value = g => g.Name },
+            new() { Header = "Aktif", Value = g => g.Active, Display = g => g.Active ? "Ya" : "Tidak" },
+            new() { Header = "Jml User", Value = g => g.UserCount, Numeric = true },
+            new() { Header = "Aksi", Value = g => g.GroupId, ActionOnly = true, Sortable = false, Template = g => @<div class="flex flex-wrap gap-1">
+                <button type="button" @onclick="() => Edit(g)" class="@ActionClass">Ubah</button>
+                <button type="button" @onclick="() => OpenAccess(g)" class="@ActionClass">Akses menu</button>
+                <button type="button" @onclick="() => AskDelete(g)" class="@ActionClass">Hapus</button>
+            </div> },
+        ];
+        _pendingColumns =
+        [
+            new() { Header = "Status", Value = p => p.Status },
+            new() { Header = "Group ID", Value = p => p.GroupId },
+            new() { Header = "Nama", Value = p => p.Name },
+            new() { Header = "Diajukan oleh", Value = p => p.CreatedBy },
+            new() { Header = "Perubahan", Value = p => p.Changes },
+            new() { Header = "Aksi", Value = p => p.TemporaryId, ActionOnly = true, Sortable = false, Template = p => @<div class="flex gap-1">
+                @if (p.Status != "Delete") { <button type="button" @onclick="() => EditPending(p)" class="@ActionClass">Ubah</button> }
+                @if (string.Equals(p.CreatedBy, _actor, StringComparison.OrdinalIgnoreCase)) { <button type="button" @onclick="() => CancelAsync(p)" class="@ActionClass">Batalkan</button> }
+            </div> },
+        ];
+
+        try
+        {
+            var user = (await AuthState).User.ToSessionUser();
+            if (user is null)
+            {
+                return;
+            }
+
+            _actor = user.UserId;
+            _actorGroup = user.GroupId;
+            _allowed = await Groups.HasRoleAsync(user.GroupId, MaintenanceRole.Maker, _cts.Token);
+            if (_allowed)
+            {
+                _modules = await Groups.GetModulesAsync(_cts.Token);
+                await ReloadAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Halaman maker group gagal dimuat");
+            _errors = ["Halaman gagal dimuat. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        var rows = Groups.GetGroupsAsync(_cts.Token);
+        var pending = Groups.GetPendingAsync(_cts.Token);
+        await Task.WhenAll(rows, pending);
+        _rows = rows.Result;
+        _pending = pending.Result;
+    }
+
+    private async Task RefreshAsync()
+    {
+        _busy = true;
+        try
+        {
+            await ReloadAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Muat ulang maker group gagal");
+            _errors = ["Data gagal dimuat. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Edit(GroupRow g)
+    {
+        _message = null;
+        _errors = [];
+        _draft = new GroupDraft { GroupId = g.GroupId, Name = g.Name, Active = g.Active, IsEdit = true };
+    }
+
+    private void EditPending(PendingGroupRow p)
+    {
+        _message = null;
+        _errors = [];
+        _draft = new GroupDraft { GroupId = p.GroupId ?? string.Empty, Name = p.Name, Active = p.Active ?? false, IsEdit = p.Status == "Update" };
+    }
+
+    private void ResetForm()
+    {
+        _draft = new GroupDraft();
+        _errors = [];
+        _message = null;
+    }
+
+    private Task SaveAsync() => RunAsync(() => Groups.SavePendingAsync(_actor!, _draft, _cts.Token), "Ajuan tersimpan dan menunggu persetujuan.", resetForm: true);
+
+    private void AskDelete(GroupRow g) => _confirm = new($"Ajukan penghapusan group {g.GroupId} ({g.Name})?", () => Groups.DeleteToPendingAsync(_actor!, _actorGroup!, g.GroupId, _cts.Token), "Ajuan hapus tersimpan dan menunggu persetujuan.");
+
+    private Task CancelAsync(PendingGroupRow p) => RunAsync(() => Groups.CancelPendingAsync(_actor!, p.TemporaryId, _cts.Token), "Ajuan dibatalkan.", resetForm: false);
+
+    private async Task RunConfirmedAsync()
+    {
+        if (_confirm is not { } c)
+        {
+            return;
+        }
+
+        _confirm = null;
+        await RunAsync(c.Run, c.Done, resetForm: false);
+    }
+
+    private void OpenAccess(GroupRow g)
+    {
+        _accessGroup = g.GroupId;
+        _module = null;
+        _menus = [];
+        _selectedMenus.Clear();
+        _message = null;
+        _errors = [];
+    }
+
+    private void CloseAccess()
+    {
+        _accessGroup = null;
+        _module = null;
+        _selectedMenus.Clear();
+    }
+
+    private async Task OnModuleChangedAsync(ChangeEventArgs e)
+    {
+        _module = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
+        _selectedMenus.Clear();
+        _menus = [];
+        if (_module is null || _accessGroup is null)
+        {
+            return;
+        }
+
+        try
+        {
+            _menus = await Groups.GetMenuAccessAsync(_accessGroup, _module, _cts.Token);
+            foreach (var m in _menus.Where(m => m.Allowed))
+            {
+                _selectedMenus.Add(m.MenuId);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Menu modul gagal dimuat");
+            _errors = ["Menu gagal dimuat. Coba lagi atau hubungi administrator."];
+        }
+    }
+
+    private IEnumerable<(MenuAccessItem Menu, int Depth)> Flatten()
+    {
+        var children = _menus.ToLookup(m => m.ParentId ?? string.Empty);
+        var ids = _menus.Select(m => m.MenuId).ToHashSet(StringComparer.Ordinal);
+        IEnumerable<(MenuAccessItem, int)> Walk(string parent, int depth) =>
+            children[parent].OrderBy(m => m.Position).ThenBy(m => m.MenuId, StringComparer.Ordinal)
+                .SelectMany(m => new[] { (m, depth) }.Concat(Walk(m.MenuId, depth + 1)));
+
+        // Menu yang induknya tidak ada di modul diperlakukan sebagai akar.
+        var roots = _menus.Where(m => m.ParentId is null || !ids.Contains(m.ParentId)).OrderBy(m => m.Position).ThenBy(m => m.MenuId, StringComparer.Ordinal);
+        return roots.SelectMany(m => new[] { (m, 0) }.Concat(Walk(m.MenuId, 1)));
+    }
+
+    private void ToggleMenu(MenuAccessItem menu, ChangeEventArgs e)
+    {
+        var on = e.Value is true;
+        if (on)
+        {
+            _selectedMenus.Add(menu.MenuId);
+            // Induk ikut dipilih.
+            var byId = _menus.ToDictionary(m => m.MenuId, StringComparer.Ordinal);
+            var parent = menu.ParentId;
+            while (parent is not null && byId.TryGetValue(parent, out var p) && _selectedMenus.Add(p.MenuId))
+            {
+                parent = p.ParentId;
+            }
+        }
+        else
+        {
+            // Turunan ikut dilepas.
+            var pending = new Stack<string>([menu.MenuId]);
+            while (pending.Count > 0)
+            {
+                var id = pending.Pop();
+                _selectedMenus.Remove(id);
+                foreach (var child in _menus.Where(m => m.ParentId == id))
+                {
+                    pending.Push(child.MenuId);
+                }
+            }
+        }
+    }
+
+    private void AskSaveAccess()
+    {
+        if (_accessGroup is null || _module is null)
+        {
+            return;
+        }
+
+        var group = _accessGroup;
+        var module = _module;
+        var ids = _selectedMenus.ToList();
+        var warning = ids.Count == 0 ? $" Semua menu dicabut: group {group} kehilangan akses ke modul ini." : string.Empty;
+        _confirm = new($"Simpan akses menu group {group} untuk modul {module}? Berlaku langsung.{warning}",
+            () => Groups.SaveMenuAccessAsync(_actor!, _actorGroup!, group, module, ids, _cts.Token), "Akses menu tersimpan.");
+    }
+
+    private async Task RunAsync(Func<Task<MaintenanceResult>> action, string done, bool resetForm)
+    {
+        if (_busy || _actor is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        _errors = [];
+        try
+        {
+            var result = await action();
+            _errors = result.Errors;
+            if (result.Success)
+            {
+                _message = done;
+                if (resetForm)
+                {
+                    _draft = new GroupDraft();
+                }
+
+                await ReloadAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Aksi maintenance group gagal");
+            _errors = ["Aksi gagal. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

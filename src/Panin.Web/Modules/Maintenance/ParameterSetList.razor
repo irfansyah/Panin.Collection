@@ -1,0 +1,80 @@
+@using Panin.Application.Maintenance
+@inject IParameterSetService Sets
+@inject ILogger<ParameterSetList> Logger
+
+<section class="space-y-4">
+    <h1 class="text-xl font-semibold text-slate-800">@Title</h1>
+
+    @if (_error is not null)
+    {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">@_error</div>
+    }
+    else if (_items is null)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat...</p>
+    }
+    else
+    {
+        <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach (var item in _items)
+            {
+                var page = PageFor(item.Link);
+                <li @key="item.Title">
+                    @if (page is not null)
+                    {
+                        <button type="button" @onclick="() => Navigator?.Open(page)"
+                                class="w-full rounded-lg border border-slate-200 bg-white p-4 text-left text-sm font-medium text-sky-800 shadow-sm hover:border-sky-300 hover:bg-sky-50">
+                            @item.Title
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                            @item.Title <span class="block text-xs">Belum dimigrasi</span>
+                        </div>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<ParameterSetItem>? _items;
+    private string? _error;
+
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    [Parameter] public string SetId { get; set; } = "USER";
+
+    [Parameter] public bool Maker { get; set; }
+
+    [CascadingParameter] private IModuleNavigator? Navigator { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = await Sets.GetItemsAsync(SetId, Maker);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Daftar parameter gagal dimuat");
+            _error = "Daftar parameter gagal dimuat. Coba lagi atau hubungi administrator.";
+        }
+    }
+
+    // Tujuan ditentukan dari nama berkas pada tautan lama; yang belum punya halaman baru ditandai "Belum dimigrasi".
+    private static Type? PageFor(string link)
+    {
+        var file = link.Split('?')[0].Split('/').Last().ToLowerInvariant();
+        return file switch
+        {
+            "usermaker.aspx" => typeof(UserMaker),
+            "userapprv.aspx" => typeof(UserApproval),
+            "groupmaker.aspx" => typeof(GroupMaker),
+            "groupapprv.aspx" => typeof(GroupApproval),
+            _ => null,
+        };
+    }
+}

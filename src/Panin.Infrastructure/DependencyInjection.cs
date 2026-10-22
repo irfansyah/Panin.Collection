@@ -51,6 +51,8 @@ public static class DependencyInjection
         services.AddSingleton<IActivityMonitoringService, ActivityMonitoringService>();
         services.Configure<Maintenance.MaintenanceOptions>(configuration.GetSection(Maintenance.MaintenanceOptions.SectionName));
         services.AddSingleton<IUserMaintenanceService, Maintenance.UserMaintenanceService>();
+        services.AddSingleton<IGroupMaintenanceService, Maintenance.GroupMaintenanceService>();
+        services.AddSingleton<IParameterSetService, Maintenance.ParameterSetService>();
         services.AddSingleton<IContactReferenceService, ContactReferenceService>();
         services.AddSingleton<ITreatmentMenuService, TreatmentMenuService>();
         services.AddSingleton<IExcelExporter, NpoiExcelExporter>();

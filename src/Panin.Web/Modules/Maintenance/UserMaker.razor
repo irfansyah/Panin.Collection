@@ -13,6 +13,10 @@
         {
             <button type="button" @onclick="RefreshAsync" disabled="@_busy" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-60">Muat ulang</button>
         }
+        @if (Navigator is { CanGoBack: true })
+        {
+            <button type="button" @onclick="Navigator.Back" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">← Kembali</button>
+        }
     </div>
 
     @if (_loading)
@@ -116,6 +120,8 @@
     private IReadOnlyList<GridColumn<PendingUserRow>> _pendingColumns = [];
     private string? _actor, _message;
     private bool _loading = true, _allowed, _busy;
+
+    [CascadingParameter] private IModuleNavigator? Navigator { get; set; }
 
     [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
 

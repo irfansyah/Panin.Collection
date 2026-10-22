@@ -9,9 +9,12 @@ public sealed class MenuService(ILoginDb db, SingleFlightCache cache) : IMenuSer
 {
     private static readonly TimeSpan CacheFor = TimeSpan.FromMinutes(5);
 
+    /// <summary>Kunci cache menu; dipakai Maintenance untuk membuang cache setelah hak menu group diubah.</summary>
+    public static string CacheKey(string moduleId, string groupId) => $"menu:{moduleId}:{groupId}";
+
     public async Task<IReadOnlyList<MenuNode>> GetMenuAsync(string moduleId, string groupId, CancellationToken ct = default)
     {
-        return await cache.GetOrCreateAsync($"menu:{moduleId}:{groupId}", CacheFor, async () =>
+        return await cache.GetOrCreateAsync(CacheKey(moduleId, groupId), CacheFor, async () =>
         {
             var table = await db.QueryTableAsync(
                 "select A.MENUID, A.MENUDESC, A.MENUURL, A.MENUPARENT, A.MENUPOSITION " +

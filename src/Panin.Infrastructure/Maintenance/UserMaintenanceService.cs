@@ -62,15 +62,8 @@ public sealed partial class UserMaintenanceService(
 
     private Task<IDb> Db(CancellationToken ct = default) => dbs.GetDataDbAsync(ModuleId, ct);
 
-    public async Task<bool> HasRoleAsync(string groupId, MaintenanceRole role, CancellationToken ct = default)
-    {
-        var wanted = role == MaintenanceRole.Maker ? MakerMenuId : ApproverMenuId;
-        var tree = await menus.GetMenuAsync(ModuleId, groupId, ct).ConfigureAwait(false);
-        return Contains(tree, wanted);
-
-        static bool Contains(IReadOnlyList<MenuNode> nodes, string id)
-            => nodes.Any(n => n.Id == id || Contains(n.Children, id));
-    }
+    public Task<bool> HasRoleAsync(string groupId, MaintenanceRole role, CancellationToken ct = default)
+        => ParameterEngine.HasRoleAsync(menus, groupId, role, ct);
 
     public async Task<IReadOnlyList<UserRow>> GetUsersAsync(CancellationToken ct = default)
     {
@@ -369,36 +362,10 @@ public sealed partial class UserMaintenanceService(
         return MaintenanceResult.Ok;
     }
 
-    /// <summary>
-    /// Mengganti ajuan yang sudah ada untuk user yang sama (satu ajuan per user), atau membuat baru, dalam satu transaksi.
-    /// Nilai "sebelum" disimpan untuk pembanding di layar approval.
-    /// </summary>
-    private static async Task WritePendingAsync(IDb db, string userId, string status, string maker, IReadOnlyDictionary<string, string?> after, IReadOnlyDictionary<string, string?>? before, CancellationToken ct)
-    {
-        var existingId = await db.ExecuteScalarAsync<Guid?>(
-            "SELECT TOP 1 T.TEMPORARYID FROM PARAMETERSYSTEM_TEMPORARY T JOIN PARAMETERSYSTEM_TEMPORARYDETAIL D ON D.TEMPORARYID = T.TEMPORARYID AND D.FIELDNAME = 'USERID' AND D.FIELDVALUE = @1 WHERE T.TABLENAME = @2",
-            [userId, Table], ct: ct).ConfigureAwait(false);
-        var id = existingId ?? Guid.NewGuid();
+    private static Task WritePendingAsync(IDb db, string userId, string status, string maker, IReadOnlyDictionary<string, string?> after, IReadOnlyDictionary<string, string?>? before, CancellationToken ct)
+        => ParameterEngine.WritePendingAsync(db, Table, "USERID", userId, status, maker, Fields, after, before, ct);
 
-        var args = new List<object?> { id, Table, status, maker };
-        var sql = new StringBuilder("SET XACT_ABORT ON; BEGIN TRAN; ");
-        sql.Append("DELETE PARAMETERSYSTEM_TEMPORARYDETAIL WHERE TEMPORARYID = @1; DELETE PARAMETERSYSTEM_TEMPORARY WHERE TEMPORARYID = @1; ");
-        sql.Append("INSERT INTO PARAMETERSYSTEM_TEMPORARY (TemporaryID, TableName, Status, CreatedDate, CreatedBy) VALUES (@1, @2, @3, GETDATE(), @4); ");
-        foreach (var field in Fields)
-        {
-            args.Add(field);
-            args.Add(after.GetValueOrDefault(field));
-            args.Add(before?.GetValueOrDefault(field));
-            var n = args.Count;
-            sql.Append(CultureInfo.InvariantCulture, $"INSERT INTO PARAMETERSYSTEM_TEMPORARYDETAIL (TemporaryID, FieldName, FieldValue, FieldValueBefore) VALUES (@1, @{n - 2}, @{n - 1}, @{n}); ");
-        }
-
-        sql.Append("COMMIT TRAN");
-        await db.ExecuteAsync(sql.ToString(), [.. args], new DbOptions(TimeoutSeconds: 60), ct).ConfigureAwait(false);
-    }
-
-    private static Task DeletePendingAsync(IDb db, Guid id, CancellationToken ct)
-        => db.ExecuteAsync("SET XACT_ABORT ON; BEGIN TRAN; DELETE PARAMETERSYSTEM_TEMPORARYDETAIL WHERE TEMPORARYID = @1; DELETE PARAMETERSYSTEM_TEMPORARY WHERE TEMPORARYID = @1; COMMIT TRAN", [id], ct: ct);
+    private static Task DeletePendingAsync(IDb db, Guid id, CancellationToken ct) => ParameterEngine.DeletePendingAsync(db, id, ct);
 
     private static readonly Dictionary<string, string> Labels = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -414,17 +381,11 @@ public sealed partial class UserMaintenanceService(
     private static string Show(string value, string field)
         => field.Equals("SU_ACTIVE", StringComparison.OrdinalIgnoreCase) ? (value == "1" ? "Ya" : "Tidak") : value.Length == 0 ? "(kosong)" : value;
 
-    private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static string? Blank(string? value) => ParameterEngine.Blank(value);
 
-    private static string Cell(object? value) => value is null or DBNull ? string.Empty : Convert.ToString(value, CultureInfo.InvariantCulture)!.Trim();
+    private static string Cell(object? value) => ParameterEngine.Cell(value);
 
-    // bit dari DB -> "1"/"0" (sama dengan yang disimpan layar lama); lainnya teks apa adanya.
-    private static string? ToText(object? value) => value switch
-    {
-        null or DBNull => null,
-        bool b => b ? "1" : "0",
-        _ => Blank(Convert.ToString(value, CultureInfo.InvariantCulture)),
-    };
+    private static string? ToText(object? value) => ParameterEngine.ToText(value);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Maintenance user: {Maker} mengajukan {Status} untuk {UserId}")]
     private static partial void LogPending(ILogger logger, string maker, string status, string userId);

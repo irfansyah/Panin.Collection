@@ -8,13 +8,16 @@ namespace Panin.Infrastructure.Modules;
 public sealed class ModuleRegistry(ILoginDb db, IEnumerable<ModuleDefinition> definitions, SingleFlightCache cache) : IModuleRegistry
 {
     private static readonly TimeSpan CacheFor = TimeSpan.FromMinutes(5);
+
+    /// <summary>Kunci cache daftar modul yang boleh diakses group; dibuang Maintenance setelah hak menu group diubah.</summary>
+    public static string GroupCacheKey(string groupId) => $"modules:group:{groupId}";
     private readonly ModuleDefinition[] _definitions = [.. definitions];
 
     public IReadOnlyList<ModuleDefinition> Definitions => _definitions;
 
     public async Task<IReadOnlyList<AccessibleModule>> GetAccessibleAsync(string groupId, CancellationToken ct = default)
     {
-        var rows = await cache.GetOrCreateAsync($"modules:group:{groupId}", CacheFor, async () =>
+        var rows = await cache.GetOrCreateAsync(GroupCacheKey(groupId), CacheFor, async () =>
         {
             var table = await db.QueryTableAsync(
                 "select MODULEID, MODULENAME from VW_GRPACCESSMODULE where GROUPID = @1 order by MODULEID", [groupId]).ConfigureAwait(false);
