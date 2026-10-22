@@ -113,6 +113,44 @@ Seluruh 26 definisi set `GEN` kini tersedia di salinan lokal.
 | **Collector Productivity** (`usp_ViewReportCollProd`) | Daftar dari SP (result set ke-2) dengan 11 kolom dan total, keterangan supervisor/kolektor dari result set pertama (`CustomLists`). |
 | **Collector Productivity Recovery** | Kelas report-nya tidak ada di sumber aplikasi lama yang dibaca (di sana report ini tidak bisa dibuka), tetapi `USP_VIEWREPORTCOLLPROD_RECOVERY` ada dan bentuk hasilnya sama; dipakai dengan tata letak yang sama. Perlu dikonfirmasi ke pemilik report. |
 
+## Alat pemeriksa report (`tools/Panin.ReportCheck`)
+
+Menjalankan **semua** report menu Reporting terhadap sebuah DB DATA, mencatat waktu dan jumlah baris tiap report, dan memeriksa konsistensi hasilnya dengan
+perhitungan kedua yang independen. Dibuat agar bisa dijalankan pada staging atau produksi untuk mengukur waktu (belum terukur di data nyata) dan menangkap
+kesalahan penyusunan pivot sebelum cutover.
+
+```bash
+dotnet run --project tools/Panin.ReportCheck -- --data "<connection string DB DATA>" --days 7 --json hasil.json
+# atau tanpa --data: membaca user-secrets ConnectionStrings:Data:60 / env PANIN_CHECK_DATA
+# opsi: --module 70, --only PIVOT65,PIVOT86, --skip PIVOT17, --max-raw 300000, --timeout 300
+```
+
+| Jenis report | Pemeriksaan independen |
+|---|---|
+| Daftar dinamis | jumlah baris hasil = `COUNT(*)` dengan klausa filter yang sama (bila tidak terpotong) |
+| Pivot dinamis | baris mentah diambil lalu dikelompokkan **di memori** (jalur lain dari `GROUP BY` SQL), disusun ulang, dan dibandingkan sel demi sel (bentuk, label, nilai) |
+| Pivot dari SP | jumlah tiap ukuran penjumlahan dari hasil SP = jumlah sel daun pivot |
+| Daftar dari SP | hanya dijalankan dan diukur |
+
+Keamanan: koneksi `ApplicationIntent=ReadOnly`, pernyataan lewat `ReadOnlyDb` (hanya SELECT dan SP report yang ada di katalog), dan sebelum menjalankan SP, definisinya dibaca dan
+SP yang tampak menulis ke tabel permanen (selain `#temp`/`@tabel`) dilewati dengan alasan. Kode keluar 1 bila ada `DIFF` atau `ERROR`.
+
+Hasil pada salinan lokal (rentang 10 tahun, tanpa PIVOT17): **86 OK**, 0 DIFF, 5 SKIP, 6 ERROR (semua timeout SP Leading Edge, lihat di bawah), 1 N/A (Alasan NPL).
+Pemeriksaan yang berisi data nyata hanya Time Spent (78.636 baris) dan Vintage 1/2 karena view lain kosong di salinan lokal; **jalankan alat ini di staging/produksi untuk pemeriksaan sesungguhnya**.
+
+**Temuan performa (SP report kustom), salinan lokal 40 ribu pinjaman**
+
+| SP / report | Waktu |
+|---|---|
+| `SP_REPORT_WAS_IS_ANALYSIS` (Was Is, PIVOT17) | 193 dtk untuk 1 hari |
+| `SP_VW_REPORT_LEADING_EDGE_*_PGROUP/PTYPE/PID` (Leading Edge per Product Group/Type/Name, 9 report) | 77 dtk untuk **1 hari** (hasil 38.080 baris untuk Branch); lebih dari 280 dtk untuk 7 hari; melewati timeout 1000 dtk untuk 10 tahun |
+| `SP_VW_REPORT_LEADING_EDGE_BRANCH/REGION` | 7,4 dtk untuk 30 hari (168.640 baris hasil); 855 dtk / 280 dtk untuk 10 tahun |
+| `SP_VW_REPORT_LEADING_EDGE_NATIONAL` | 1,8 dtk untuk 10 tahun |
+| Lainnya (Daily Tracking, Lag Delinquency, PRK, KPM, daftar, pivot dinamis) | < 1,1 dtk (banyak yang kosong secara data) |
+
+Perlindungan di aplikasi baru: SP kustom memakai pintu terpisah (maks. 2 bersamaan) agar tidak menghabiskan pintu report lain (6), dan timeout dibatasi 600 dtk.
+Namun SP Leading Edge per produk **perlu dioptimalkan di sisi DB** (atau dibatasi rentang tanggalnya) sebelum dipakai di produksi.
+
 ## Status
 
 | Item | Status |
@@ -122,4 +160,5 @@ Seluruh 26 definisi set `GEN` kini tersedia di salinan lokal.
 | R1b `PV_COND` (4), Letter Status, Collector Productivity (2) | selesai (lihat beda perilaku di atas) |
 | R2 Pivot dinamis | selesai (belum dibandingkan dengan keluaran lama pada data nyata) |
 | R3 Pivot dari SP | selesai untuk 53 kelas; `PV_Alasan_NPL` (pivot + daftar alasan, laporan berpita) belum |
-| Perbandingan keluaran semua report dengan aplikasi lama pada data nyata | belum |
+| Pemeriksaan konsistensi + pengukuran waktu semua report (`Panin.ReportCheck`) | alat selesai; dijalankan di salinan lokal, belum di staging/produksi |
+| Perbandingan keluaran dengan layar lama (tampilan DevExpress) pada data nyata | belum (butuh akses ke aplikasi lama dan data produksi) |

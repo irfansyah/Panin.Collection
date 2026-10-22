@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>f53902af-5c32-489a-8b41-f0cba6e4934a</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Panin.Application\Panin.Application.csproj" />
+    <ProjectReference Include="..\..\src\Panin.Infrastructure\Panin.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

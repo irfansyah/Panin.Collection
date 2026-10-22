@@ -23,6 +23,15 @@ public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache,
     /// <summary>Query report bisa berat; dibatasi bersamaan agar tidak menghabiskan koneksi DB.</summary>
     private static readonly SemaphoreSlim Gate = new(6, 6);
 
+    /// <summary>
+    /// SP report kustom bisa berjalan puluhan detik sampai menit (Leading Edge per Product Group: 77 detik untuk rentang satu hari di salinan lokal).
+    /// Pintu terpisah dan kecil agar beberapa pengguna yang menjalankannya tidak menghabiskan <see cref="Gate"/> dan memblokir report lain.
+    /// </summary>
+    private static readonly SemaphoreSlim HeavyGate = new(2, 2);
+
+    /// <summary>Batas atas timeout SP kustom (nilai lama bisa 1000 detik); lebih lama dari ini pengguna tidak akan menunggu.</summary>
+    public const int MaxProcedureSeconds = 600;
+
     public const string SetSql = """
         SELECT PV_ID, PV_DESC, PV_COLUMNLIST, PV_ROWLIST, PV_DATALIST, PV_FILTERLIST, PV_COND, AssemblyObj, PV_SETTING
         FROM VW_REPORTSET WHERE SETID = @1 ORDER BY PV_DESC
@@ -93,13 +102,14 @@ public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache,
         }
 
         var max = forExport ? ReportLimits.ExportRows : ReportLimits.PreviewRows;
-        await Gate.WaitAsync(ct).ConfigureAwait(false);
+        var gate = report.CustomList is not null ? HeavyGate : Gate;
+        await gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             var db = await dbs.GetDataDbAsync(moduleId, ct).ConfigureAwait(false);
             if (report.CustomList is { } list)
             {
-                var set = await db.QueryDataSetAsync(list.CallSql, args, new DbOptions(TimeoutSeconds: list.TimeoutSeconds), ct).ConfigureAwait(false);
+                var set = await db.QueryDataSetAsync(list.CallSql, args, new DbOptions(TimeoutSeconds: Math.Min(list.TimeoutSeconds, MaxProcedureSeconds)), ct).ConfigureAwait(false);
                 if (set.Tables.Count <= list.DataTable)
                 {
                     throw new InvalidOperationException($"SP {list.Procedure} tidak mengembalikan result set ke-{list.DataTable + 1}");
@@ -114,7 +124,7 @@ public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache,
         }
         finally
         {
-            Gate.Release();
+            gate.Release();
         }
     }
 
@@ -131,13 +141,14 @@ public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache,
             throw new ArgumentException(string.Join("; ", errors));
         }
 
-        await Gate.WaitAsync(ct).ConfigureAwait(false);
+        var gate = report.Custom is not null ? HeavyGate : Gate;
+        await gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             var db = await dbs.GetDataDbAsync(moduleId, ct).ConfigureAwait(false);
             if (report.Custom is { } spec)
             {
-                var set = await db.QueryDataSetAsync(spec.CallSql, args, new DbOptions(TimeoutSeconds: spec.TimeoutSeconds), ct).ConfigureAwait(false);
+                var set = await db.QueryDataSetAsync(spec.CallSql, args, new DbOptions(TimeoutSeconds: Math.Min(spec.TimeoutSeconds, MaxProcedureSeconds)), ct).ConfigureAwait(false);
                 if (set.Tables.Count <= spec.DataTable)
                 {
                     throw new InvalidOperationException($"SP {spec.Procedure} tidak mengembalikan result set ke-{spec.DataTable + 1}");
@@ -158,7 +169,7 @@ public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache,
         }
         finally
         {
-            Gate.Release();
+            gate.Release();
         }
     }
 

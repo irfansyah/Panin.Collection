@@ -13,5 +13,6 @@
     <Project Path="tools/Panin.DbClone/Panin.DbClone.csproj" />
     <Project Path="tools/Panin.LoginSync/Panin.LoginSync.csproj" />
     <Project Path="tools/Panin.LoadTest/Panin.LoadTest.csproj" />
+    <Project Path="tools/Panin.ReportCheck/Panin.ReportCheck.csproj" />
   </Folder>
 </Solution>
