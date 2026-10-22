@@ -4,6 +4,7 @@ using Panin.Application.Abstractions;
 using Panin.Application.Auth;
 using Panin.Application.Collection;
 using Panin.Application.Export;
+using Panin.Application.Letters;
 using Panin.Application.Maintenance;
 using Panin.Application.Modules;
 using Panin.Application.Sessions;
@@ -51,6 +52,8 @@ public static class DependencyInjection
         services.AddSingleton<IActivityMonitoringService, ActivityMonitoringService>();
         services.Configure<Maintenance.MaintenanceOptions>(configuration.GetSection(Maintenance.MaintenanceOptions.SectionName));
         services.Configure<ParallelRunOptions>(configuration.GetSection(ParallelRunOptions.SectionName));
+        services.Configure<BulkLetterOptions>(configuration.GetSection(BulkLetterOptions.SectionName));
+        services.AddSingleton<IBulkLetterService, Letters.BulkLetterService>();
         services.AddSingleton<IUserMaintenanceService, Maintenance.UserMaintenanceService>();
         services.AddSingleton<IGroupMaintenanceService, Maintenance.GroupMaintenanceService>();
         services.AddSingleton<IParameterService, Maintenance.ParameterService>();

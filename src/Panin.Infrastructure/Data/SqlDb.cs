@@ -55,13 +55,15 @@ public class SqlDb(string connectionString, string name = "db", IQueryObserver? 
             await using var conn = await OpenAsync(ct).ConfigureAwait(false);
             await using var reader = await conn.ExecuteReaderAsync(Command(sql, args, options, ct)).ConfigureAwait(false);
             var set = new DataSet();
+            // DataTable.Load menghabiskan satu hasil lalu memajukan pembaca ke hasil berikutnya sendiri; memanggil NextResult lagi
+            // akan melompati setiap hasil kedua (SP bertabel jamak seperti SP_GENERATE_BULK kehilangan tabelnya).
             do
             {
                 var table = new DataTable();
                 table.Load(reader);
                 set.Tables.Add(table);
             }
-            while (!reader.IsClosed && await reader.NextResultAsync(ct).ConfigureAwait(false));
+            while (!reader.IsClosed);
 
             return set;
         }, set => set.Tables.Count > 0 ? set.Tables[0].Rows.Count : 0);

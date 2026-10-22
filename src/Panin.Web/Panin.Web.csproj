@@ -9,6 +9,11 @@
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Template surat dari aplikasi lama (Upload/Template/surat.xls); nama sheet dan comment field harus tetap. -->
+    <Content Include="Templates\*.xls" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <PropertyGroup>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
     <UserSecretsId>f53902af-5c32-489a-8b41-f0cba6e4934a</UserSecretsId>

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.HttpOverrides;
 using Panin.Application.Auth;
 using Panin.Application.Diagnostics;
+using Panin.Application.Letters;
 using Panin.Application.Modules;
 using Panin.Application.Sessions;
 using Panin.Infrastructure;
@@ -121,6 +122,14 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapHealthChecks("/healthz").AllowAnonymous();
 app.MapClientLog();
+
+// Unduh berkas bulk surat: hanya pemilik bulk (di aplikasi lama berkas ini bisa diunduh siapa pun yang tahu URL-nya).
+app.MapGet("/api/surat/{bulkId:guid}", async (Guid bulkId, HttpContext http, IBulkLetterService letters) =>
+{
+    var user = http.User.ToSessionUser();
+    var file = user is null ? null : await letters.OpenFileAsync(user.UserId, bulkId, http.RequestAborted);
+    return file is null ? Results.NotFound() : Results.File(file.Content, "application/vnd.ms-excel", file.FileName);
+}).RequireAuthorization();
 
 app.MapPost("/auth/logout", async (HttpContext http, IAuthService auth, IAntiforgery antiforgery) =>
 {

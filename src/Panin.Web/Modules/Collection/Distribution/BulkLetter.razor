@@ -1,0 +1,285 @@
+@attribute [ModulePage("60", "/collection/bulk-surat")]
+@implements IDisposable
+@using System.Globalization
+@using Panin.Application.Collection
+@using Panin.Application.Letters
+@using Panin.Web.Components.Common
+@inject IBulkLetterService Letters
+@inject ILogger<BulkLetter> Logger
+
+<section class="space-y-4">
+    <div class="flex items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold text-slate-800">Bulk Surat</h1>
+        <button type="button" @onclick="RefreshAsync" disabled="@_busy" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-60">Muat ulang</button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700" role="status">@_message</div>
+    }
+
+    @if (_errors.Count > 0)
+    {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+            <ul class="list-disc pl-5">
+                @foreach (var e in _errors)
+                {
+                    <li>@e</li>
+                }
+            </ul>
+        </div>
+    }
+
+    @if (_loading)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat...</p>
+    }
+    else
+    {
+        <Card Title="Surat yang siap digenerate">
+            @if (_pending.Count == 0)
+            {
+                <p class="text-sm text-slate-500">Tidak ada surat yang perlu digenerate.</p>
+            }
+            else
+            {
+                <DataGrid TItem="PendingLetterGroup" Items="_pending" Columns="_pendingColumns" EmptyText="" />
+                <div class="mt-3 flex items-center gap-3">
+                    <button type="button" @onclick="GenerateAsync" disabled="@_busy"
+                            class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">
+                        @(_busy ? "Memproses..." : "Generate Bulk Surat")
+                    </button>
+                    <span class="text-sm text-slate-600">Total @_pending.Sum(p => p.Count) surat; satu proses maksimal 100 surat.</span>
+                </div>
+            }
+        </Card>
+
+        @if (_entry is not null)
+        {
+            <Card Title="@($"Input hasil surat {_entry.LetterNo}")">
+                <EditForm Model="_entry" OnSubmit="SaveResultAsync">
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <Field Label="Hasil Surat" Required>
+                            <Select Items="_results" @bind-Value="_entry.ResultCode" />
+                        </Field>
+                        <Field Label="Tanggal terima">
+                            <InputDate TValue="DateTime?" @bind-Value="_entry.ReceivedAt" max="@DateTime.Today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)" class="@InputClass" />
+                        </Field>
+                        <Field Label="Hubungan penerima">
+                            <Select Items="_relations" @bind-Value="_entry.ReceiverRelationCode" />
+                        </Field>
+                        <Field Label="Diterima oleh">
+                            <InputText @bind-Value="_entry.ReceivedBy" maxlength="@LetterResultRules.MaxReceivedBy" class="@InputClass" />
+                        </Field>
+                    </div>
+                    <div class="mt-4">
+                        <label for="notes" class="mb-1 block text-sm font-medium text-slate-700">Catatan</label>
+                        <InputTextArea id="notes" @bind-Value="_entry.Notes" rows="3" maxlength="@LetterResultRules.MaxNotes" class="@InputClass" />
+                    </div>
+                    <div class="mt-4 flex gap-2">
+                        <button type="submit" disabled="@_busy" class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">Simpan</button>
+                        <button type="button" @onclick="() => _entry = null" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Batal</button>
+                    </div>
+                </EditForm>
+            </Card>
+        }
+
+        <Card Title="Surat yang hasilnya belum diinput">
+            <DataGrid TItem="UnconfirmedLetter" Items="_unconfirmed" Columns="_unconfirmedColumns" EmptyText="Tidak ada surat yang menunggu hasil." />
+        </Card>
+
+        <Card Title="Bulk yang sudah dibuat">
+            <DataGrid TItem="BulkRow" Items="_bulks" Columns="_bulkColumns" EmptyText="Belum ada bulk." />
+        </Card>
+    }
+</section>
+
+@code {
+    private const string InputClass = "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+    private const string ActionClass = "rounded border border-sky-300 px-2 py-0.5 text-xs font-medium text-sky-800 hover:bg-sky-50";
+    private static readonly CultureInfo Id = CultureInfo.GetCultureInfo("id-ID");
+
+    private readonly CancellationTokenSource _cts = new();
+    private IReadOnlyList<PendingLetterGroup> _pending = [];
+    private IReadOnlyList<UnconfirmedLetter> _unconfirmed = [];
+    private IReadOnlyList<BulkRow> _bulks = [];
+    private IReadOnlyList<LookupItem> _results = [], _relations = [];
+    private IReadOnlyList<string> _errors = [];
+    private IReadOnlyList<GridColumn<PendingLetterGroup>> _pendingColumns = [];
+    private IReadOnlyList<GridColumn<UnconfirmedLetter>> _unconfirmedColumns = [];
+    private IReadOnlyList<GridColumn<BulkRow>> _bulkColumns = [];
+    private LetterResultEntry? _entry;
+    private string? _userId, _message;
+    private bool _loading = true, _busy;
+
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pendingColumns =
+        [
+            new() { Header = "Tipe Produk", Value = p => p.ProductType },
+            new() { Header = "PA/NS", Value = p => p.AppType },
+            new() { Header = "Jenis Surat", Value = p => p.LetterType },
+            new() { Header = "Jumlah", Value = p => p.Count, Numeric = true },
+        ];
+        _unconfirmedColumns =
+        [
+            new() { Header = "Bulk", Value = l => l.BulkName },
+            new() { Header = "Nomor Rekening", Value = l => l.AccountNo },
+            new() { Header = "Nomor Surat", Value = l => l.LetterNo },
+            new() { Header = "Tanggal Surat", Value = l => l.LetterDate, Display = l => l.LetterDate?.ToString("dd-MMM-yyyy", Id) },
+            new() { Header = "Jenis Surat", Value = l => l.LetterType },
+            new() { Header = "Nama Debitur", Value = l => l.CustomerName },
+            new() { Header = "Hasil", Value = l => l.LetterNo, ActionOnly = true, Sortable = false, Template = l => @<button type="button" @onclick="() => OpenEntry(l)" class="@ActionClass">Input</button> },
+        ];
+        _bulkColumns =
+        [
+            new() { Header = "Nama", Value = b => b.Name },
+            new() { Header = "Tanggal", Value = b => b.Date, Display = b => b.Date.ToString("dd-MMM-yyyy HH:mm", Id) },
+            new() { Header = "Jumlah Surat", Value = b => b.Total, Numeric = true },
+            new() { Header = "Status", Value = b => b.Finished, Display = b => b.Finished ? "Selesai" : "Belum selesai" },
+            new() { Header = "Berkas", Value = b => b.BulkId, ActionOnly = true, Sortable = false, Template = b => @<div class="flex gap-1">
+                @if (b.FileName is not null) { <a href="@($"/api/surat/{b.BulkId}")" download="@b.FileName" class="@ActionClass">Unduh</a> }
+                <button type="button" @onclick="() => RegenerateAsync(b)" disabled="@_busy" class="@ActionClass">@(b.Finished && b.FileName is not null ? "Regenerate" : "Buat ulang berkas")</button>
+            </div> },
+        ];
+
+        try
+        {
+            _userId = (await AuthState).User.ToSessionUser()?.UserId;
+            if (_userId is null)
+            {
+                return;
+            }
+
+            var results = Letters.GetResultOptionsAsync(_cts.Token);
+            var relations = Letters.GetReceiverRelationsAsync(_cts.Token);
+            await Task.WhenAll(results, relations, ReloadAsync());
+            _results = results.Result;
+            _relations = relations.Result;
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Bulk surat gagal dimuat");
+            _errors = [$"Data gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        var pending = Letters.GetPendingAsync(_userId!, _cts.Token);
+        var unconfirmed = Letters.GetUnconfirmedAsync(_userId!, _cts.Token);
+        var bulks = Letters.GetBulksAsync(_userId!, _cts.Token);
+        await Task.WhenAll(pending, unconfirmed, bulks);
+        _pending = pending.Result;
+        _unconfirmed = unconfirmed.Result;
+        _bulks = bulks.Result;
+    }
+
+    private Task RefreshAsync() => RunAsync(async () =>
+    {
+        await ReloadAsync();
+        return null;
+    });
+
+    private Task GenerateAsync() => RunAsync(async () => await Letters.GenerateAsync(_userId!, _cts.Token));
+
+    private Task RegenerateAsync(BulkRow bulk) => RunAsync(async () => await Letters.RegenerateAsync(_userId!, bulk.BulkId, _cts.Token));
+
+    private void OpenEntry(UnconfirmedLetter letter)
+    {
+        _message = null;
+        _errors = [];
+        _entry = new LetterResultEntry { LetterNo = letter.LetterNo };
+    }
+
+    private async Task SaveResultAsync()
+    {
+        if (_entry is null || _busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        _errors = [];
+        try
+        {
+            var result = await Letters.SaveResultAsync(_userId!, _entry, _cts.Token);
+            _errors = result.Errors;
+            if (result.Success)
+            {
+                _message = $"Hasil surat {_entry.LetterNo} tersimpan.";
+                _entry = null;
+                await ReloadAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Simpan hasil surat gagal");
+            _errors = [$"Hasil surat gagal disimpan. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RunAsync(Func<Task<BulkGenerateResult?>> action)
+    {
+        if (_busy || _userId is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        _errors = [];
+        try
+        {
+            var result = await action();
+            if (result is { Success: true })
+            {
+                _message = result.Message;
+            }
+            else if (result is not null)
+            {
+                _errors = [result.Message];
+            }
+
+            await ReloadAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Aksi bulk surat gagal");
+            _errors = [$"Aksi gagal. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

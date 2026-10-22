@@ -80,3 +80,6 @@ Pembanding: untuk setiap halaman yang dimigrasi, **ukur halaman lama yang setara
 ## Catatan alat
 
 - **`DbClone` membuang aturan `ON DELETE CASCADE`** pada foreign key (diperbaiki; salinan lokal diperbaiki manual untuk 6 FK: `PARAMETERSYSTEM_TEMPORARYDETAIL`, `AUDITTRAIL_DETAIL`, `SCALLUSERFLAG` (juga `ON UPDATE CASCADE`), `COLLATERAL_CAR/DEP/TNH`). Ditemukan lewat uji persetujuan Maintenance: `SP_AUDITTRAIL` menghapus header ajuan dan mengandalkan cascade untuk detailnya. Salinan DB baru dari alat ini sekarang membawa aturan itu.
+
+- **`SqlDb.QueryDataSetAsync` melewati hasil kedua** pada SP bertabel jamak: `DataTable.Load` sudah memajukan pembaca ke hasil berikutnya, lalu kode memanggil `NextResult` lagi. Ditemukan lewat Bulk Surat (klik Generate membuat nomor surat tetapi aplikasi mengira tidak ada data). Diperbaiki, dengan tes integrasi (`PANIN_TEST_SQL`).
+- **Template Excel (.xls) dengan comment butuh SkiaSharp** (NPOI memuatnya saat membaca bentuk/komentar sheet). Paket `SkiaSharp` + aset native Win32 dan Linux ditambahkan ke Infrastructure.
