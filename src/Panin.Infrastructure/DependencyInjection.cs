@@ -47,6 +47,7 @@ public static class DependencyInjection
         services.AddSingleton<IVisitService, VisitService>();
         services.AddSingleton<IWorklistService, WorklistService>();
         services.AddSingleton<ILetterService, LetterService>();
+        services.AddSingleton<IActivityMonitoringService, ActivityMonitoringService>();
         services.AddSingleton<IContactReferenceService, ContactReferenceService>();
         services.AddSingleton<ITreatmentMenuService, TreatmentMenuService>();
         services.AddSingleton<IExcelExporter, NpoiExcelExporter>();

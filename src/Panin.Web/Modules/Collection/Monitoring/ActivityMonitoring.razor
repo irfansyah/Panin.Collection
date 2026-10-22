@@ -1,0 +1,163 @@
+@attribute [ModulePage("60", "/collection/monitoring/aktivitas")]
+@implements IDisposable
+@using Panin.Application.Collection
+@using Panin.Application.Export
+@using Panin.Web.Components.Common
+@inject IActivityMonitoringService Activities
+@inject ILogger<ActivityMonitoring> Logger
+
+<section class="space-y-4">
+    <h1 class="text-xl font-semibold text-slate-800">Monitoring Aktivitas Collector</h1>
+
+    @if (_errors.Count > 0)
+    {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+            <ul class="list-disc pl-5">
+                @foreach (var e in _errors)
+                {
+                    <li>@e</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <EditForm Model="this" OnSubmit="SearchAsync" class="rounded-lg border border-slate-200 bg-white p-4">
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Field Label="Nama" Required>
+                <Select Items="_collectors" @bind-Value="_collector" />
+            </Field>
+            <Field Label="Jenis Aktivitas">
+                <select @bind="_kind" class="@InputClass">
+                    <option value="@ActivityKind.All">All</option>
+                    <option value="@ActivityKind.Call">Call</option>
+                    <option value="@ActivityKind.Letter">Letter</option>
+                    <option value="@ActivityKind.Visit">Visit</option>
+                </select>
+            </Field>
+            <Field Label="Tgl Aktivitas dari" Required>
+                <InputDate TValue="DateTime?" @bind-Value="_from" class="@InputClass" />
+            </Field>
+            <Field Label="@($"sampai (maks. {ActivityRules.MaxDays} hari)")" Required>
+                <InputDate TValue="DateTime?" @bind-Value="_to" class="@InputClass" />
+            </Field>
+        </div>
+        <div class="mt-4 flex gap-2">
+            <button type="submit" disabled="@_busy"
+                    class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">CARI</button>
+            <button type="button" @onclick="Reset" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">BATAL</button>
+        </div>
+    </EditForm>
+
+    @if (_busy)
+    {
+        <p class="text-sm text-slate-500" role="status">Memuat...</p>
+    }
+    else if (_result is not null)
+    {
+        @if (_result.Truncated)
+        {
+            <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="status">
+                Menampilkan @_result.MaxRows aktivitas pertama. Persempit rentang tanggal untuk melihat sisanya.
+            </div>
+        }
+
+        <Card Title="Hasil">
+            <DataGrid @ref="_grid" TItem="ActivityRow" Items="_rows" Columns="_columns" EmptyText="Tidak ada aktivitas.">
+                <Toolbar>
+                    <ExportButton Source="BuildExport" FileName="aktivitas-collector" Disabled="@(_rows.Count == 0)" />
+                </Toolbar>
+            </DataGrid>
+        </Card>
+    }
+</section>
+
+@code {
+    private const string InputClass = "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+
+    private readonly CancellationTokenSource _cts = new();
+    private IReadOnlyList<LookupItem> _collectors = [];
+    private IReadOnlyList<string> _errors = [];
+    private ActivityResult? _result;
+    private IReadOnlyList<ActivityRow> _rows = [];
+    private IReadOnlyList<GridColumn<ActivityRow>> _columns = [];
+    private DataGrid<ActivityRow>? _grid;
+    private string? _collector, _viewerId;
+    private ActivityKind _kind = ActivityKind.All;
+    private DateTime? _from = DateTime.Today, _to = DateTime.Today;
+    private bool _busy;
+
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _viewerId = (await AuthState).User.ToSessionUser()?.UserId;
+            if (_viewerId is not null)
+            {
+                _collectors = await Activities.GetCollectorsAsync(_viewerId, _cts.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Daftar collector gagal dimuat");
+            _errors = ["Daftar user gagal dimuat. Coba lagi atau hubungi administrator."];
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_busy || _viewerId is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _errors = [];
+        try
+        {
+            var response = await Activities.SearchAsync(_viewerId, _collector ?? string.Empty, _kind, _from, _to, _cts.Token);
+            _errors = response.Errors;
+            if (response.Success && response.Result is { } result)
+            {
+                _result = result;
+                _rows = [.. result.Rows.Select(r => new ActivityRow(r))];
+                _columns = [.. result.Columns.Select((name, i) => new GridColumn<ActivityRow> { Header = name, Value = r => r.Cells[i] })];
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Pencarian aktivitas gagal");
+            _errors = ["Data tidak dapat dimunculkan. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Reset()
+    {
+        _collector = null;
+        _kind = ActivityKind.All;
+        _from = _to = DateTime.Today;
+        _errors = [];
+        _result = null;
+    }
+
+    private ExportTable BuildExport() => _grid!.ToExportTable("Aktivitas Collector");
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}
