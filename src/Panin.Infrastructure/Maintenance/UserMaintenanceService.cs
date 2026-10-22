@@ -34,6 +34,7 @@ public sealed partial class UserMaintenanceService(
     IMenuService menus,
     IUserSessionRegistry sessions,
     IOptions<MaintenanceOptions> options,
+    IOptions<ParallelRunOptions> parallel,
     ILogger<UserMaintenanceService> logger) : IUserMaintenanceService
 {
     private const string ModuleId = "99";
@@ -110,6 +111,11 @@ public sealed partial class UserMaintenanceService(
 
     public async Task<MaintenanceResult> SavePendingAsync(string makerUserId, UserDraft draft, CancellationToken ct = default)
     {
+        if (parallel.Value.Enabled)
+        {
+            return MaintenanceResult.Fail(parallel.Value.UserGroupMessage);
+        }
+
         var errors = UserRules.Validate(draft);
         if (errors.Count > 0)
         {
@@ -172,6 +178,11 @@ public sealed partial class UserMaintenanceService(
 
     public async Task<MaintenanceResult> DeleteToPendingAsync(string makerUserId, string userId, CancellationToken ct = default)
     {
+        if (parallel.Value.Enabled)
+        {
+            return MaintenanceResult.Fail(parallel.Value.UserGroupMessage);
+        }
+
         userId = userId.Trim();
         if (string.Equals(userId, makerUserId, StringComparison.OrdinalIgnoreCase))
         {
@@ -237,6 +248,11 @@ public sealed partial class UserMaintenanceService(
 
     public async Task<MaintenanceResult> ApproveAsync(string approverUserId, IReadOnlyList<Guid> temporaryIds, CancellationToken ct = default)
     {
+        if (parallel.Value.Enabled)
+        {
+            return MaintenanceResult.Fail(parallel.Value.UserGroupMessage);
+        }
+
         var db = await Db(ct).ConfigureAwait(false);
         var errors = new List<string>();
         foreach (var id in temporaryIds.Distinct())
@@ -352,6 +368,11 @@ public sealed partial class UserMaintenanceService(
 
     public async Task<MaintenanceResult> ResetPasswordAsync(string actorUserId, string userId, CancellationToken ct = default)
     {
+        if (parallel.Value.Enabled)
+        {
+            return MaintenanceResult.Fail(parallel.Value.UserGroupMessage);
+        }
+
         var db = await Db(ct).ConfigureAwait(false);
         var rows = await db.ExecuteAsync("UPDATE SCALLUSER SET SU_PWD = L.DEF_PWD FROM SCALLUSER JOIN LOGINPARAM L ON 1 = 1 WHERE USERID = @1", [userId.Trim()], ct: ct).ConfigureAwait(false);
         if (rows == 0)

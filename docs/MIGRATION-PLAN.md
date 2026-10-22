@@ -155,7 +155,7 @@ Komponen kunci (sebagian di `Panin.Application`, implementasi di `Panin.Infrastr
 
 **Menu URL**: `RFMENUX.MENUURL` saat ini berisi path halaman WebForms. Arah yang dipilih: nilainya diubah menjadi **rute halaman Blazor**. Karena baris itu juga dipakai aplikasi lama, selama masa paralel dipakai tabel pemetaan di kode (`url lama → rute Blazor`); data `MENUURL` baru diganti saat cutover modul itu (lewat skrip data terpisah, bukan perubahan skema). Menu yang belum dimigrasi disembunyikan/dinonaktifkan atau mengarah ke app lama dengan token.
 
-**Token SSO**: tidak dipakai di dalam host. Tetap didukung (opsional) untuk dua hal: (a) menerima login dari LOSLOGIN lama selama masa paralel, (b) mengarahkan menu yang belum dimigrasi ke app lama. Kedua-duanya memakai `ES_SAVETOKEN`/`VW_ES_APPTOKEN`/`ES_APPTOKEN_DELETE` apa adanya.
+**Token SSO — diputuskan TIDAK dibuat** (aplikasi lama akan dimatikan; selama paralel DB LOGIN dipisah dan disinkronkan satu arah, lihat `docs/PARALEL.md`). Catatan lama: tidak dipakai di dalam host. Tetap didukung (opsional) untuk dua hal: (a) menerima login dari LOSLOGIN lama selama masa paralel, (b) mengarahkan menu yang belum dimigrasi ke app lama. Kedua-duanya memakai `ES_SAVETOKEN`/`VW_ES_APPTOKEN`/`ES_APPTOKEN_DELETE` apa adanya.
 
 **Kredensial DB DATA di `RFMODULE`**: sistem lama menyimpan dan memakai `DB_LOGINPWD` apa adanya (plaintext) lalu menyambungkannya ke connection string. Host baru memakai override dari secrets sebagai jalur utama dan menjadikan `RFMODULE` hanya fallback; kolom itu sebaiknya dikosongkan setelah cutover.
 
@@ -280,12 +280,12 @@ Prinsip:
 - Shell: header, **tab modul** (disembunyikan bila hanya 1 modul), **menu modul aktif** (`RFMENUX` + `GRPMENUX`, hierarki, item Logout, pemetaan `MENUURL` lama → rute baru), area konten, footer (nama, group, jam).
 - `ISessionMonitor`: heartbeat `SU_MONITORACTIVITY` (paksa logout bila 0), peringatan idle 20 menit + logout otomatis, `SU_ALLUSERACTIVITY` saat logout/timeout, penurunan flag `SU_LOGON` saat sirkuit terputus.
 - Footer: cek kesegaran data (`ACCOUNT_MASTER.AS_OF_DATE`), cek warning (`SP_VW_WARNINGCONTENT`), halaman news (`VW_NEWS`), otorisasi menu (`ES_AUTHUSERMENU`).
-- Token SSO (`ES_SAVETOKEN`, `VW_ES_APPTOKEN`, `ES_APPTOKEN_DELETE`) hanya sebagai jembatan ke aplikasi lama selama paralel.
+- Token SSO (`ES_SAVETOKEN`, `VW_ES_APPTOKEN`, `ES_APPTOKEN_DELETE`): **tidak dimigrasi** (tidak ada jembatan ke aplikasi lama). Masa paralel dan cutover: `docs/PARALEL.md`.
 - Harness uji beban: HTTP dan sirkuit Blazor (klien protokol `blazorpack`), baseline memori per sirkuit; hasil di `docs/LOAD-TESTING.md`.
 - **Logging terlacak ujung ke ujung** (Serilog, JSON harian, TraceId per request/interaksi sirkuit/pekerjaan latar, kode galat untuk pengguna, galat DB dan browser tercatat): `docs/LOGGING.md`.
 - Kriteria selesai: user login di host baru dengan akun yang sama, melihat tab modul dan menu sesuai group, dan sesi/heartbeat/logout berperilaku seperti lama.
 
-**Status Fase 1:** login, ganti password (tiket), sesi tunggal (registry memori + reaper + antrean logout + retry deadlock), cookie auth dengan validasi sesi, shell dengan tab modul (state dipertahankan), menu dari `RFMENUX`/`GRPMENUX`, footer, heartbeat/idle dan logout, `IModuleDbFactory`, serta harness beban HTTP sudah jalan dan teruji di salinan DB lokal (37 unit test, uji beban 700 login). Setelah akses baca ke DB DATA modul 60 diberikan: kesegaran data, peringatan (`SP_VW_WARNINGCONTENT`), dan area user sudah masuk, dengan pengaman baca-saja (`ReadOnlyDb`) terhadap DB dev bersama. **Belum**: halaman news, jembatan token SSO ke app lama, dan uji beban sirkuit dengan event klik/input (uji sirkuit idle sudah ada: 1.000 sirkuit stabil, lihat `docs/LOAD-TESTING.md`). Ketiga hal pertama menunggu akses DB DATA modul 60.
+**Status Fase 1:** login, ganti password (tiket), sesi tunggal (registry memori + reaper + antrean logout + retry deadlock), cookie auth dengan validasi sesi, shell dengan tab modul (state dipertahankan), menu dari `RFMENUX`/`GRPMENUX`, footer, heartbeat/idle dan logout, `IModuleDbFactory`, serta harness beban HTTP sudah jalan dan teruji di salinan DB lokal (37 unit test, uji beban 700 login). Setelah akses baca ke DB DATA modul 60 diberikan: kesegaran data, peringatan (`SP_VW_WARNINGCONTENT`), dan area user sudah masuk, dengan pengaman baca-saja (`ReadOnlyDb`) terhadap DB dev bersama. **Belum**: halaman news dan uji beban sirkuit dengan event klik/input (uji sirkuit idle sudah ada: 1.000 sirkuit stabil, lihat `docs/LOAD-TESTING.md`). Ketiga hal pertama menunggu akses DB DATA modul 60.
 
 ### Fase 2 — Inti Collection (±6–8 minggu)
 Urutan berdasarkan ketergantungan:

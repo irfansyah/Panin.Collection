@@ -22,6 +22,7 @@ public sealed partial class GroupMaintenanceService(
     IMenuService menus,
     SingleFlightCache cache,
     IOptions<MaintenanceOptions> options,
+    IOptions<ParallelRunOptions> parallel,
     ILogger<GroupMaintenanceService> logger) : IGroupMaintenanceService
 {
     private const string Table = "SCALLGROUP";
@@ -66,6 +67,11 @@ public sealed partial class GroupMaintenanceService(
 
     public async Task<MaintenanceResult> SavePendingAsync(string makerUserId, GroupDraft draft, CancellationToken ct = default)
     {
+        if (parallel.Value.Enabled)
+        {
+            return MaintenanceResult.Fail(parallel.Value.UserGroupMessage);
+        }
+
         var errors = GroupRules.Validate(draft);
         if (errors.Count > 0)
         {
@@ -108,6 +114,11 @@ public sealed partial class GroupMaintenanceService(
 
     public async Task<MaintenanceResult> DeleteToPendingAsync(string makerUserId, string makerGroupId, string groupId, CancellationToken ct = default)
     {
+        if (parallel.Value.Enabled)
+        {
+            return MaintenanceResult.Fail(parallel.Value.UserGroupMessage);
+        }
+
         groupId = groupId.Trim();
         if (string.Equals(groupId, makerGroupId, StringComparison.OrdinalIgnoreCase))
         {
@@ -179,6 +190,11 @@ public sealed partial class GroupMaintenanceService(
 
     public async Task<MaintenanceResult> ApproveAsync(string approverUserId, IReadOnlyList<Guid> temporaryIds, CancellationToken ct = default)
     {
+        if (parallel.Value.Enabled)
+        {
+            return MaintenanceResult.Fail(parallel.Value.UserGroupMessage);
+        }
+
         var db = await Db(ct).ConfigureAwait(false);
         var errors = new List<string>();
         foreach (var id in temporaryIds.Distinct())
@@ -297,6 +313,11 @@ public sealed partial class GroupMaintenanceService(
 
     public async Task<MaintenanceResult> SaveMenuAccessAsync(string makerUserId, string makerGroupId, string groupId, string moduleId, IReadOnlyList<string> menuIds, CancellationToken ct = default)
     {
+        if (parallel.Value.Enabled)
+        {
+            return MaintenanceResult.Fail(parallel.Value.UserGroupMessage);
+        }
+
         if (!await HasRoleAsync(makerGroupId, MaintenanceRole.Maker, ct).ConfigureAwait(false))
         {
             return MaintenanceResult.Fail("Group Anda tidak punya hak Maker");

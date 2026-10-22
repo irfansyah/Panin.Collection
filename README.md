@@ -16,9 +16,18 @@ src/
   Panin.Worker          pengganti Windows Service PANINSVC
 tests/
   Panin.UnitTests
+tools/
+  Panin.DbClone         salin DB sumber ke Docker lokal
+  Panin.LoginSync       sinkronisasi satu arah DB LOGIN lama ke baru (masa paralel)
+  Panin.LoadTest        uji beban (HTTP, sirkuit, browser Playwright)
 docs/
   MIGRATION-PLAN.md     rencana migrasi, fase, risiko
   DMS-LEGACY-CONTRACT.md  kontrak DLL lama DMS.* (hasil inspeksi)
+  PARALEL.md            masa uji paralel dengan aplikasi lama dan langkah cutover
+  LOGGING.md            logging terlacak ujung ke ujung, cara menelusuri kode galat
+  LOAD-TESTING.md       uji beban (HTTP, sirkuit, browser sungguhan)
+  QUERY-REGISTRY.md     ukuran dan keputusan per query/SP
+  PERFORMANCE.md        temuan performa dan aturan
 ```
 
 ## Menjalankan

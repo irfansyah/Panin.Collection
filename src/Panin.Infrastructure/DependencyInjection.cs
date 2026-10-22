@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddSingleton<ILetterService, LetterService>();
         services.AddSingleton<IActivityMonitoringService, ActivityMonitoringService>();
         services.Configure<Maintenance.MaintenanceOptions>(configuration.GetSection(Maintenance.MaintenanceOptions.SectionName));
+        services.Configure<ParallelRunOptions>(configuration.GetSection(ParallelRunOptions.SectionName));
         services.AddSingleton<IUserMaintenanceService, Maintenance.UserMaintenanceService>();
         services.AddSingleton<IGroupMaintenanceService, Maintenance.GroupMaintenanceService>();
         services.AddSingleton<IParameterService, Maintenance.ParameterService>();

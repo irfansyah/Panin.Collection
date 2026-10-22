@@ -1,10 +1,12 @@
 @attribute [ModulePage("99", "/maintenance/group/maker")]
 @implements IDisposable
 @using Panin.Application.Collection
+@using Microsoft.Extensions.Options
 @using Panin.Application.Maintenance
 @using Panin.Web.Components.Common
 @inject IGroupMaintenanceService Groups
 @inject ILogger<GroupMaker> Logger
+@inject IOptions<ParallelRunOptions> Parallel
 
 <section class="space-y-4">
     <div class="flex items-center justify-between gap-3">
@@ -20,6 +22,11 @@
             }
         </div>
     </div>
+
+    @if (Parallel.Value.Enabled)
+    {
+        <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">@Parallel.Value.UserGroupMessage</div>
+    }
 
     @if (_loading)
     {

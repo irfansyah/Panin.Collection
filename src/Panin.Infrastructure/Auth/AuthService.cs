@@ -1,14 +1,16 @@
 using System.Data;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Panin.Application.Abstractions;
 using Panin.Application.Auth;
+using Panin.Application.Maintenance;
 using Panin.Application.Sessions;
 using Panin.Infrastructure.Data;
 
 namespace Panin.Infrastructure.Auth;
 
 /// <summary>Port dari alur login LOSLOGIN/LOSCOLLECTION, memakai stored procedure DB LOGIN yang sama.</summary>
-public sealed partial class AuthService(ILoginDb db, IUserSessionRegistry sessions, ILogoutRecorder logoutRecorder, ILogger<AuthService> logger) : IAuthService
+public sealed partial class AuthService(ILoginDb db, IUserSessionRegistry sessions, ILogoutRecorder logoutRecorder, IOptions<ParallelRunOptions> parallel, ILogger<AuthService> logger) : IAuthService
 {
     public async Task<LoginOutcome> LoginAsync(string userId, string password, string host, CancellationToken ct = default)
     {
@@ -103,6 +105,11 @@ public sealed partial class AuthService(ILoginDb db, IUserSessionRegistry sessio
     public async Task<PasswordChangeOutcome> ChangePasswordAsync(
         string userId, string? oldPassword, string newPassword, string verifyPassword, CancellationToken ct = default)
     {
+        if (parallel.Value.Enabled)
+        {
+            return new PasswordChangeOutcome(PasswordChangeResult.ManagedElsewhere, parallel.Value.PasswordMessage);
+        }
+
         if (newPassword.Trim() != verifyPassword.Trim())
         {
             return new PasswordChangeOutcome(PasswordChangeResult.Mismatch, "Password mismatch!");

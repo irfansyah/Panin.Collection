@@ -3,9 +3,12 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
 @using Microsoft.AspNetCore.DataProtection
+@using Microsoft.Extensions.Options
 @using Panin.Application.Auth
+@using Panin.Application.Maintenance
 @using Panin.Web.Infrastructure
 @inject IAuthService Auth
+@inject IOptions<ParallelRunOptions> Parallel
 @inject IDataProtectionProvider DataProtection
 @inject NavigationManager Navigation
 
@@ -70,6 +73,13 @@ else if (Changed)
                 user.ToPrincipal(sid, host),
                 new AuthenticationProperties { IsPersistent = false });
             Navigation.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
+        if (outcome is { MustChangePassword: true } && Parallel.Value.Enabled)
+        {
+            Message = Parallel.Value.PasswordMessage;
+            Model.Password = string.Empty;
             return;
         }
 

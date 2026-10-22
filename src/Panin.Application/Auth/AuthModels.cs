@@ -43,6 +43,9 @@ public enum PasswordChangeResult
     OldPasswordInvalid,
     PolicyViolation,
     Failed,
+
+    /// <summary>Masa paralel: password hanya diubah di aplikasi lama (lihat <c>ParallelRun</c>).</summary>
+    ManagedElsewhere,
 }
 
 public sealed record PasswordChangeOutcome(PasswordChangeResult Result, string? Message = null);
