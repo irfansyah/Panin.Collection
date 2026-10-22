@@ -70,6 +70,41 @@ Bagian `Serilog` di `appsettings.json` (dapat ditimpa per lingkungan):
 
 Berkas log **tidak masuk Git** (`logs/`).
 
+## Mengirim log ke tempat lain (Seq, Aspire Dashboard, dll.)
+
+Berkas JSON tetap menjadi catatan utama dan tidak bergantung pada layanan lain. Tujuan tambahan dipasang **lewat konfigurasi saja**
+(tanpa mengubah kode) dengan menambah entri `Serilog:WriteTo`. Paket **Seq** dan **OpenTelemetry (OTLP)** sudah terpasang; sink Serilog lain
+(Elasticsearch, Loki, MSSQL, Splunk, dst.) ditambahkan dengan satu paket NuGet + satu entri.
+
+| Tujuan | Cara | Catatan |
+|---|---|---|
+| **Seq** | `{ "Name": "Seq", "Args": { "serverUrl": "http://seq:5341", "apiKey": "<kunci>" } }` | Cari dengan `Ref = 'XXXXXXXX'` atau `UserId`/`CircuitId`. Di server beri password admin dan pakai API key; `SEQ_FIRSTRUN_NOAUTHENTICATION` hanya untuk lokal. |
+| **Aspire Dashboard** (atau kolektor OTLP lain: Grafana/Loki, Jaeger, Elastic APM) | `{ "Name": "OpenTelemetry", "Args": { "endpoint": "http://localhost:4317", "protocol": "Grpc", "resourceAttributes": { "service.name": "panin-collection" } } }` | Log muncul di halaman *Structured logs*; `TraceId`/`SpanId` ikut sebagai properti sehingga log dari satu interaksi bisa dikelompokkan. |
+
+Contoh lewat variabel lingkungan (indeks 2 dst. karena 0 = Console dan 1 = File; array konfigurasi digabung per indeks):
+
+```
+Serilog__WriteTo__2__Name=Seq
+Serilog__WriteTo__2__Args__serverUrl=http://seq:5341
+Serilog__WriteTo__3__Name=OpenTelemetry
+Serilog__WriteTo__3__Args__endpoint=http://aspire:4317
+Serilog__WriteTo__3__Args__protocol=Grpc
+Serilog__WriteTo__3__Args__resourceAttributes__service.name=panin-collection
+```
+
+Untuk mencoba di mesin pengembang: `docker compose -f docker/docker-compose.yml --profile observability up -d` (Seq di `http://localhost:5341`,
+Aspire Dashboard di `http://localhost:18888`, OTLP di `localhost:4317`), lalu jalankan aplikasi dengan argumen `--Serilog:WriteTo:2:Name=Seq ...`.
+
+Teruji (lokal): satu pencarian yang gagal menghasilkan kode yang sama di berkas, di Seq (`Ref`, `UserId`, `CircuitId` tersimpan sebagai properti),
+dan di Aspire Dashboard (service `panin-collection`).
+
+**Yang belum**: *trace* terdistribusi (diagram span request → sirkuit → query DB) belum diekspor. `Activity` sudah dibuat per request dan per interaksi
+sirkuit (itu sumber `TraceId`), tetapi ekspornya butuh paket OpenTelemetry SDK + instrumentasi ASP.NET Core/SqlClient; ditambahkan bila tampilan
+waterfall di Aspire/Jaeger memang dibutuhkan. Sink log (di atas) tidak membutuhkannya.
+
+Pertimbangan: pengiriman ke Seq/OTLP bersifat tambahan dan tidak boleh menjadi satu-satunya tempat log (jaringan putus tidak boleh menghilangkan jejak);
+karena itu berkas JSON tidak dimatikan.
+
 ## Aturan agar log aman
 
 - Jangan mencatat password, token, nomor kartu, atau isi isian pengguna. Query dicatat tanpa nilai parameter.

@@ -17,5 +17,28 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+
+  # Opsional, hanya untuk pengembangan: tujuan log selain berkas (lihat docs/LOGGING.md).
+  #   docker compose -f docker/docker-compose.yml --profile observability up -d
+  seq:
+    profiles: [observability]
+    image: datalust/seq:latest
+    container_name: panin-seq
+    environment:
+      ACCEPT_EULA: "Y"
+      SEQ_FIRSTRUN_NOAUTHENTICATION: "true"   # hanya lokal; di server beri password admin
+    ports:
+      - "5341:80"
+  aspire:
+    profiles: [observability]
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:latest
+    container_name: panin-aspire
+    environment:
+      DASHBOARD__FRONTEND__AUTHMODE: Unsecured   # hanya lokal
+      DASHBOARD__OTLP__AUTHMODE: Unsecured
+    ports:
+      - "18888:18888"   # UI dashboard
+      - "4317:18889"    # OTLP gRPC (log dikirim ke sini)
+
 volumes:
   panin-sql-data:

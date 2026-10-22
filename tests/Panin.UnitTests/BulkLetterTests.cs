@@ -142,3 +142,15 @@ public class BulkLetterTests
         Assert.Equal(4, errors.Count); // nomor, hasil, Receive By >20, tanggal masa depan
     }
 }
+
+public class ExceptionLetterSqlTests
+{
+    [Fact]
+    public void Updating_an_existing_exception_touches_only_that_account()
+    {
+        // SP_ADD_LETTER_EXCEPTION lama menjalankan UPDATE tanpa WHERE (menimpa pelaku/waktu semua baris).
+        var update = Panin.Infrastructure.Letters.ExceptionLetterService.AddSql;
+        Assert.Contains("UPDATE EXCEPTION_LETTER SET ACT_BY = @2, ACT_DATETIME = GETDATE() WHERE ACC_NO = @1", update, StringComparison.Ordinal);
+        Assert.Contains("BEGIN TRAN", update, StringComparison.Ordinal);
+    }
+}

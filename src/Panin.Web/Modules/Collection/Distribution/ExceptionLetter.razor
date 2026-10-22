@@ -1,0 +1,237 @@
+@attribute [ModulePage("60", "/collection/exception-letter")]
+@implements IDisposable
+@using System.Globalization
+@using Panin.Application.Letters
+@using Panin.Web.Components.Common
+@inject IExceptionLetterService Exceptions
+@inject ILogger<ExceptionLetter> Logger
+
+<section class="space-y-4">
+    <h1 class="text-xl font-semibold text-slate-800">Account Exception Letter</h1>
+
+    @if (_loading)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat...</p>
+    }
+    else if (!_allowed)
+    {
+        <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">Group Anda tidak punya hak untuk menu ini.</div>
+    }
+    else
+    {
+        <p class="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            Rekening yang dikecualikan dilewati pembuatan surat otomatis (Bulk Surat). Cari rekening lalu pilih "Set To Except"; "Set To Allow" mengembalikannya.
+        </p>
+
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <div class="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700" role="status">@_message</div>
+        }
+
+        @if (_errors.Count > 0)
+        {
+            <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                <ul class="list-disc pl-5">
+                    @foreach (var e in _errors)
+                    {
+                        <li>@e</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        @if (_confirm is not null)
+        {
+            <div class="flex flex-wrap items-center gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alertdialog" aria-label="Konfirmasi">
+                <span>@_confirm.Prompt</span>
+                <button type="button" @onclick="RunConfirmedAsync" disabled="@_busy" class="rounded-md bg-red-700 px-3 py-1 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60">Ya</button>
+                <button type="button" @onclick="() => _confirm = null" class="rounded-md border border-slate-300 bg-white px-3 py-1 text-sm hover:bg-slate-100">Tidak</button>
+            </div>
+        }
+
+        <form @onsubmit="SearchAsync" class="rounded-lg border border-slate-200 bg-white p-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+                <Field Label="No Account">
+                    <input id="acc" @bind="_accountNo" @bind:event="oninput" maxlength="20" class="@InputClass" />
+                </Field>
+                <Field Label="Nama Debitur">
+                    <input id="name" @bind="_name" @bind:event="oninput" maxlength="100" class="@InputClass" />
+                </Field>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">Isi salah satu kolom: nomor rekening (awalan) atau nama debitur (minimal 3 huruf).</p>
+            <div class="mt-3 flex gap-2">
+                <button type="submit" disabled="@_busy" class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">CARI</button>
+                <button type="button" @onclick="Reset" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">BATAL</button>
+            </div>
+        </form>
+
+        @if (_result is not null)
+        {
+            <Card Title="Hasil pencarian">
+                @if (_result.Truncated)
+                {
+                    <p class="mb-2 text-xs text-amber-800" role="status">Menampilkan @_result.MaxRows baris pertama; persempit pencarian.</p>
+                }
+
+                <DataGrid TItem="ExceptionSearchRow" Items="_result.Rows" Columns="_searchColumns" EmptyText="Data tidak ditemukan." />
+            </Card>
+        }
+
+        <Card Title="Rekening yang dikecualikan">
+            <DataGrid TItem="ExceptionLetterEntry" Items="_entries" Columns="_entryColumns" EmptyText="Belum ada rekening yang dikecualikan." />
+        </Card>
+    }
+</section>
+
+@code {
+    private const string InputClass = "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+    private const string ActionClass = "rounded border border-sky-300 px-2 py-0.5 text-xs font-medium text-sky-800 hover:bg-sky-50";
+    private static readonly CultureInfo Id = CultureInfo.GetCultureInfo("id-ID");
+
+    private sealed record Confirm(string Prompt, Func<Task<Panin.Application.Collection.LetterSaveResult>> Run, string Done);
+
+    private readonly CancellationTokenSource _cts = new();
+    private Confirm? _confirm;
+    private ExceptionSearchResult? _result;
+    private IReadOnlyList<ExceptionLetterEntry> _entries = [];
+    private IReadOnlyList<string> _errors = [];
+    private IReadOnlyList<GridColumn<ExceptionSearchRow>> _searchColumns = [];
+    private IReadOnlyList<GridColumn<ExceptionLetterEntry>> _entryColumns = [];
+    private string? _userId, _groupId, _accountNo, _name, _message;
+    private bool _loading = true, _allowed, _busy;
+
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _searchColumns =
+        [
+            new() { Header = "Nomor Rekening", Value = r => r.AccountNo },
+            new() { Header = "Nama Nasabah", Value = r => r.CustomerName },
+            new() { Header = "Fasilitas", Value = r => r.Facility },
+            new() { Header = "Outstanding", Value = r => r.Outstanding, Display = r => r.Outstanding?.ToString("N0", Id), Numeric = true },
+            new() { Header = "DPD", Value = r => r.Dpd, Numeric = true },
+            new() { Header = "Kolektibilitas", Value = r => r.Collectibility },
+            new() { Header = "Status Akhir", Value = r => r.LastAction },
+            new() { Header = "Angsuran Ke", Value = r => r.InstallmentNo, Numeric = true },
+            new() { Header = "Letter", Value = r => r.IsException, Display = r => r.IsException ? "Except" : "Allow" },
+            new() { Header = "Set", Value = r => r.AccountNo, ActionOnly = true, Sortable = false, Template = r => @<button type="button" @onclick="() => Ask(r.AccountNo, r.IsException)" class="@ActionClass">@(r.IsException ? "Set To Allow" : "Set To Except")</button> },
+        ];
+        _entryColumns =
+        [
+            new() { Header = "Nomor Rekening", Value = e => e.AccountNo },
+            new() { Header = "Nama Nasabah", Value = e => e.CustomerName },
+            new() { Header = "Dikecualikan oleh", Value = e => e.SetBy },
+            new() { Header = "Waktu", Value = e => e.SetAt, Display = e => e.SetAt?.ToString("dd-MMM-yyyy HH:mm", Id) },
+            new() { Header = "Set", Value = e => e.AccountNo, ActionOnly = true, Sortable = false, Template = e => @<button type="button" @onclick="() => Ask(e.AccountNo, true)" class="@ActionClass">Set To Allow</button> },
+        ];
+
+        try
+        {
+            var user = (await AuthState).User.ToSessionUser();
+            if (user is null)
+            {
+                return;
+            }
+
+            (_userId, _groupId) = (user.UserId, user.GroupId);
+            _allowed = await Exceptions.HasAccessAsync(user.GroupId, _cts.Token);
+            if (_allowed)
+            {
+                _entries = await Exceptions.ListAsync(user.GroupId, _cts.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception letter gagal dimuat");
+            _errors = [$"Halaman gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Reset()
+    {
+        _accountNo = _name = null;
+        _result = null;
+        _errors = [];
+        _message = null;
+    }
+
+    private Task SearchAsync() => RunAsync(async () =>
+    {
+        var result = await Exceptions.SearchAsync(_groupId!, _accountNo, _name, _cts.Token);
+        _errors = result.Errors;
+        _result = result.Success ? result : null;
+    });
+
+    private void Ask(string accountNo, bool isException)
+        => _confirm = isException
+            ? new($"Kembalikan rekening {accountNo} agar ikut pembuatan surat (Set To Allow)?", () => Exceptions.SetAllowAsync(_userId!, _groupId!, accountNo, _cts.Token), $"Rekening {accountNo} diizinkan kembali.")
+            : new($"Kecualikan rekening {accountNo} dari pembuatan surat (Set To Except)?", () => Exceptions.SetExceptionAsync(_userId!, _groupId!, accountNo, _cts.Token), $"Rekening {accountNo} dikecualikan dari surat.");
+
+    private Task RunConfirmedAsync()
+    {
+        if (_confirm is not { } c)
+        {
+            return Task.CompletedTask;
+        }
+
+        _confirm = null;
+        return RunAsync(async () =>
+        {
+            var result = await c.Run();
+            _errors = result.Errors;
+            if (result.Success)
+            {
+                _message = c.Done;
+                _entries = await Exceptions.ListAsync(_groupId!, _cts.Token);
+                if (_result is { Success: true })
+                {
+                    _result = await Exceptions.SearchAsync(_groupId!, _accountNo, _name, _cts.Token) is { Success: true } refreshed ? refreshed : _result;
+                }
+            }
+        });
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        if (_busy || _userId is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        _errors = [];
+        try
+        {
+            await action();
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Aksi exception letter gagal");
+            _errors = [$"Aksi gagal. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

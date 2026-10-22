@@ -54,6 +54,7 @@ public static class DependencyInjection
         services.Configure<ParallelRunOptions>(configuration.GetSection(ParallelRunOptions.SectionName));
         services.Configure<BulkLetterOptions>(configuration.GetSection(BulkLetterOptions.SectionName));
         services.AddSingleton<IBulkLetterService, Letters.BulkLetterService>();
+        services.AddSingleton<IExceptionLetterService, Letters.ExceptionLetterService>();
         services.AddSingleton<IUserMaintenanceService, Maintenance.UserMaintenanceService>();
         services.AddSingleton<IGroupMaintenanceService, Maintenance.GroupMaintenanceService>();
         services.AddSingleton<IParameterService, Maintenance.ParameterService>();
