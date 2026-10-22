@@ -64,9 +64,41 @@ Selama uji, semua sirkuit menerima batch render awal (±5 per sirkuit) dan meman
 
 **Cara membacanya:** angka ini adalah *lantai*, bukan kapasitas. Yang diukur hanya shell (login, menu, footer, timer sesi). Halaman modul sungguhan (grid, filter, hasil query) akan menambah state per sirkuit; anggaran awal di rencana adalah ≤ 5 MB rata-rata per sirkuit, jadi masih ada ruang ±30× dari lantai ini. Anggaran harus dicek ulang setiap modul masuk (lihat "Berikutnya").
 
+## Uji dengan browser sungguhan (Playwright)
+
+`tools/Panin.LoadTest/browser/flow.mjs` menjalankan user virtual di Chromium headless (memakai browser yang sudah terpasang, tanpa
+mengunduh). Tiap user login lalu berulang: buka menu Inquiry Status Debitur, cari nama, buka detail, pindah dua tab, kembali.
+Waktu yang diukur adalah dari klik sampai layar berubah (sirkuit Blazor + query), jadi ini yang paling dekat dengan yang dirasakan user.
+
+```bash
+cd tools/Panin.LoadTest/browser && npm install      # sekali; hanya playwright-core
+export LOADTEST_PASSWORD=<password uji>
+# sirkuit idle memakai LT0001..; browser memakai rentang lain (aturan satu sesi per user)
+node flow.mjs --url http://localhost:5122 --first 701 --users 100 --seconds 90 --ramp 20000 --think 3000
+```
+
+### Hasil (laptop dev; aplikasi build Release, SQL Server di Docker, klien uji di mesin yang sama)
+
+Data DATA yang dipakai adalah salinan lokal (hanya rekening contoh), jadi waktu query tidak mewakili produksi; yang diuji adalah
+beban sirkuit, render, dan interaksi. Ukuran query produksi dicatat di `QUERY-REGISTRY.md`.
+
+| Skenario | Total sirkuit | Aksi/detik | p50 | p95 | p99 | Galat | Working set server |
+|---|---|---|---|---|---|---|---|
+| 600 idle + 100 browser aktif (think ~3 s) | 700 | ±42 | 28–87 ms | 61–148 ms | 67–180 ms | 0 dari 3.800 aksi | ±520 MB |
+| 450 idle + 250 browser aktif (think ~2 s) | 700 | ±130 | 66–130 ms | 0,58–1,35 s | 1,3–3,0 s | 0 dari 17.100 aksi | ±570 MB |
+
+Cara membaca:
+- Skenario kedua sengaja berlebihan: ±130 aksi/detik jauh di atas pola nyata (700 user dengan jeda mikir 10–30 detik ≈ 25–70 aksi/detik).
+  Meski begitu tidak ada galat dan median tetap rendah. Ekor (p95/p99) naik karena 250 Chromium, server, dan SQL Server berbagi CPU
+  satu laptop; rata-rata query di DB tetap 3–8 ms, jadi ekor itu bukan dari DB. Ulangi di server terpisah sebelum menarik kesimpulan kapasitas.
+- Memori terkelola setelah GC hanya ±100–115 MB untuk 700 sirkuit; sisanya working set proses (±520–570 MB).
+- Login p95 3,4 s pada skenario kedua: 250 login dalam 40 detik ditambah 450 sirkuit yang sedang tersambung; masih tanpa galat.
+
+Belum tercakup: tulis data (Call/Visit/Letter/pindah debitur) dalam beban, lonjakan reconnect, dan DB DATA berukuran produksi.
+
 ## Belum tercakup (pekerjaan berikutnya)
 
-- Klien sirkuit belum mengirim event (klik menu, input). Untuk itu batch render harus di-parse (format biner Blazor) atau memakai browser sungguhan (Playwright, sudah disetujui; browser Chromium sudah ada di mesin ini). Dipakai saat halaman modul pertama selesai.
+- Klien sirkuit tanpa browser (`circuits`) tetap tidak mengirim event; interaksi diuji lewat browser sungguhan (bagian di atas).
 - Lonjakan reconnect, restart server, dan pemulihan sesi.
 - Pola kerja nyata (worklist, pencarian debitur) setelah modul Collection tersedia; harus melawan DB DATA yang realistis.
 - Server target (CPU/RAM) belum diketahui; anggaran memori per sirkuit dari 2F perlu dibandingkan dengan RAM nyata.

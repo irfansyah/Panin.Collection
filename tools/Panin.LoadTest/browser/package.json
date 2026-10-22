@@ -1,0 +1,9 @@
+{
+  "name": "panin-loadtest-browser",
+  "private": true,
+  "type": "module",
+  "description": "Uji beban dengan browser sungguhan (Playwright): alur cari debitur, buka detail, pindah tab, kembali.",
+  "dependencies": {
+    "playwright-core": "1.64.1"
+  }
+}
