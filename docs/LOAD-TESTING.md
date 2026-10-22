@@ -4,7 +4,7 @@ Syarat: aplikasi harus melayani **> 700 user bersamaan** (lihat `MIGRATION-PLAN.
 
 ## Harness awal (`tools/Panin.LoadTest`)
 
-Tingkat HTTP: login massal, render halaman shell, logout. Belum membuka sirkuit Blazor (WebSocket); lihat "Belum tercakup".
+Dua jenis uji: (1) tingkat HTTP (`run`): login massal, halaman shell, logout; (2) sirkuit Blazor sungguhan (`circuits`), lihat bagian "Uji sirkuit Blazor".
 
 ```bash
 # 1. Buat 700 user uji (LT0001..LT0700) di DB LOGIN lokal (Docker). Menolak server non-lokal.
@@ -40,9 +40,33 @@ Catatan: hasil ini mengukur sisi HTTP + DB. Satu instance aplikasi memakai ±280
 2. `SU_ALLUSERACTIVITY` saat login mengubah `SCALLUSERFLAG`; di bawah beban 150 konkurensi tidak terlihat masalah.
 3. Lonjakan login 700 user selesai dalam ±2–5 detik di mesin ini; bottleneck bergeser ke DB, bukan aplikasi.
 
+## Uji sirkuit Blazor (WebSocket)
+
+`circuits` membuka sirkuit sungguhan tanpa browser: login lewat HTTP, lalu klien protokol Blazor (`CircuitClient`) terhubung ke hub `/_blazor` dengan protokol `blazorpack`, memulai sirkuit dari penanda prarender, mengakui tiap batch render, dan menjawab panggilan JS interop server (`import`, `idleSeconds`, dst.) seperti browser yang idle. Timer idle/detak sesi di server (`SessionKeeper`) ikut berjalan, jadi `SU_MONITORACTIVITY` benar-benar terpanggil tiap menit per sirkuit.
+
+```bash
+# restart server tiap uji supaya registry sesi bersih (aturan satu sesi per user berlaku)
+dotnet run --project tools/Panin.LoadTest -c Release -- circuits --url http://localhost:5122 --users 700 --concurrency 50 --hold 75
+```
+
+Memori dibaca dari `/_diag?gc=true` (memaksa GC penuh, hanya aktif bila `Diagnostics:Enabled=true`) sehingga angka tidak berisi sampah.
+
+### Hasil (laptop dev, satu instance, shell kosong tanpa data modul)
+
+| Sirkuit aktif | Terbuka | Terputus dalam 60–75 s | Memori terkelola (setelah GC) | Working set proses | Per sirkuit (terkelola) |
+|---|---|---|---|---|---|
+| 0 (baseline) | – | – | 2 MB | ±73 MB | – |
+| 100 | 100/100 dalam 1,1 s | 0 | 24 MB | ±168 MB | ±220 KB |
+| 700 | 700/700 dalam 2,7 s | 0 | 116 MB | ±345 MB | ±163 KB |
+| 1.000 | 1000/1000 dalam 3,5 s | 0 | 165 MB | ±500 MB | ±160 KB |
+
+Selama uji, semua sirkuit menerima batch render awal (±5 per sirkuit) dan memanggil JS interop setiap 15 detik; DB menerima 700–1.000 detak per menit tanpa kegagalan.
+
+**Cara membacanya:** angka ini adalah *lantai*, bukan kapasitas. Yang diukur hanya shell (login, menu, footer, timer sesi). Halaman modul sungguhan (grid, filter, hasil query) akan menambah state per sirkuit; anggaran awal di rencana adalah ≤ 5 MB rata-rata per sirkuit, jadi masih ada ruang ±30× dari lantai ini. Anggaran harus dicek ulang setiap modul masuk (lihat "Berikutnya").
+
 ## Belum tercakup (pekerjaan berikutnya)
 
-- **Sirkuit Blazor (WebSocket)**: memori per sirkuit dan kapasitas 700 sirkuit aktif belum diukur. Protokol SignalR/Blazor sulit ditiru klien biasa; rencana: klien headless (Playwright) bertahap 50 → 200 → 700 sirkuit sambil membaca `/_diag`, atau klien protokol Blazor khusus.
-- Detak sesi (`SU_MONITORACTIVITY`) pada 700 sirkuit, lonjakan reconnect, dan restart server.
+- Klien sirkuit belum mengirim event (klik menu, input). Untuk itu batch render harus di-parse (format biner Blazor) atau memakai browser sungguhan (Playwright, sudah disetujui; browser Chromium sudah ada di mesin ini). Dipakai saat halaman modul pertama selesai.
+- Lonjakan reconnect, restart server, dan pemulihan sesi.
 - Pola kerja nyata (worklist, pencarian debitur) setelah modul Collection tersedia; harus melawan DB DATA yang realistis.
 - Server target (CPU/RAM) belum diketahui; anggaran memori per sirkuit dari 2F perlu dibandingkan dengan RAM nyata.

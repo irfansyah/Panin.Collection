@@ -281,10 +281,10 @@ Prinsip:
 - `ISessionMonitor`: heartbeat `SU_MONITORACTIVITY` (paksa logout bila 0), peringatan idle 20 menit + logout otomatis, `SU_ALLUSERACTIVITY` saat logout/timeout, penurunan flag `SU_LOGON` saat sirkuit terputus.
 - Footer: cek kesegaran data (`ACCOUNT_MASTER.AS_OF_DATE`), cek warning (`SP_VW_WARNINGCONTENT`), halaman news (`VW_NEWS`), otorisasi menu (`ES_AUTHUSERMENU`).
 - Token SSO (`ES_SAVETOKEN`, `VW_ES_APPTOKEN`, `ES_APPTOKEN_DELETE`) hanya sebagai jembatan ke aplikasi lama selama paralel.
-- Harness uji beban awal (klien SignalR sintetis) dan baseline memori per sirkuit (bagian 2F).
+- Harness uji beban: HTTP dan sirkuit Blazor (klien protokol `blazorpack`), baseline memori per sirkuit; hasil di `docs/LOAD-TESTING.md`.
 - Kriteria selesai: user login di host baru dengan akun yang sama, melihat tab modul dan menu sesuai group, dan sesi/heartbeat/logout berperilaku seperti lama.
 
-**Status Fase 1:** login, ganti password (tiket), sesi tunggal (registry memori + reaper + antrean logout + retry deadlock), cookie auth dengan validasi sesi, shell dengan tab modul (state dipertahankan), menu dari `RFMENUX`/`GRPMENUX`, footer, heartbeat/idle dan logout, `IModuleDbFactory`, serta harness beban HTTP sudah jalan dan teruji di salinan DB lokal (37 unit test, uji beban 700 login). **Belum**: cek kesegaran data dan warning di footer, area user (`VW_AUTH_USERAREA`), halaman news, jembatan token SSO ke app lama, dan uji beban tingkat sirkuit (lihat `docs/LOAD-TESTING.md`). Ketiga hal pertama menunggu akses DB DATA modul 60.
+**Status Fase 1:** login, ganti password (tiket), sesi tunggal (registry memori + reaper + antrean logout + retry deadlock), cookie auth dengan validasi sesi, shell dengan tab modul (state dipertahankan), menu dari `RFMENUX`/`GRPMENUX`, footer, heartbeat/idle dan logout, `IModuleDbFactory`, serta harness beban HTTP sudah jalan dan teruji di salinan DB lokal (37 unit test, uji beban 700 login). **Belum**: cek kesegaran data dan warning di footer, area user (`VW_AUTH_USERAREA`), halaman news, jembatan token SSO ke app lama, dan uji beban sirkuit dengan event klik/input (uji sirkuit idle sudah ada: 1.000 sirkuit stabil, lihat `docs/LOAD-TESTING.md`). Ketiga hal pertama menunggu akses DB DATA modul 60.
 
 ### Fase 2 — Inti Collection (±6–8 minggu)
 Urutan berdasarkan ketergantungan:

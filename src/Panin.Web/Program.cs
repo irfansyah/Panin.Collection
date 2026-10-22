@@ -91,8 +91,14 @@ app.MapPost("/auth/logout", async (HttpContext http, IAuthService auth, IAntifor
 
 if (app.Configuration.GetValue("Diagnostics:Enabled", false))
 {
-    app.MapGet("/_diag", (CircuitTracker circuits, IUserSessionRegistry sessions) =>
+    app.MapGet("/_diag", (CircuitTracker circuits, IUserSessionRegistry sessions, bool? gc) =>
     {
+        if (gc == true)
+        {
+            // Hanya untuk pengukuran: paksa GC agar angka memori tidak berisi sampah yang belum dikumpulkan.
+            GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+        }
+
         var info = GC.GetGCMemoryInfo();
         return Results.Json(new
         {

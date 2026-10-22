@@ -27,8 +27,10 @@ switch (command)
         return await Seed(cfg, options);
     case "run":
         return await Run(cfg, options);
+    case "circuits":
+        return await Circuits(cfg, options);
     default:
-        Console.WriteLine("Perintah: seed --count N | run --url URL --users N --concurrency C [--hold DETIK] [--keep]");
+        Console.WriteLine("Perintah: seed --count N | run --url URL --users N --concurrency C [--hold DETIK] [--keep] | circuits --url URL --users N --concurrency C --hold DETIK");
         return 1;
 }
 
@@ -217,6 +219,98 @@ static async Task<int> Run(IConfiguration cfg, Dictionary<string, string> o)
     return results.Count(r => !r.LoggedIn) == 0 ? 0 : 3;
 }
 
+static async Task<int> Circuits(IConfiguration cfg, Dictionary<string, string> o)
+{
+    var baseUrl = new Uri(o.GetValueOrDefault("url", "http://localhost:5122"));
+    var users = int.Parse(o.GetValueOrDefault("users", "100"), System.Globalization.CultureInfo.InvariantCulture);
+    var concurrency = int.Parse(o.GetValueOrDefault("concurrency", "25"), System.Globalization.CultureInfo.InvariantCulture);
+    var hold = int.Parse(o.GetValueOrDefault("hold", "60"), System.Globalization.CultureInfo.InvariantCulture);
+    var password = cfg["LoadTest:Password"] ?? throw new InvalidOperationException("LoadTest:Password belum diisi (jalankan seed).");
+
+    using var diag = new HttpClient { BaseAddress = baseUrl };
+    Console.WriteLine($"Sirkuit: {users} | konkurensi {concurrency} | tahan {hold}s | {baseUrl}");
+    var before = await Diag(diag, gc: true);
+    Console.WriteLine($"Server sebelum  : {before}");
+
+    var circuits = new CircuitClient?[users];
+    var logins = new Result[users];
+    var errors = new string?[users];
+    var gate = new SemaphoreSlim(concurrency);
+    var startMs = new double[users];
+    var wall = Stopwatch.StartNew();
+
+    await Task.WhenAll(Enumerable.Range(0, users).Select(async i =>
+    {
+        await gate.WaitAsync();
+        try
+        {
+            var cookies = new CookieContainer();
+            var handler = new HttpClientHandler { AllowAutoRedirect = false, UseCookies = true, CookieContainer = cookies };
+            using var http = new HttpClient(handler) { BaseAddress = baseUrl, Timeout = TimeSpan.FromSeconds(60) };
+            logins[i] = await LoginFlow(http, UserId(i + 1), password);
+            if (!logins[i].LoggedIn)
+            {
+                errors[i] = logins[i].Error;
+                return;
+            }
+
+            var sw = Stopwatch.StartNew();
+            var client = new CircuitClient(baseUrl, cookies);
+            var id = await client.StartAsync(baseUrl, logins[i].Shell, CancellationToken.None);
+            startMs[i] = sw.Elapsed.TotalMilliseconds;
+            if (string.IsNullOrEmpty(id))
+            {
+                errors[i] = "StartCircuit tidak mengembalikan circuit id";
+                await client.DisposeAsync();
+                return;
+            }
+
+            circuits[i] = client;
+        }
+        catch (Exception ex)
+        {
+            errors[i] = ex.GetType().Name + ": " + ex.Message + " @ " + string.Join(" <- ", (ex.StackTrace ?? string.Empty).Split(Environment.NewLine).Take(3).Select(l => l.Trim()));
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }));
+
+    var started = circuits.Count(c => c is not null);
+    Console.WriteLine($"Sirkuit terbuka : {started}/{users} dalam {wall.Elapsed.TotalSeconds:F1}s");
+    foreach (var g in errors.Where(e => e is not null).GroupBy(e => e!).OrderByDescending(g => g.Count()).Take(5))
+    {
+        Console.WriteLine($"  GAGAL x{g.Count()}: {g.Key}");
+    }
+
+    Line("StartCircuit ms", startMs.Where(m => m > 0));
+    await Task.Delay(TimeSpan.FromSeconds(5));
+    Console.WriteLine($"Server stabil   : {await Diag(diag, gc: true)}");
+
+    for (var t = 0; t < hold; t += 15)
+    {
+        await Task.Delay(TimeSpan.FromSeconds(Math.Min(15, hold - t)));
+        var dropped = circuits.Count(c => c is { Closed: true });
+        Console.WriteLine($"  t+{t + 15,3}s | terputus={dropped} | batch={circuits.Where(c => c is not null).Sum(c => c!.Batches)} | js={circuits.Where(c => c is not null).Sum(c => c!.JsCalls)} | {await Diag(diag, gc: false)}");
+    }
+
+    var final = await Diag(diag, gc: true);
+    Console.WriteLine($"Server akhir    : {final}");
+
+    // Tutup sirkuit lalu logout agar sesi/flag DB bersih.
+    foreach (var c in circuits)
+    {
+        if (c is not null)
+        {
+            await c.DisposeAsync();
+        }
+    }
+
+    // Sesi login dilepas reaper (3 menit tanpa detak) karena klien ini tidak melakukan logout.
+    return started == users ? 0 : 3;
+}
+
 static HttpClient NewClient(Uri baseUrl)
 {
     var handler = new HttpClientHandler { AllowAutoRedirect = false, UseCookies = true, CookieContainer = new CookieContainer() };
@@ -260,6 +354,7 @@ static async Task<Result> LoginFlow(HttpClient http, string user, string passwor
         }
 
         r.LogoutToken = Field(shell, "__RequestVerificationToken");
+        r.Shell = shell;
         r.LoggedIn = true;
     }
     catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
@@ -291,11 +386,11 @@ static string Field(string html, string name)
     return m.Success ? WebUtility.HtmlDecode(m.Groups[1].Value) : throw new InvalidOperationException($"Field {name} tidak ditemukan");
 }
 
-static async Task<string?> Diag(HttpClient http)
+static async Task<string?> Diag(HttpClient http, bool gc = false)
 {
     try
     {
-        var d = await http.GetFromJsonAsync<Dictionary<string, long>>("/_diag");
+        var d = await http.GetFromJsonAsync<Dictionary<string, long>>(gc ? "/_diag?gc=true" : "/_diag");
         return d is null ? null : string.Join(", ", d.Select(kv => $"{kv.Key}={kv.Value}"));
     }
     catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
@@ -342,6 +437,10 @@ internal sealed class Result
     public string? Error { get; set; }
 
     public string LogoutToken { get; set; } = string.Empty;
+
+    public string Shell { get; set; } = string.Empty;
+
+    public CookieContainer? Cookies { get; set; }
 
     public double LoginPageMs { get; set; }
 
