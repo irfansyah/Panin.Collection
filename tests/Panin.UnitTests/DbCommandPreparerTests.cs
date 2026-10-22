@@ -48,3 +48,15 @@ public class DbCommandPreparerTests
         Assert.Equal(5, ps[2].Value);
     }
 }
+
+public class DapperParameterTests
+{
+    [Fact]
+    public void Dapper_parameters_are_named_by_position_with_normalized_values()
+    {
+        var p = DbCommandPreparer.BuildDapperParameters(["x", " ", null], blankToNull: true);
+        Assert.Equal(["1", "2", "3"], p.ParameterNames);
+        Assert.Equal("x", p.Get<string>("1"));
+        Assert.Null(p.Get<string?>("2"));
+    }
+}

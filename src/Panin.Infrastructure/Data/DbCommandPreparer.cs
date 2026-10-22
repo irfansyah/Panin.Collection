@@ -47,6 +47,23 @@ public static class DbCommandPreparer
         }
     }
 
+    public static Dapper.DynamicParameters BuildDapperParameters(object?[]? args, bool blankToNull)
+    {
+        var result = new Dapper.DynamicParameters();
+        if (args is null)
+        {
+            return result;
+        }
+
+        for (var i = 0; i < args.Length; i++)
+        {
+            var value = NormalizeValue(args[i], blankToNull);
+            result.Add((i + 1).ToString(CultureInfo.InvariantCulture), value is DBNull ? null : value);
+        }
+
+        return result;
+    }
+
     public static SqlParameter[] BuildParameters(object?[]? args, bool blankToNull)
     {
         if (args is null or { Length: 0 })

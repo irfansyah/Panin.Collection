@@ -1,3 +1,7 @@
+@import "tailwindcss";
+@source "../Components";
+
+/* Gaya bawaan Blazor (validasi form, error boundary) */
 h1:focus {
     outline: none;
 }

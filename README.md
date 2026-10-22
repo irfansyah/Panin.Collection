@@ -29,7 +29,9 @@ dotnet test
 dotnet run --project src/Panin.Web
 ```
 
-Perlu .NET SDK 10 (lihat `global.json`).
+Perlu .NET SDK 10 (lihat `global.json`) dan Node.js 20+ (build Tailwind CSS otomatis saat `dotnet build`; lewati dengan `-p:SkipTailwind=true`).
+
+
 
 ## Konfigurasi & rahasia
 

@@ -9,4 +9,10 @@
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
   </PropertyGroup>
 
+  <!-- Tailwind CSS: Styles/tailwind.css -> wwwroot/css/site.css (hasil build, tidak di-commit) -->
+  <Target Name="BuildTailwind" BeforeTargets="BeforeBuild;ResolveStaticWebAssetsInputs" Condition="'$(SkipTailwind)' != 'true'">
+    <Exec Command="npm ci" WorkingDirectory="$(MSBuildProjectDirectory)" Condition="!Exists('$(MSBuildProjectDirectory)/node_modules')" />
+    <Exec Command="npm run build:css" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
 </Project>

@@ -488,3 +488,5 @@ secrets.json
 *.snk
 /legacy-reference/
 /artifacts/
+node_modules/
+src/Panin.Web/wwwroot/css/site.css

@@ -12,6 +12,15 @@ public interface IDb : IAsyncDisposable
     /// <summary>Menjalankan perintah non-query; mengembalikan jumlah baris terpengaruh.</summary>
     Task<int> ExecuteAsync(string sql, object?[]? args = null, DbOptions? options = null, CancellationToken ct = default);
 
+    /// <summary>Nilai skalar (kolom pertama baris pertama).</summary>
+    Task<T?> ExecuteScalarAsync<T>(string sql, object?[]? args = null, DbOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Query bertipe (dipetakan oleh Dapper; nama kolom tidak peka huruf besar/kecil).</summary>
+    Task<IReadOnlyList<T>> QueryAsync<T>(string sql, object?[]? args = null, DbOptions? options = null, CancellationToken ct = default);
+
+    /// <summary>Baris pertama sebagai objek bertipe, atau default bila kosong.</summary>
+    Task<T?> QueryFirstOrDefaultAsync<T>(string sql, object?[]? args = null, DbOptions? options = null, CancellationToken ct = default);
+
     /// <summary>Menjalankan query dan mengembalikan hasil pertama sebagai <see cref="DataTable"/>.</summary>
     Task<DataTable> QueryTableAsync(string sql, object?[]? args = null, DbOptions? options = null, CancellationToken ct = default);
 
