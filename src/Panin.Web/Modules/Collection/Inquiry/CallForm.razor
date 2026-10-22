@@ -4,6 +4,7 @@
 @using Panin.Application.Collection
 @using Panin.Web.Components.Common
 @inject ICallService Calls
+@inject IContactReferenceService References
 @inject ILogger<CallForm> Logger
 
 <section class="space-y-4">
@@ -94,6 +95,8 @@
                 <InputTextArea id="notes" @bind-Value="_entry.Notes" rows="4" maxlength="@CallRules.MaxNotesLength" class="@InputClass" />
             </div>
 
+            <ContactUpdateEditor Update="_entry.Update" Letters="_letters" Cities="_cities" Title="Call" />
+
             <p class="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
                 Rekomendasi (selain Update Status ke AYDA) memindahkan rekening ke atasan Anda, sama seperti sistem lama.
             </p>
@@ -116,7 +119,8 @@
     private const string InputClass = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
 
     private readonly CancellationTokenSource _cts = new();
-    private readonly CallEntry _entry = new();
+    private CallEntry _entry = new();
+    private IReadOnlyList<LookupItem> _letters = [], _cities = [];
     private CallFormOptions? _options;
     private IReadOnlyList<LookupItem> _results = [];
     private IReadOnlyList<CallHistoryRow> _history = [];
@@ -155,7 +159,11 @@
             var options = Calls.GetOptionsAsync(AccountNo, _cts.Token);
             var results = Calls.GetResultsAsync(null, _cts.Token);
             var history = Calls.GetHistoryAsync(AccountNo, 30, _cts.Token);
-            await Task.WhenAll(options, results, history);
+            var letters = References.GetLetterStatusesAsync(_cts.Token);
+            var cities = References.GetCitiesAsync(_cts.Token);
+            await Task.WhenAll(options, results, history, letters, cities);
+            _letters = letters.Result;
+            _cities = cities.Result;
             _options = options.Result;
             _results = results.Result;
             _history = history.Result;
@@ -224,10 +232,7 @@
 
     private void ResetEntry()
     {
-        _entry.PurposeCode = _entry.ContactNo = _entry.SpokeTo = _entry.RelationshipCode = _entry.ResultCode = null;
-        _entry.PaymentTypeCode = _entry.PtpPersonId = _entry.ReasonCode = _entry.NextActionCode = _entry.Notes = null;
-        _entry.PromiseAt = _entry.NextActionAt = null;
-        _entry.PtpAmount = null;
+        _entry = new CallEntry { AccountNo = AccountNo };
     }
 
     private IReadOnlyList<GridColumn<CallHistoryRow>> BuildHistoryColumns()

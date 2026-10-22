@@ -51,6 +51,9 @@ public sealed class CallEntry
     public DateTime? NextActionAt { get; set; }
 
     public string? Notes { get; set; }
+
+    /// <summary>Bagian "Hasil Call": perubahan telepon/alamat/jaminan dan status surat.</summary>
+    public ContactUpdate Update { get; } = new();
 }
 
 public sealed record CallHistoryRow(
@@ -119,6 +122,7 @@ public static class CallRules
             errors.Add("Pilih Rekomendasi untuk tanggal rekomendasi yang diisi");
         }
 
+        errors.AddRange(e.Update.Validate());
         return errors;
     }
 

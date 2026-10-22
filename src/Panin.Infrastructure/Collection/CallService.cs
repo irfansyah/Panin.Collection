@@ -157,6 +157,7 @@ public sealed partial class CallService(IModuleDbFactory dbs, SingleFlightCache 
         a[9] = string.IsNullOrWhiteSpace(e.SpokeTo) ? null : WebUtility.HtmlEncode(e.SpokeTo.Trim());
         a[10] = e.PurposeCode;
         a[11] = e.PromiseAt;
+        e.Update.Fill(a, e.Update.LetterStatus);
         a[29] = e.Notes?.Replace("'", "`", StringComparison.Ordinal);
         a[37] = e.PtpAmount?.ToString(CultureInfo.InvariantCulture);
         a[38] = e.PaymentTypeCode;

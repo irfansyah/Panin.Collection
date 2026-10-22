@@ -1,0 +1,103 @@
+@using Panin.Application.Collection
+
+<fieldset class="mt-4 rounded-md border border-slate-200 p-3">
+    <legend class="px-1 text-sm font-semibold text-slate-700">Hasil @Title</legend>
+    <div class="grid gap-4 sm:grid-cols-2">
+        <Field Label="Telp Rumah">
+            <div class="flex gap-2">
+                <select @bind="Update.HousePhone" class="@SelectClass">
+                    @foreach (var c in ContactUpdate.HousePhoneChoices) { <option value="@c">@c</option> }
+                </select>
+                <input @bind="Update.HousePhoneNew" disabled="@(!ContactUpdate.NeedsPhoneText(Update.HousePhone))" maxlength="50" class="@InputClass" aria-label="Telp Rumah baru" />
+            </div>
+        </Field>
+        <Field Label="Telp Kantor">
+            <div class="flex gap-2">
+                <select @bind="Update.OfficePhone" class="@SelectClass">
+                    @foreach (var c in ContactUpdate.PhoneChoices) { <option value="@c">@c</option> }
+                </select>
+                <input @bind="Update.OfficePhoneNew" disabled="@(!ContactUpdate.NeedsPhoneText(Update.OfficePhone))" maxlength="50" class="@InputClass" aria-label="Telp Kantor baru" />
+            </div>
+        </Field>
+        <Field Label="Telp Selular">
+            <div class="flex gap-2">
+                <select @bind="Update.Mobile" class="@SelectClass">
+                    @foreach (var c in ContactUpdate.PhoneChoices) { <option value="@c">@c</option> }
+                </select>
+                <input @bind="Update.MobileNew" disabled="@(!ContactUpdate.NeedsPhoneText(Update.Mobile))" maxlength="20" class="@InputClass" aria-label="Telp Selular baru" />
+            </div>
+        </Field>
+        <Field Label="Alamat Kantor">
+            <div class="flex gap-2">
+                <select @bind="Update.OfficeAddress" class="@SelectClass">
+                    @foreach (var c in ContactUpdate.OfficeAddressChoices) { <option value="@c">@c</option> }
+                </select>
+                <input @bind="Update.OfficeNew" disabled="@(!ContactUpdate.NeedsAddressText(Update.OfficeAddress))" maxlength="120" class="@InputClass" aria-label="Alamat Kantor baru" />
+            </div>
+        </Field>
+        <Field Label="Alamat Korespondensi">
+            <div class="space-y-2">
+                <div class="flex gap-2">
+                    <select @bind="Update.CorrespondenceAddress" class="@SelectClass">
+                        @foreach (var c in ContactUpdate.CorrespondenceChoices) { <option value="@c">@c</option> }
+                    </select>
+                    <input @bind="Update.CorrespondenceNew" disabled="@(!ContactUpdate.NeedsAddressText(Update.CorrespondenceAddress))" maxlength="40" class="@InputClass" aria-label="Alamat Korespondensi baru" />
+                </div>
+                @if (ContactUpdate.NeedsAddressText(Update.CorrespondenceAddress))
+                {
+                    <input @bind="Update.CorrespondenceNew2" maxlength="40" class="@InputClass" aria-label="Alamat Korespondensi lanjutan" />
+                    <Select Items="Cities" @bind-Value="Update.CorrespondenceCity" />
+                    <input @bind="Update.CorrespondenceZip" maxlength="20" placeholder="Kode Pos" class="@InputClass" aria-label="Kode Pos Korespondensi" />
+                }
+            </div>
+        </Field>
+        <Field Label="Alamat Rumah">
+            <div class="space-y-2">
+                <div class="flex gap-2">
+                    <select @bind="Update.HouseAddress" class="@SelectClass">
+                        @foreach (var c in ContactUpdate.HouseAddressChoices) { <option value="@c">@c</option> }
+                    </select>
+                    <input @bind="Update.HouseNew" disabled="@(!ContactUpdate.NeedsAddressText(Update.HouseAddress))" maxlength="40" class="@InputClass" aria-label="Alamat Rumah baru" />
+                </div>
+                @if (ContactUpdate.NeedsAddressText(Update.HouseAddress))
+                {
+                    <input @bind="Update.HouseNew2" maxlength="40" class="@InputClass" aria-label="Alamat Rumah lanjutan" />
+                    <Select Items="Cities" @bind-Value="Update.HouseCity" />
+                    <input @bind="Update.HouseZip" maxlength="20" placeholder="Kode Pos" class="@InputClass" aria-label="Kode Pos Rumah" />
+                }
+            </div>
+        </Field>
+        <Field Label="Status Jaminan">
+            <div class="flex gap-2">
+                <select @bind="Update.CollateralStatus" class="@SelectClass">
+                    @foreach (var c in ContactUpdate.CollateralStatusChoices) { <option value="@c">@(c.Length == 0 ? "- pilih -" : c)</option> }
+                </select>
+                <input @bind="Update.CollateralStatusNew" disabled="@(!ContactUpdate.NeedsOtherText(Update.CollateralStatus))" maxlength="100" class="@InputClass" aria-label="Status Jaminan baru" />
+            </div>
+        </Field>
+        <Field Label="Kondisi Jaminan">
+            <div class="flex gap-2">
+                <select @bind="Update.CollateralCondition" class="@SelectClass">
+                    @foreach (var c in ContactUpdate.CollateralConditionChoices) { <option value="@c">@(c.Length == 0 ? "- pilih -" : c)</option> }
+                </select>
+                <input @bind="Update.CollateralConditionNew" disabled="@(!ContactUpdate.NeedsOtherText(Update.CollateralCondition))" maxlength="100" class="@InputClass" aria-label="Kondisi Jaminan baru" />
+            </div>
+        </Field>
+        <Field Label="Surat">
+            <Select Items="Letters" @bind-Value="Update.LetterStatus" />
+        </Field>
+    </div>
+</fieldset>
+
+@code {
+    private const string InputClass = "min-w-0 flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+    private const string SelectClass = "rounded-md border border-slate-300 bg-white px-2 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+
+    [Parameter, EditorRequired] public ContactUpdate Update { get; set; } = default!;
+
+    [Parameter] public IReadOnlyList<LookupItem> Letters { get; set; } = [];
+
+    [Parameter] public IReadOnlyList<LookupItem> Cities { get; set; } = [];
+
+    [Parameter] public string Title { get; set; } = string.Empty;
+}

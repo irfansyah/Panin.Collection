@@ -44,6 +44,8 @@ public static class DependencyInjection
         services.AddSingleton<IDebiturDetailService, DebiturDetailService>();
         services.AddSingleton<IAccountMonitoringService, AccountMonitoringService>();
         services.AddSingleton<ICallService, CallService>();
+        services.AddSingleton<IVisitService, VisitService>();
+        services.AddSingleton<IContactReferenceService, ContactReferenceService>();
         services.AddSingleton<ITreatmentMenuService, TreatmentMenuService>();
         services.AddSingleton<IExcelExporter, NpoiExcelExporter>();
         services.AddSingleton<LogoutWriter>();

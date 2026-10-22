@@ -14,6 +14,10 @@
             {
                 <button type="button" @onclick="OpenCall" class="rounded-md bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-800">Place A Call</button>
             }
+            @if (_canVisit && _account is not null)
+            {
+                <button type="button" @onclick="OpenVisit" class="rounded-md bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-800">Visitation</button>
+            }
             @if (Navigator is { CanGoBack: true })
             {
                 <button type="button" @onclick="Navigator.Back" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
@@ -134,7 +138,7 @@
     private HashSet<string> _loadedTabs = [];
     private string _tab = "personal";
     private string? _error, _tabError, _loadedFor;
-    private bool _loading = true, _tabLoading, _canCall;
+    private bool _loading = true, _tabLoading, _canCall, _canVisit;
 
     [Parameter] public string AccountNo { get; set; } = string.Empty;
 
@@ -192,8 +196,13 @@
     {
         // Tombol tindakan mengikuti hak user (SP_GET_TREATMENT_MENU); hanya yang sudah dimigrasi ditampilkan.
         var user = (await AuthState).User.ToSessionUser();
-        _canCall = user is not null && (await Treatments.GetAsync(user.UserId, _cts.Token)).Any(t => t.Function.Equals("Call", StringComparison.OrdinalIgnoreCase));
+        IReadOnlyList<TreatmentOption> options = user is null ? [] : await Treatments.GetAsync(user.UserId, _cts.Token);
+        _canCall = options.Any(t => t.Function.Equals("Call", StringComparison.OrdinalIgnoreCase));
+        _canVisit = options.Any(t => t.Function.Equals("Visitation", StringComparison.OrdinalIgnoreCase));
     }
+
+    private void OpenVisit()
+        => Navigator?.Open<VisitForm>(new Dictionary<string, object?> { [nameof(VisitForm.AccountNo)] = AccountNo, [nameof(VisitForm.CustomerRef)] = CustomerRef });
 
     private void OpenCall()
         => Navigator?.Open<CallForm>(new Dictionary<string, object?> { [nameof(CallForm.AccountNo)] = AccountNo, [nameof(CallForm.CustomerRef)] = CustomerRef });

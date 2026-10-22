@@ -1,0 +1,230 @@
+@attribute [ModulePage("60", "/collection/debitur/visit")]
+@implements IDisposable
+@using System.Globalization
+@using Panin.Application.Collection
+@using Panin.Web.Components.Common
+@inject IVisitService Visits
+@inject IContactReferenceService References
+@inject ILogger<VisitForm> Logger
+
+<section class="space-y-4">
+    <div class="flex items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold text-slate-800">Visitation <span class="text-base font-normal text-slate-500">· @AccountNo</span></h1>
+        @if (Navigator is { CanGoBack: true })
+        {
+            <button type="button" @onclick="Navigator.Back" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">← Kembali</button>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat form...</p>
+    }
+    else if (_denied)
+    {
+        <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">
+            Anda tidak berwenang mencatat aktivitas pada rekening ini. Hanya pemilik rekening dan atasannya yang dapat melakukannya.
+        </div>
+    }
+    else if (_options is not null)
+    {
+        @if (_saved)
+        {
+            <div class="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700" role="status">Data kunjungan tersimpan.</div>
+        }
+
+        @if (_errors.Count > 0)
+        {
+            <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                <ul class="list-disc pl-5">
+                    @foreach (var e in _errors)
+                    {
+                        <li>@e</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <EditForm Model="_entry" OnSubmit="SaveAsync" class="rounded-lg border border-slate-200 bg-white p-4">
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Field Label="Petugas kunjungan" Required>
+                    <Select Items="_options.Officers" @bind-Value="_entry.OfficerCode" />
+                </Field>
+                <Field Label="Tujuan" Required>
+                    <Select Items="_options.Purposes" @bind-Value="_entry.PurposeCode" />
+                </Field>
+                <Field Label="Tanggal Kunjungan">
+                    <InputDate TValue="DateTime?" @bind-Value="_entry.VisitAt" class="@InputClass" />
+                </Field>
+                <Field Label="Orang yang ditemui" Required>
+                    <InputText @bind-Value="_entry.PersonVisited" maxlength="50" class="@InputClass" />
+                </Field>
+                <Field Label="Hubungan" Required>
+                    <Select Items="_options.Relationships" @bind-Value="_entry.RelationshipCode" />
+                </Field>
+                <Field Label="Alamat yang dikunjungi">
+                    <InputText @bind-Value="_entry.CustomerAddress" maxlength="50" class="@InputClass" />
+                </Field>
+                <Field Label="Hasil">
+                    <Select Items="_options.Results" @bind-Value="_entry.ResultCode" />
+                </Field>
+                <Field Label="Tanggal Hasil">
+                    <InputDate TValue="DateTime?" Type="InputDateType.DateTimeLocal" @bind-Value="_entry.ResultAt" class="@InputClass" />
+                </Field>
+                <Field Label="Rekomendasi">
+                    <Select Items="_options.NextActions" @bind-Value="_entry.NextActionCode" />
+                </Field>
+                <Field Label="Tanggal Rekomendasi">
+                    <InputDate TValue="DateTime?" Type="InputDateType.DateTimeLocal" @bind-Value="_entry.NextActionAt" class="@InputClass" />
+                </Field>
+            </div>
+
+            <div class="mt-4">
+                <label for="notes" class="mb-1 block text-sm font-medium text-slate-700">Catatan <span class="text-red-600" aria-hidden="true">*</span></label>
+                <InputTextArea id="notes" @bind-Value="_entry.Notes" rows="4" maxlength="@VisitRules.MaxNotesLength" class="@InputClass" />
+            </div>
+
+            <ContactUpdateEditor Update="_entry.Update" Letters="_letters" Cities="_cities" Title="Kunjungan" />
+
+            <p class="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                Rekomendasi memindahkan rekening ke atasan Anda, sama seperti sistem lama.
+            </p>
+
+            <div class="mt-4 flex gap-2">
+                <button type="submit" disabled="@_busy"
+                        class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">
+                    @(_busy ? "Menyimpan..." : "Simpan")
+                </button>
+            </div>
+        </EditForm>
+
+        <Card Title="Riwayat Kunjungan">
+            <DataGrid TItem="VisitHistoryRow" Items="_history" Columns="_historyColumns" EmptyText="Belum ada riwayat kunjungan." />
+        </Card>
+    }
+</section>
+
+@code {
+    private const string InputClass = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+
+    private readonly CancellationTokenSource _cts = new();
+    private VisitEntry _entry = new();
+    private VisitFormOptions? _options;
+    private IReadOnlyList<LookupItem> _letters = [], _cities = [];
+    private IReadOnlyList<VisitHistoryRow> _history = [];
+    private IReadOnlyList<GridColumn<VisitHistoryRow>> _historyColumns = [];
+    private IReadOnlyList<string> _errors = [];
+    private string? _userId, _loadedFor;
+    private bool _loading = true, _denied, _busy, _saved;
+
+    [Parameter] public string AccountNo { get; set; } = string.Empty;
+
+    [Parameter] public string? CustomerRef { get; set; }
+
+    [CascadingParameter] private IModuleNavigator? Navigator { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedFor == AccountNo)
+        {
+            return;
+        }
+
+        _loadedFor = AccountNo;
+        _loading = true;
+        _entry.AccountNo = AccountNo;
+        try
+        {
+            _userId = (await AuthState).User.ToSessionUser()?.UserId;
+            if (_userId is null || !await Visits.CanActAsync(_userId, AccountNo, _cts.Token))
+            {
+                _denied = true;
+                return;
+            }
+
+            var options = Visits.GetOptionsAsync(_userId, _cts.Token);
+            var letters = References.GetLetterStatusesAsync(_cts.Token);
+            var cities = References.GetCitiesAsync(_cts.Token);
+            var history = Visits.GetHistoryAsync(AccountNo, 30, _cts.Token);
+            await Task.WhenAll(options, letters, cities, history);
+            _options = options.Result;
+            _letters = letters.Result;
+            _cities = cities.Result;
+            _history = history.Result;
+            _historyColumns = BuildHistoryColumns();
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Gagal memuat form kunjungan");
+            _errors = ["Form gagal dimuat. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_busy || _userId is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _saved = false;
+        try
+        {
+            var result = await Visits.SaveAsync(_userId, _entry, _cts.Token);
+            _errors = result.Errors;
+            if (result.Success)
+            {
+                _saved = true;
+                _entry = new VisitEntry { AccountNo = AccountNo };
+                _history = await Visits.GetHistoryAsync(AccountNo, 30, _cts.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Simpan kunjungan gagal");
+            _errors = ["Data gagal disimpan. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private IReadOnlyList<GridColumn<VisitHistoryRow>> BuildHistoryColumns()
+    {
+        string? Name(IReadOnlyList<LookupItem> items, string? code) => items.FirstOrDefault(i => i.Code == code)?.Text ?? code;
+        var id = CultureInfo.GetCultureInfo("id-ID");
+        return
+        [
+            new() { Header = "Tanggal", Value = r => r.Date, Display = r => r.Date.ToString("dd-MMM-yyyy HH:mm", id) },
+            new() { Header = "Oleh", Value = r => r.UserId },
+            new() { Header = "Petugas", Value = r => Name(_options!.Officers, r.OfficerCode) },
+            new() { Header = "Ditemui", Value = r => r.PersonVisited },
+            new() { Header = "Hasil", Value = r => Name(_options!.Results, r.ResultCode) },
+            new() { Header = "Tgl Hasil", Value = r => r.ResultAt, Display = r => r.ResultAt?.ToString("dd-MMM-yyyy", id) },
+            new() { Header = "Rekomendasi", Value = r => Name(_options!.NextActions, r.NextActionCode) },
+            new() { Header = "Catatan", Value = r => System.Net.WebUtility.HtmlDecode(r.Notes ?? string.Empty) },
+        ];
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}
