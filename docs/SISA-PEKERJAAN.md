@@ -37,7 +37,13 @@ aplikasi baru belum setara aplikasi lama, jadi **cutover belum boleh** (`docs/CU
 | Keamanan | Tempat menyimpan rahasia produksi; rotasi credential lama; tinjauan keamanan; sertifikat HTTPS. |
 | UAT dan pelatihan | Jadwal UAT per peran, staging mirip produksi, jendela perawatan. |
 
+## Paritas komponen DevExpress
+
+Aplikasi lama memakai DevExpress luas (48 grid, 3 pivot, 116 kelas XtraReport, TreeList, HtmlEditor, dll.). Hasil pemeriksaan di `docs/DEVEXPRESS-PARITY.md`:
+`DataGrid` baru **belum** setara untuk fitur yang dipakai lama: baris filter per kolom (26 berkas), pengelompokan (7 halaman), baris total (9), ekspor CSV/PDF/RTF, cetak.
+Pekerjaan G1–G6 ada di dokumen itu; butuh jawaban operasional apakah ekspor PDF dan RTF masih dipakai.
+
 ## Komponen pihak ketiga
 
-Aplikasi baru **tidak memakai DevExpress**. Grid, pivot, ekspor Excel, dan report diganti komponen sendiri dan NPOI/HtmlSanitizer (semuanya sumber terbuka).
+Aplikasi baru **tidak memakai DevExpress** (aplikasi lama memakainya luas; lihat bagian di atas). Grid, pivot, ekspor Excel, dan report diganti komponen sendiri dan NPOI/HtmlSanitizer (semuanya sumber terbuka).
 Satu-satunya tempat yang mungkin membutuhkan komponen pihak ketiga adalah editor HTML untuk B05; keputusannya ada di tabel A.
