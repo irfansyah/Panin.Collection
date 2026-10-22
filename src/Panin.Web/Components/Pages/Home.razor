@@ -1,8 +1,166 @@
 @page "/"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@implements IDisposable
+@using System.Globalization
+@using Panin.Web.Components.Shell
+@inject IModuleRegistry Modules
+@inject IMenuService Menus
+@inject ModulePageCatalog Pages
+@inject WorkspaceState State
+@inject ILogger<Home> Logger
 
 <PageTitle>Panin Collection</PageTitle>
 
-<main class="mx-auto max-w-3xl p-8">
-    <h1 class="text-2xl font-semibold text-slate-800">Panin Collection</h1>
-    <p class="mt-2 text-slate-600">Aplikasi sedang dimigrasi ke .NET 10 (Blazor Server).</p>
-</main>
+@if (User is null)
+{
+    return;
+}
+
+<div class="flex h-screen flex-col bg-slate-100 text-slate-800">
+    <header class="flex items-center justify-between bg-slate-900 px-4 py-2 text-white">
+        <div class="text-base font-semibold tracking-wide">Panin Collection</div>
+        <form method="post" action="/auth/logout" id="logout-form">
+            <AntiforgeryToken />
+            <button type="submit" class="rounded px-3 py-1 text-sm text-slate-200 hover:bg-slate-700">Logout</button>
+        </form>
+    </header>
+
+    @if (_modules.Count == 0)
+    {
+        <div class="m-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800" role="alert">
+            Menu Access Not Yet Defined For This User.
+        </div>
+    }
+    else
+    {
+        @if (_modules.Count > 1)
+        {
+            <nav class="flex gap-1 border-b border-slate-300 bg-white px-3 pt-2" aria-label="Modul">
+                @foreach (var m in _modules)
+                {
+                    var active = m.Id == State.ActiveModuleId;
+                    <button type="button" @key="m.Id" @onclick="() => ActivateAsync(m)"
+                            class="@(active ? "border-sky-700 text-sky-800" : "border-transparent text-slate-600 hover:text-slate-900") -mb-px rounded-t border-b-2 px-4 py-2 text-sm font-medium">
+                        @m.Name
+                    </button>
+                }
+            </nav>
+        }
+
+        <div class="flex min-h-0 flex-1">
+            <aside class="w-64 shrink-0 overflow-y-auto border-r border-slate-300 bg-white p-2">
+                @foreach (var ws in State.Opened)
+                {
+                    <div @key="ws.Module.Id" class="@(ws.Module.Id == State.ActiveModuleId ? "" : "hidden")">
+                        <MenuTree Nodes="ws.Menu" Workspace="ws" OnSelect="node => SelectAsync(ws, node)" />
+                    </div>
+                }
+            </aside>
+
+            <main class="min-w-0 flex-1 overflow-auto p-4">
+                @foreach (var ws in State.Opened)
+                {
+                    <div @key="ws.Module.Id" class="@(ws.Module.Id == State.ActiveModuleId ? "" : "hidden")">
+                        @if (ws.PageType is not null)
+                        {
+                            <DynamicComponent Type="ws.PageType" Parameters="ws.PageParameters" />
+                        }
+                    </div>
+                }
+            </main>
+        </div>
+    }
+
+    <footer class="flex items-center justify-between border-t border-slate-300 bg-white px-4 py-1.5 text-xs text-slate-600">
+        <div>
+            <span class="font-medium text-slate-800">@User.FullName</span>
+            <span>( @User.GroupName - @User.UserId )</span>
+        </div>
+        <div>@_now</div>
+    </footer>
+</div>
+
+<SessionKeeper User="User" />
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private SessionUser? User { get; set; }
+
+    private IReadOnlyList<AccessibleModule> _modules = [];
+    private string _now = string.Empty;
+    private Timer? _clock;
+    private static readonly CultureInfo Indonesian = CultureInfo.GetCultureInfo("id-ID");
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState;
+        User = state.User.ToSessionUser();
+        if (User is null)
+        {
+            return;
+        }
+
+        State.Changed += OnStateChanged;
+        _modules = await Modules.GetAccessibleAsync(User.GroupId);
+        UpdateClock();
+        _clock = new Timer(_ => _ = InvokeAsync(() => { UpdateClock(); StateHasChanged(); }), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+
+        if (State.Active is null && _modules.Count > 0)
+        {
+            await ActivateAsync(_modules[0]);
+        }
+    }
+
+    private void UpdateClock() => _now = DateTime.Now.ToString("HH:mm - dddd, d MMMM yyyy", Indonesian);
+
+    private async Task ActivateAsync(AccessibleModule module)
+    {
+        var created = State.Activate(module);
+        if (created is null || User is null)
+        {
+            return;
+        }
+
+        try
+        {
+            created.Menu = await Menus.GetMenuAsync(module.Id, User.GroupId);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Logger.LogError(ex, "Gagal memuat menu modul {Module}", module.Id);
+            created.Menu = [];
+        }
+
+        created.PageType = Pages.Home(module.Id, module.HomeRoute);
+        State.Notify();
+    }
+
+    private Task SelectAsync(ModuleWorkspace ws, MenuNode node)
+    {
+        ws.ActiveMenuId = node.Id;
+        var page = Pages.Resolve(ws.Module.Id, node.Url);
+        ws.PageParameters.Clear();
+        if (page.PageType is not null)
+        {
+            ws.PageType = page.PageType;
+        }
+        else
+        {
+            ws.PageType = typeof(NotMigrated);
+            ws.PageParameters[nameof(NotMigrated.Title)] = node.Text;
+            ws.PageParameters[nameof(NotMigrated.LegacyUrl)] = page.Route;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void OnStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        State.Changed -= OnStateChanged;
+        _clock?.Dispose();
+    }
+}

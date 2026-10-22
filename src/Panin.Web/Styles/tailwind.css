@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @source "../Components";
+@source "../Modules";
 
 /* Gaya bawaan Blazor (validasi form, error boundary) */
 h1:focus {

@@ -6,7 +6,7 @@ using Panin.Application.Abstractions;
 namespace Panin.Infrastructure.Data;
 
 /// <summary>Implementasi <see cref="IDb"/> di atas Dapper + Microsoft.Data.SqlClient. Satu koneksi per panggilan (pooling).</summary>
-public sealed class SqlDb(string connectionString) : IDb
+public class SqlDb(string connectionString) : IDb
 {
     private readonly string _connectionString = connectionString;
 
@@ -63,7 +63,11 @@ public sealed class SqlDb(string connectionString) : IDb
         return table.Rows.Count > 0 ? table.Rows[0] : null;
     }
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    public ValueTask DisposeAsync()
+    {
+        GC.SuppressFinalize(this);
+        return ValueTask.CompletedTask;
+    }
 
     private async Task<SqlConnection> OpenAsync(CancellationToken ct)
     {

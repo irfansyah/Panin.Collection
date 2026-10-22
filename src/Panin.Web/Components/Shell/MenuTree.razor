@@ -1,0 +1,61 @@
+@using Panin.Web.Shell
+
+@if (Nodes is null)
+{
+    <p class="p-2 text-xs text-slate-400">Memuat menu...</p>
+}
+else if (Nodes.Count == 0)
+{
+    <p class="p-2 text-xs text-slate-500">Menu belum tersedia.</p>
+}
+else
+{
+    <ul class="@(Level == 0 ? "space-y-0.5" : "ml-3 border-l border-slate-200 pl-1")">
+        @foreach (var node in Nodes)
+        {
+            <li @key="node.Id">
+                @if (node.IsLeaf)
+                {
+                    var selected = Workspace.ActiveMenuId == node.Id;
+                    <button type="button" @onclick="() => Select(node)"
+                            class="@(selected ? "bg-sky-100 font-medium text-sky-900" : "text-slate-700 hover:bg-slate-100") block w-full rounded px-2 py-1.5 text-left text-sm">
+                        @node.Text
+                    </button>
+                }
+                else
+                {
+                    var open = Workspace.Expanded.Contains(node.Id);
+                    <button type="button" @onclick="() => Toggle(node)" aria-expanded="@open"
+                            class="flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-sm font-semibold text-slate-800 hover:bg-slate-100">
+                        <span>@node.Text</span>
+                        <span class="text-xs text-slate-400">@(open ? "−" : "+")</span>
+                    </button>
+                    @if (open)
+                    {
+                        <MenuTree Nodes="node.Children" Workspace="Workspace" OnSelect="OnSelect" Level="Level + 1" />
+                    }
+                }
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<MenuNode>? Nodes { get; set; }
+
+    [Parameter, EditorRequired] public ModuleWorkspace Workspace { get; set; } = default!;
+
+    [Parameter] public EventCallback<MenuNode> OnSelect { get; set; }
+
+    [Parameter] public int Level { get; set; }
+
+    private void Toggle(MenuNode node)
+    {
+        if (!Workspace.Expanded.Add(node.Id))
+        {
+            Workspace.Expanded.Remove(node.Id);
+        }
+    }
+
+    private Task Select(MenuNode node) => OnSelect.InvokeAsync(node);
+}

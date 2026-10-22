@@ -11,5 +11,6 @@
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Panin.DbClone/Panin.DbClone.csproj" />
+    <Project Path="tools/Panin.LoadTest/Panin.LoadTest.csproj" />
   </Folder>
 </Solution>

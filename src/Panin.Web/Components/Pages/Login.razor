@@ -1,0 +1,94 @@
+@page "/login"
+@layout AuthLayout
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.AspNetCore.DataProtection
+@using Panin.Application.Auth
+@using Panin.Web.Infrastructure
+@inject IAuthService Auth
+@inject IDataProtectionProvider DataProtection
+@inject NavigationManager Navigation
+
+<PageTitle>Login - Panin Collection</PageTitle>
+
+<h1 class="text-xl font-semibold text-slate-800">Panin Collection</h1>
+<p class="mb-6 text-sm text-slate-500">Silakan login untuk melanjutkan.</p>
+
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">@Message</div>
+}
+else if (Changed)
+{
+    <div class="mb-4 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700" role="status">Password berhasil diubah. Silakan login.</div>
+}
+
+<EditForm Model="Model" FormName="login" OnSubmit="SubmitAsync" class="space-y-4">
+    <div>
+        <label for="userid" class="mb-1 block text-sm font-medium text-slate-700">User ID</label>
+        <InputText id="userid" @bind-Value="Model.UserId" autocomplete="username" autofocus
+                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+    </div>
+    <div>
+        <label for="password" class="mb-1 block text-sm font-medium text-slate-700">Password</label>
+        <InputText id="password" type="password" @bind-Value="Model.Password" autocomplete="current-password"
+                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+    </div>
+    <button type="submit" class="w-full rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+        Login
+    </button>
+</EditForm>
+
+@code {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm] private LoginModel Model { get; set; } = new();
+
+    [SupplyParameterFromQuery(Name = "changed")] private string? ChangedFlag { get; set; }
+
+    private string? Message { get; set; }
+
+    private bool Changed => ChangedFlag == "1";
+
+    protected override void OnInitialized()
+    {
+        if (HttpContext.User.ToSessionUser() is not null && HttpContext.Request.Method == "GET")
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        var host = HttpContext.ClientHost();
+        var outcome = await Auth.LoginAsync(Model.UserId, Model.Password, host, HttpContext.RequestAborted);
+
+        if (outcome is { Succeeded: true, User: { } user, SessionId: { } sid })
+        {
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                user.ToPrincipal(sid, host),
+                new AuthenticationProperties { IsPersistent = false });
+            Navigation.NavigateTo("/", forceLoad: true);
+            return;
+        }
+
+        if (outcome is { MustChangePassword: true, User: { } pending })
+        {
+            var mode = outcome.Result == LoginResult.PasswordDefault ? "initial" : "expired";
+            var ticket = PasswordTicket.Create(DataProtection, pending.UserId, mode);
+            Navigation.NavigateTo($"/change-password?t={Uri.EscapeDataString(ticket)}");
+            return;
+        }
+
+        Message = LoginPolicy.Message(outcome.Result, Model.UserId);
+        Model.Password = string.Empty;
+    }
+
+    private sealed class LoginModel
+    {
+        public string UserId { get; set; } = string.Empty;
+
+        public string Password { get; set; } = string.Empty;
+    }
+}
