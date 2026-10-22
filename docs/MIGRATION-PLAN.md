@@ -194,10 +194,46 @@ Jawaban pertanyaan 0c: modul 99 memakai DB LOGIN sebagai data; modul 70 memakai 
 - Di salinan lokal, `RFMODULE.DB_LOGINID/DB_LOGINPWD` **dikosongkan** supaya aplikasi tidak bisa tersambung ke server dev lewat fallback; koneksi DATA lokal diisi di user-secrets.
 - Tool menolak target non-lokal dan menolak sumber = target; sumber dibuka `ApplicationIntent=ReadOnly`.
 
+**`LOSPANINCOLLECTION` (DB DATA modul 60, dibaca langsung dari server dev, read-only)**
+- Ukuran data **±64 GB** (409 tabel, 234 view, 433 stored procedure, 64 fungsi). Tabel terbesar adalah tabel riwayat: `LOAN_DETAIL_TUNGGAKAN_HISTORY` (±77 juta baris, 12,6 GB), `LOAN_MASTER_TUNGGAKAN_HISTORY` (±77 juta), `LOAN_DETAIL_HISTORY` / `LOAN_MASTER_HISTORY` (±32 juta), `LOAN_HANDLING_HISTORY` (±18 juta), `CALL_HISTORY` (±15 juta), `PAYMENT_HISTORY` (±11 juta).
+- **Keputusan: tidak disalin penuh ke container.** Untuk investigasi, DB ini dibaca langsung dari server dev (read-only). Untuk pengembangan yang menulis data, usulan: salinan lokal berisi **skema lengkap + tabel kecil/referensi penuh + sampel (mis. 20 ribu baris teratas) untuk tabel besar**, sehingga SP/view bisa dijalankan tanpa menyentuh DB dev bersama. Belum dibuat; dikerjakan saat modul 60 dimulai.
+- Aplikasi pengembangan tidak boleh menulis ke DB dev bersama tanpa persetujuan eksplisit.
+
 **Dampak ke desain**
 - `IModuleDbFactory` harus mendukung DB DATA di **server berbeda** (modul 70) dan modul yang DB DATA-nya sama dengan DB LOGIN (modul 99).
 - Pengembangan lokal modul 60 memerlukan DB DATA yang lebih lengkap daripada stub 12 tabel; salinan penuh `LOSPANINCOLLECTION` menunggu keputusan (ukuran dan data sensitif).
 - `ESAPPTOKEN` dan `SCALLUSERLOG` besar; pembersihan/retensi perlu didiskusikan, bukan bagian migrasi.
+
+## 2F. Syarat kapasitas: ≥ 700 user aktif bersamaan
+
+Aplikasi lama hanya sanggup ±300–400 user login dan beroperasi sekaligus. **Aplikasi baru wajib melayani lebih dari 700 user bersamaan**; ini bagian dari alasan migrasi, bukan sekadar tujuan sekunder. Syarat ini mempengaruhi desain sejak awal, bukan baru diuji di akhir.
+
+**Kriteria penerimaan (usulan, disepakati sebelum Fase 2)**
+- 700 sesi aktif bersamaan dengan pola kerja realistis (buka worklist, cari debitur, input call/visit) tanpa degradasi: p95 respons interaksi < 500 ms untuk aksi umum, tidak ada timeout.
+- Lonjakan login 700 user dalam ±5 menit (awal jam kerja) berhasil tanpa kegagalan.
+- Target uji dengan margin: 1.000 sesi bersamaan.
+- Penggunaan memori per sesi diukur dan dibatasi (anggaran awal: ≤ 5 MB rata-rata per sirkuit termasuk state semua tab modul yang terbuka).
+
+**Konsekuensi desain (Blazor Server menyimpan state tiap pengguna di memori server)**
+1. **State kecil**: komponen menyimpan ID/filter/halaman, bukan `DataTable`/hasil query besar. Data besar selalu dipaging di sisi server; grid memakai virtual/paging server-side. State per tab modul (keputusan: dipertahankan) dijaga ringan dan dibuang bila modul ditutup/idle lama.
+2. **Koneksi DB singkat dan di-pool**: `SqlDb` membuka koneksi per panggilan (sudah begitu). Pooling dibesarkan sesuai beban (`Max Pool Size`), query async penuh, tidak ada koneksi yang dipegang selama sesi. Timeout 600 detik gaya lama tidak dipakai untuk interaksi biasa; query berat dipisah.
+3. **Heartbeat dan login tunggal tidak boleh membebani DB**: `SU_MONITORACTIVITY` dipanggil dengan interval wajar (mis. 60 detik dengan jitter) dan flag login tunggal dicek terutama dari memori/cache dengan DB sebagai sumber kebenaran; 700 user × heartbeat tidak boleh menjadi hot spot.
+4. **Cache data pembagian bersama**: menu per (modul, group), daftar modul, referensi (cabang, produk, area) di-cache dan dibagi antar sirkuit; bukan di-load per user.
+5. **Pekerjaan berat di luar sirkuit**: report, export Excel/PDF, upload massal berjalan sebagai tugas latar dengan antrean dan batas konkurensi, hasilnya diunduh lewat endpoint; tidak menahan sirkuit dan thread.
+6. **Server dan jaringan**: Server GC, WebSocket aktif, batas koneksi Kestrel dan thread pool disetel, reverse proxy dengan WebSocket dan sticky session bila lebih dari satu instance. Satu instance harus cukup untuk 700; skala-keluar (≥ 2 instance) disiapkan sebagai cadangan (state sirkuit tidak dibagi antar instance, jadi sticky wajib).
+7. **Ketahanan restart**: restart server memutus semua sirkuit. Sesi login harus bisa pulih tanpa login ulang bila memungkinkan (cookie autentikasi + data sesi minimal), dan deploy dilakukan di luar jam sibuk.
+8. **Keamanan beban**: batasi ukuran pesan SignalR dan upload, rate-limit login, tahan lonjakan login lewat antrean ringan.
+
+**Rencana pengujian beban**
+- Fase 1 menghasilkan harness beban awal (klien SignalR sintetis yang login dan menjalankan skenario) dan baseline memori per sirkuit pada shell kosong.
+- Setiap fase modul menambah skenario ke harness; ukuran memori dan p95 dicatat per rilis. Regresi dianggap bug.
+- Fase 7 menguji 700/1.000 sesi terhadap salinan DB yang realistis (volume data mendekati produksi).
+- Monitoring: `dotnet-counters`/OpenTelemetry (jumlah sirkuit, memori, GC, pool koneksi, durasi query), health endpoint.
+
+**Risiko dan pertanyaan terbuka**
+- Spesifikasi server target (CPU/RAM) belum diketahui; anggaran memori di atas perlu dibandingkan dengan RAM nyata.
+- "700 user sekali login" diasumsikan sebagai 700 sesi aktif bersamaan; bila maksudnya termasuk lonjakan login, kriteria kedua di atas berlaku. Perlu dikonfirmasi pola pemakaian nyata (jam puncak, jumlah query berat bersamaan).
+- Bottleneck bisa berada di database (query berat, kunci) dan bukan di aplikasi; uji beban harus mengukur keduanya.
 
 ## 3. Arsitektur target
 
@@ -245,6 +281,7 @@ Prinsip:
 - `ISessionMonitor`: heartbeat `SU_MONITORACTIVITY` (paksa logout bila 0), peringatan idle 20 menit + logout otomatis, `SU_ALLUSERACTIVITY` saat logout/timeout, penurunan flag `SU_LOGON` saat sirkuit terputus.
 - Footer: cek kesegaran data (`ACCOUNT_MASTER.AS_OF_DATE`), cek warning (`SP_VW_WARNINGCONTENT`), halaman news (`VW_NEWS`), otorisasi menu (`ES_AUTHUSERMENU`).
 - Token SSO (`ES_SAVETOKEN`, `VW_ES_APPTOKEN`, `ES_APPTOKEN_DELETE`) hanya sebagai jembatan ke aplikasi lama selama paralel.
+- Harness uji beban awal (klien SignalR sintetis) dan baseline memori per sirkuit (bagian 2F).
 - Kriteria selesai: user login di host baru dengan akun yang sama, melihat tab modul dan menu sesuai group, dan sesi/heartbeat/logout berperilaku seperti lama.
 
 ### Fase 2 — Inti Collection (±6–8 minggu)
@@ -278,6 +315,7 @@ Urutan berdasarkan ketergantungan:
 - Port `PANINSVC` ke `BackgroundService`: scan folder, upload file `AOC;CAB;PRD;REL;CUS;ACC;HIS;COL;DUE;MIS`, pindah ke Done/Fail, panggil `SP_UPLOAD_CUSTACC`, jendela waktu & interval dari config.
 
 ### Fase 7 — Hardening & cutover (±3–4 minggu)
+- Uji beban 700 dan 1.000 sesi bersamaan sesuai kriteria 2F, terhadap salinan DB berukuran realistis.
 - UAT per modul, uji performa (sesi besar, list ribuan baris), uji keamanan (OWASP), pen-test ringan.
 - Rencana jalan paralel (lama & baru pada DB yang sama), cutover per kelompok user, rollback.
 - Dokumentasi & pelatihan, pensiunkan aplikasi lama.
@@ -303,6 +341,7 @@ Total estimasi kasar (dinaikkan karena modul baru): **±9–11 bulan** untuk 1 t
 | 17 | `MENUURL` di `RFMENUX` menunjuk halaman WebForms lama; menu tak bisa diubah (DB tidak boleh disentuh) | Sedang | Tabel pemetaan di kode; menu belum termigrasi disembunyikan/dinonaktifkan atau mengarah ke app lama via token selama paralel |
 | 18 | DB DATA ditentukan dari `RFMODULE` (password plaintext di DB LOGIN) | Sedang | Override via secrets sebagai jalur utama; `RFMODULE` hanya fallback; kosongkan kolom setelah cutover |
 | 19 | Satu host berarti satu titik gagal untuk semua modul dan memori sirkuit bertambah dengan banyak tab | Sedang | Modul dimuat malas, batasi state per tab, pantau memori, siapkan skala (sticky session) |
+| 20 | Kapasitas: harus melayani >700 user bersamaan (lama hanya ±300–400); Blazor Server menyimpan state per user di memori | Tinggi | Kriteria dan harness beban sejak Fase 1, state ringan, paging server-side, cache bersama, kerja berat di luar sirkuit (2F) |
 | 13 | Office Interop (Excel/Word) dan OleDb upload butuh Office/Jet di server | Sedang | Diganti NPOI (lihat 2C); uji dengan file template/upload nyata (AYDA, Visit, Surat, Bulk Surat) dan bandingkan output dengan versi lama |
 | 14 | Perubahan SP/view di server tidak ada di repo (`Script/` hanya 1 file) | Tinggi | Dump skema dari server; kunci versi skema |
 | 15 | Modul baru (Recovery/AYDA/Lelang) baru lewat SIT/UAT dan masih berubah (commit terakhir 2025-07) | Sedang | Bekukan baseline commit, catat perubahan sesudahnya, koordinasi dengan pengembang aktif |
@@ -311,7 +350,7 @@ Total estimasi kasar (dinaikkan karena modul baru): **±9–11 bulan** untuk 1 t
 ## 6. Pertanyaan terbuka
 0. Apakah repo `irfansyah/Panin.Collection` perlu private, dan siapa saja yang diberi akses? (Repo lama dibiarkan apa adanya.)
 0a. ~~Tab modul: state dipertahankan atau dimulai ulang?~~ **Diputuskan: state tiap tab modul dipertahankan selama sesi.**
-0c. ~~DB DATA modul 99 dan 70~~ **Terjawab (bagian 2E):** modul 99 = DB LOGIN sendiri; modul 70 = DB `PANINMIS` di server lain. Masih terbuka: apakah salinan lokal penuh `LOSPANINCOLLECTION` boleh dibuat (ukuran, data sensitif)?
+0c. ~~DB DATA modul 99 dan 70~~ **Terjawab (2E):** modul 99 = DB LOGIN sendiri; modul 70 = `PANINMIS` di server lain. ~~Salinan penuh LOSPANINCOLLECTION~~ **Diputuskan:** tidak disalin penuh (±64 GB); dibaca langsung read-only, salinan lokal berupa skema + sampel dibuat nanti.
 0d. ~~Multi-sesi~~ **Diputuskan: user tidak boleh login di tempat/tab browser lain; satu sesi aktif per user (seperti `SU_LOGON` lama).**
 0b. Apakah pengembangan di `multibrowser` masih berjalan (UAT/produksi)? Apakah branch itu sudah yang dipakai di produksi?
 1. Apakah ada akses ke DB dev/UAT dan backup skema (agar bisa dump view/SP)?
