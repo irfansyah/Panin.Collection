@@ -1,0 +1,39 @@
+@using Panin.Application.Status
+
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" role="dialog" aria-modal="true" aria-labelledby="warning-title">
+    <div class="max-h-[80vh] w-full max-w-3xl overflow-hidden rounded-lg bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+            <h2 id="warning-title" class="text-base font-semibold text-red-700">@(string.IsNullOrEmpty(Warnings.Title) ? "Peringatan" : Warnings.Title)</h2>
+            <button type="button" @onclick="OnClose" class="rounded px-2 py-1 text-sm text-slate-500 hover:bg-slate-100" aria-label="Tutup">Tutup</button>
+        </div>
+        <div class="max-h-[65vh] overflow-auto p-4">
+            <table class="w-full text-left text-sm">
+                <thead class="sticky top-0 bg-slate-50 text-xs uppercase text-slate-500">
+                    <tr>
+                        @foreach (var c in Warnings.Columns)
+                        {
+                            <th class="px-3 py-2 font-medium">@c</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @foreach (var row in Warnings.Rows)
+                    {
+                        <tr>
+                            @foreach (var c in Warnings.Columns)
+                            {
+                                <td class="px-3 py-2 text-slate-700">@row.Cells[c]</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public WarningSet Warnings { get; set; } = WarningSet.Empty;
+
+    [Parameter] public EventCallback OnClose { get; set; }
+}

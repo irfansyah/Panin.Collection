@@ -3,11 +3,15 @@
 @rendermode InteractiveServer
 @implements IDisposable
 @using System.Globalization
+@using Panin.Application.Status
 @using Panin.Web.Components.Shell
 @inject IModuleRegistry Modules
 @inject IMenuService Menus
 @inject ModulePageCatalog Pages
 @inject WorkspaceState State
+@inject IUserAreaService Areas
+@inject IDataStatusService DataStatus
+@inject IWarningService Warnings
 @inject ILogger<Home> Logger
 
 <PageTitle>Panin Collection</PageTitle>
@@ -77,11 +81,30 @@
             <span class="font-medium text-slate-800">@User.FullName</span>
             <span>( @User.GroupName - @User.UserId )</span>
         </div>
-        <div>@_now</div>
+        <div class="flex items-center gap-4">
+            @if (_freshness is { IsStale: true })
+            {
+                <span class="text-amber-700" title="Data terakhir diperbarui @_freshness.LastUpdate.ToString("d MMMM yyyy", Indonesian)">
+                    Tanggal update data terakhir @_freshness.LastUpdate.ToString("d MMMM yyyy", Indonesian)
+                </span>
+            }
+            @if (_warnings.HasRows)
+            {
+                <button type="button" @onclick="() => _showWarnings = true" class="rounded bg-red-100 px-2 py-0.5 font-medium text-red-700 hover:bg-red-200">
+                    Peringatan (@_warnings.Rows.Count)
+                </button>
+            }
+            <span>@_now</span>
+        </div>
     </footer>
 </div>
 
 <SessionKeeper User="User" />
+
+@if (_showWarnings)
+{
+    <WarningDialog Warnings="_warnings" OnClose="() => _showWarnings = false" />
+}
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
@@ -90,6 +113,10 @@
 
     private IReadOnlyList<AccessibleModule> _modules = [];
     private string _now = string.Empty;
+    private DataFreshness? _freshness;
+    private WarningSet _warnings = WarningSet.Empty;
+    private bool _showWarnings;
+    private int _clockTicks;
     private Timer? _clock;
     private static readonly CultureInfo Indonesian = CultureInfo.GetCultureInfo("id-ID");
 
@@ -105,12 +132,45 @@
         State.Changed += OnStateChanged;
         _modules = await Modules.GetAccessibleAsync(User.GroupId);
         UpdateClock();
-        _clock = new Timer(_ => _ = InvokeAsync(() => { UpdateClock(); StateHasChanged(); }), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+        _clock = new Timer(_ => _ = InvokeAsync(OnClockTickAsync), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+        _ = LoadStatusAsync();
 
         if (State.Active is null && _modules.Count > 0)
         {
             await ActivateAsync(_modules[0]);
         }
+    }
+
+    private async Task OnClockTickAsync()
+    {
+        UpdateClock();
+        // Peringatan disegarkan tiap ±10 menit (layanan memakai cache 5 menit); kesegaran data memakai cache 10 menit.
+        if (++_clockTicks % 20 == 0)
+        {
+            await LoadStatusAsync();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task LoadStatusAsync()
+    {
+        if (User is null)
+        {
+            return;
+        }
+
+        // Gagal membaca DB DATA tidak boleh mengganggu shell: layanan mengembalikan null/kosong.
+        var userId = User.UserId;
+        var freshness = await DataStatus.GetFreshnessAsync();
+        var warnings = await Warnings.GetAsync(userId);
+        await InvokeAsync(() =>
+        {
+            _freshness = freshness;
+            _warnings = warnings;
+            StateHasChanged();
+        });
+        State.Area ??= await Areas.GetAsync(userId);
     }
 
     private void UpdateClock() => _now = DateTime.Now.ToString("HH:mm - dddd, d MMMM yyyy", Indonesian);

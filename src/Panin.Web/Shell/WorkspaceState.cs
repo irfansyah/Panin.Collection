@@ -27,6 +27,9 @@ public sealed class WorkspaceState
 
     public string? ActiveModuleId { get; private set; }
 
+    /// <summary>Cabang/area/kota user (dari DB DATA), dipakai modul untuk membatasi data.</summary>
+    public Panin.Application.Status.UserArea? Area { get; set; }
+
     public IReadOnlyCollection<ModuleWorkspace> Opened => _opened.Values;
 
     public ModuleWorkspace? Active => ActiveModuleId is not null && _opened.TryGetValue(ActiveModuleId, out var w) ? w : null;

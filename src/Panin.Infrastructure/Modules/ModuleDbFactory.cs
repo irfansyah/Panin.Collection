@@ -44,6 +44,25 @@ public sealed class ModuleDbFactory(IConfiguration configuration, IModuleRegistr
             }.ConnectionString;
         }
 
-        return _cache.GetOrAdd(moduleId, _ => new SqlDb(connectionString));
+        return _cache.GetOrAdd(moduleId, _ => Wrap(moduleId, connectionString));
+    }
+
+    private IDb Wrap(string moduleId, string connectionString)
+    {
+        IDb db = new SqlDb(connectionString);
+
+        // Baca-saja bila diminta lewat konfigurasi, atau bila connection string sendiri berniat ReadOnly
+        // (dipakai untuk DB dev bersama yang tidak boleh ditulis dari mesin pengembang).
+        var setting = configuration[$"DataAccess:ReadOnly:{moduleId}"];
+        var readOnly = bool.TryParse(setting, out var forced)
+            ? forced
+            : new SqlConnectionStringBuilder(connectionString).ApplicationIntent == ApplicationIntent.ReadOnly;
+        if (!readOnly)
+        {
+            return db;
+        }
+
+        var allowed = configuration.GetSection("DataAccess:ReadOnlyProcedures").Get<string[]>() ?? ["SP_VW_WARNINGCONTENT"];
+        return new ReadOnlyDb(db, new HashSet<string>(allowed, StringComparer.OrdinalIgnoreCase), $"modul {moduleId}");
     }
 }

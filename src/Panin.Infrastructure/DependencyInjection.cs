@@ -4,10 +4,12 @@ using Panin.Application.Abstractions;
 using Panin.Application.Auth;
 using Panin.Application.Modules;
 using Panin.Application.Sessions;
+using Panin.Application.Status;
 using Panin.Infrastructure.Auth;
 using Panin.Infrastructure.Data;
 using Panin.Infrastructure.Modules;
 using Panin.Infrastructure.Sessions;
+using Panin.Infrastructure.Status;
 
 namespace Panin.Infrastructure;
 
@@ -28,6 +30,9 @@ public static class DependencyInjection
         services.AddSingleton<IModuleRegistry, ModuleRegistry>();
         services.AddSingleton<IModuleDbFactory, ModuleDbFactory>();
         services.AddSingleton<IMenuService, MenuService>();
+        services.AddSingleton<IUserAreaService, UserAreaService>();
+        services.AddSingleton<IDataStatusService, DataStatusService>();
+        services.AddSingleton<IWarningService, WarningService>();
         services.AddSingleton<LogoutWriter>();
         services.AddSingleton<ILogoutRecorder>(sp => sp.GetRequiredService<LogoutWriter>());
         services.AddHostedService(sp => sp.GetRequiredService<LogoutWriter>());

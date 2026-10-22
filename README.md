@@ -50,7 +50,8 @@ Kunci yang dipakai (nilai asli diisi per mesin, jangan di-commit):
 | Kunci | Isi |
 |---|---|
 | `ConnectionStrings:Login` | DB LOGIN (`LOSPANINLOGIN`) |
-| `ConnectionStrings:Data:60` / `:70` / `:99` | DB DATA per modul. Kosong = pakai kolom `DB_*` di `RFMODULE` seperti sistem lama |
+| `ConnectionStrings:Data:60` / `:70` / `:99` | DB DATA per modul. Kosong = pakai kolom `DB_*` di `RFMODULE` seperti sistem lama. Bila berisi `ApplicationIntent=ReadOnly`, DB dibuka **baca-saja** (hanya `SELECT` dan SP yang ada di `DataAccess:ReadOnlyProcedures`; operasi tulis ditolak aplikasi) |
+| `DataAccess:ReadOnly:<id>` | `true`/`false` untuk memaksa mode baca-saja per modul |
 
 Untuk server gunakan environment variable (`ConnectionStrings__Login`) atau secret store.
 
