@@ -162,3 +162,21 @@ Namun SP Leading Edge per produk **perlu dioptimalkan di sisi DB** (atau dibatas
 | R3 Pivot dari SP | selesai untuk 54 kelas, termasuk `PV_Alasan_NPL` (pivot + tabel keterangan alasan di bawahnya sebagai tabel pendamping) |
 | Pemeriksaan konsistensi + pengukuran waktu semua report (`Panin.ReportCheck`) | alat selesai; dijalankan di salinan lokal, belum di staging/produksi |
 | Perbandingan keluaran dengan layar lama (tampilan DevExpress) pada data nyata | belum (butuh akses ke aplikasi lama dan data produksi) |
+
+## Hasil `Panin.ReportCheck` pada DB bersama 192.168.88.11 (23 Oktober 2026, hanya baca)
+
+Dijalankan terhadap `LOSPANINCOLLECTION` (ApplicationIntent=ReadOnly), modul 60, tiga putaran: jendela tanggal 7 hari; ulang dengan 540 hari (data terakhir diperbarui 7 Mei 2025);
+report yang sangat lambat dijalankan terpisah dan dilewati pada putaran berikutnya.
+
+| Hasil | Jumlah | Catatan |
+|---|---|---|
+| **DIFF** (hasil aplikasi berbeda dari perhitungan independen) | **0** | |
+| OK | 81 pada putaran 540 hari, ditambah report yang diukur di putaran lain (PIVOT12 dan lainnya) | pivot dicocokkan dengan perhitungan kedua dari data mentah; daftar dicocokkan dengan `COUNT(*)` |
+| SKIP | 2 (`PIVOT17` Was Is By Branch/Product Name, `PIVOT96` Alasan Tunggakan > 90 Hari) | SP lebih dari 30 detik, pemeriksaan independen tidak dijalankan |
+| ERROR: batas waktu | `PIVOT07` Payment Report (180 dtk dengan jendela 540 hari; 3,8 dtk dengan 7 hari), `PIVOT11` Pending Item Report (180 dtk pada satu putaran, 112 dtk pada putaran lain), `PIVOT105` Ad Hock Recovery dan `PIVOT110` Ad Hock Recovery KPM (180 dtk), `PIVOT30` Leading Edge By Branch (600 dtk) | SP-nya lambat di DB ini; lihat `docs/PERFORMANCE.md` |
+| Tidak diukur | 11 report Leading Edge lainnya (`PIVOT36/37/38/51–58`) | diperkirakan sama lambatnya dengan `PIVOT30`; dilewati supaya pemeriksaan selesai |
+
+Yang **tidak** dibuktikan oleh pemeriksaan ini:
+- Alat ini membandingkan hasil aplikasi baru dengan **perhitungan independen dari data yang sama**, bukan dengan **keluaran aplikasi lama**. Ia menangkap kesalahan di mesin pivot/daftar, bukan beda tafsir terhadap aplikasi lama.
+- Banyak report (Daily Tracking, Flow Rate, KPM, PRK, Lag Delinquency) mengembalikan 0 baris atau 1 sel pada data ini, jadi hanya jalur data kosong yang teruji. Pivot yang berisi data nyata: Vintage 2 (16.267 baris, 15.175 baris mentah), Time Spent for Collector.
+- Ini DB dev bersama; produksi belum diperiksa.

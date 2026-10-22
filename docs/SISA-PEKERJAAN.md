@@ -21,7 +21,7 @@ aplikasi baru belum setara aplikasi lama, jadi **cutover belum boleh** (`docs/CU
 
 | Hal | Yang saya butuhkan |
 |---|---|
-| Keluaran report (103 definisi) cocok dengan aplikasi lama | Akses hanya-baca ke staging/produksi untuk menjalankan `tools/Panin.ReportCheck`; beberapa keluaran lama (Excel/tangkapan layar) untuk report utama dengan parameter yang sama. |
+| Keluaran report (103 definisi) cocok dengan aplikasi lama | `Panin.ReportCheck` sudah dijalankan pada DB bersama 192.168.88.11 (0 DIFF; hasil di `docs/REPORTS.md`), tetapi itu hanya membandingkan dengan perhitungan independen. Masih perlu: beberapa keluaran aplikasi lama (Excel/tangkapan layar) untuk report utama dengan parameter yang sama, dan data yang tidak kosong untuk report Daily Tracking/Flow Rate/KPM. |
 | Cetak memo, Excel agen visit, report | Contoh cetakan/berkas lama untuk dibandingkan visual; pemakai mencoba di Excel/Word mereka. |
 | SP lambat (Leading Edge per produk, Was Is) | DBA mengukur dan memperbaiki indeks/rencana eksekusi. |
 | Panin.Worker (pengganti PANINSVC) | Isi `App.config` PANINSVC produksi (jendela waktu, path UNC, akun layanan); uji dengan berkas nyata. |
