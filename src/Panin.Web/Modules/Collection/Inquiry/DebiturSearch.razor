@@ -1,0 +1,135 @@
+@attribute [ModulePage("60", "/collection/inquiry/debitur")]
+@implements IDisposable
+@using System.Globalization
+@using Panin.Application.Collection
+@using Panin.Application.Export
+@using Panin.Web.Components.Common
+@inject IDebiturSearchService Search
+@inject ILogger<DebiturSearch> Logger
+
+<section class="space-y-4">
+    <h1 class="text-xl font-semibold text-slate-800">Inquiry Status Debitur</h1>
+
+    <EditForm Model="_form" OnSubmit="SearchAsync" class="rounded-lg border border-slate-200 bg-white p-4">
+        <div class="grid gap-4 sm:grid-cols-3">
+            <div>
+                <label for="cif" class="mb-1 block text-sm font-medium text-slate-700">No CIF</label>
+                <InputText id="cif" @bind-Value="_form.CustomerRef" maxlength="200"
+                           class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+            </div>
+            <div>
+                <label for="acc" class="mb-1 block text-sm font-medium text-slate-700">No Account</label>
+                <InputText id="acc" @bind-Value="_form.AccountNo" maxlength="100"
+                           class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+            </div>
+            <div>
+                <label for="name" class="mb-1 block text-sm font-medium text-slate-700">Nama Debitur</label>
+                <InputText id="name" @bind-Value="_form.Name" maxlength="200"
+                           class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                <p class="mt-1 text-xs text-slate-500">Minimal @DebiturSearchRules.MinNameLength huruf.</p>
+            </div>
+        </div>
+        <div class="mt-4 flex gap-2">
+            <button type="submit" disabled="@_busy"
+                    class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">
+                @(_busy ? "Mencari..." : "CARI")
+            </button>
+            <button type="button" @onclick="Reset" disabled="@_busy"
+                    class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-60">
+                BATAL
+            </button>
+        </div>
+    </EditForm>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">@_error</div>
+    }
+
+    @if (_result is not null)
+    {
+        @if (_result.Truncated)
+        {
+            <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="status">
+                Hasil dibatasi @_result.MaxRows baris pertama (urut nomor rekening). Persempit kriteria pencarian untuk hasil yang lebih tepat.
+            </div>
+        }
+
+        <DataGrid @ref="_grid" TItem="DebiturRow" Items="_result.Rows" Columns="_columns" EmptyText="Data debitur tidak ditemukan.">
+            <Toolbar>
+                <ExportButton Source="BuildExport" FileName="inquiry-debitur" Disabled="@(_result.Rows.Count == 0)" />
+            </Toolbar>
+        </DataGrid>
+    }
+</section>
+
+@code {
+    private static readonly CultureInfo Id = CultureInfo.GetCultureInfo("id-ID");
+
+    private readonly DebiturSearchForm _form = new();
+    private readonly CancellationTokenSource _cts = new();
+    private DebiturSearchResult? _result;
+    private DataGrid<DebiturRow>? _grid;
+    private string? _error;
+    private bool _busy;
+
+    private readonly IReadOnlyList<GridColumn<DebiturRow>> _columns =
+    [
+        new() { Header = "Nomor Rekening", Value = r => r.AccountNo },
+        new() { Header = "Nama Nasabah", Value = r => r.CustomerName },
+        new() { Header = "Fasilitas", Value = r => r.Facility },
+        new() { Header = "Outstanding", Value = r => r.Outstanding, Display = r => r.Outstanding?.ToString("N0", Id), Numeric = true, ExportFormat = ExportFormat.Count },
+        new() { Header = "DPD", Value = r => r.Dpd, Numeric = true, ExportFormat = ExportFormat.Count },
+        new() { Header = "Kolektibilitas", Value = r => r.Collectibility },
+        new() { Header = "Status Akhir", Value = r => r.LastAction },
+        new() { Header = "Angsuran Ke", Value = r => r.InstallmentNo, Numeric = true, ExportFormat = ExportFormat.Count },
+        new() { Header = "Rekomendasi", Value = r => r.Recommendation },
+        new() { Header = "Officer", Value = r => r.Officer },
+        new() { Header = "CIF", Value = r => r.CustomerRef },
+    ];
+
+    private async Task SearchAsync()
+    {
+        var criteria = new DebiturSearchCriteria(_form.AccountNo, _form.CustomerRef, _form.Name);
+        _error = DebiturSearchRules.Validate(criteria);
+        if (_error is not null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _result = null;
+        try
+        {
+            _result = await Search.SearchAsync(criteria, _cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup saat mencari
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Pencarian debitur gagal");
+            _error = "Pencarian gagal. Coba lagi atau persempit kriteria; jika berulang hubungi administrator.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private ExportTable BuildExport() => _grid!.ToExportTable("Debitur");
+
+    private void Reset()
+    {
+        _form.AccountNo = _form.CustomerRef = _form.Name = null;
+        _error = null;
+        _result = null;
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

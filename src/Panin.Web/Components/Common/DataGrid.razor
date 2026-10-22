@@ -1,0 +1,215 @@
+@typeparam TItem
+@using Panin.Application.Export
+
+<div class="rounded-lg border border-slate-200 bg-white">
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-2">
+        <input type="search" placeholder="Filter hasil..." value="@_filter" @oninput="OnFilterInput"
+               class="w-56 rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" aria-label="Filter hasil" />
+        <div class="flex items-center gap-3 text-xs text-slate-500">
+            <span>@Visible.Count baris@(_filter.Length > 0 ? $" dari {Items.Count}" : string.Empty)</span>
+            <label class="flex items-center gap-1">
+                Per halaman
+                <select @onchange="OnPageSize" class="rounded border border-slate-300 px-1 py-0.5 text-xs">
+                    @foreach (var size in PageSizes)
+                    {
+                        <option value="@size" selected="@(size == _pageSize)">@size</option>
+                    }
+                </select>
+            </label>
+            @if (Toolbar is not null)
+            {
+                @Toolbar
+            }
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                    @for (var i = 0; i < Columns.Count; i++)
+                    {
+                        var index = i;
+                        var col = Columns[i];
+                        <th scope="col" class="@(col.Numeric ? "text-right" : "") whitespace-nowrap px-3 py-2 font-medium"
+                            aria-sort="@(_sortColumn == index ? (_descending ? "descending" : "ascending") : "none")">
+                            @if (col.Sortable && !col.ActionOnly)
+                            {
+                                <button type="button" @onclick="() => SortBy(index)" class="inline-flex items-center gap-1 uppercase hover:text-slate-800">
+                                    @col.Header
+                                    <span aria-hidden="true">@(_sortColumn == index ? (_descending ? "▼" : "▲") : "")</span>
+                                </button>
+                            }
+                            else
+                            {
+                                @col.Header
+                            }
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                @if (Page.Count == 0)
+                {
+                    <tr><td colspan="@Columns.Count" class="px-3 py-8 text-center text-slate-500">@EmptyText</td></tr>
+                }
+                @foreach (var item in Page)
+                {
+                    <tr @key="item" class="hover:bg-slate-50">
+                        @foreach (var col in Columns)
+                        {
+                            <td class="@(col.Numeric ? "text-right tabular-nums" : "") px-3 py-1.5 text-slate-700">
+                                @if (col.Template is not null)
+                                {
+                                    @col.Template(item)
+                                }
+                                else
+                                {
+                                    @col.Text(item)
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (PageCount > 1)
+    {
+        <div class="flex items-center justify-between border-t border-slate-200 px-3 py-2 text-xs text-slate-600">
+            <span>Halaman @(_pageIndex + 1) dari @PageCount</span>
+            <div class="flex gap-1">
+                <button type="button" @onclick="() => GoTo(0)" disabled="@(_pageIndex == 0)" class="rounded border border-slate-300 px-2 py-1 enabled:hover:bg-slate-100 disabled:opacity-40">«</button>
+                <button type="button" @onclick="() => GoTo(_pageIndex - 1)" disabled="@(_pageIndex == 0)" class="rounded border border-slate-300 px-2 py-1 enabled:hover:bg-slate-100 disabled:opacity-40">‹</button>
+                <button type="button" @onclick="() => GoTo(_pageIndex + 1)" disabled="@(_pageIndex >= PageCount - 1)" class="rounded border border-slate-300 px-2 py-1 enabled:hover:bg-slate-100 disabled:opacity-40">›</button>
+                <button type="button" @onclick="() => GoTo(PageCount - 1)" disabled="@(_pageIndex >= PageCount - 1)" class="rounded border border-slate-300 px-2 py-1 enabled:hover:bg-slate-100 disabled:opacity-40">»</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly int[] PageSizes = [10, 25, 50, 100];
+
+    private string _filter = string.Empty;
+    private int _sortColumn = -1;
+    private bool _descending;
+    private int _pageIndex;
+    private int _pageSize = 25;
+    private IReadOnlyList<TItem> _view = [];
+    private IReadOnlyList<TItem>? _viewSource;
+    private string _viewKey = string.Empty;
+
+    [Parameter, EditorRequired] public IReadOnlyList<TItem> Items { get; set; } = [];
+
+    [Parameter, EditorRequired] public IReadOnlyList<GridColumn<TItem>> Columns { get; set; } = [];
+
+    [Parameter] public string EmptyText { get; set; } = "Tidak ada data.";
+
+    /// <summary>Slot tambahan di bilah atas (mis. tombol ekspor).</summary>
+    [Parameter] public RenderFragment? Toolbar { get; set; }
+
+    /// <summary>Semua baris setelah filter dan urut (untuk ekspor), bukan hanya halaman aktif.</summary>
+    public IReadOnlyList<TItem> Visible => Compute();
+
+    private IReadOnlyList<TItem> Page => [.. Visible.Skip(_pageIndex * _pageSize).Take(_pageSize)];
+
+    private int PageCount => Math.Max(1, (int)Math.Ceiling(Visible.Count / (double)_pageSize));
+
+    /// <summary>Tabel siap ekspor dari baris yang terlihat (hasil filter dan urut).</summary>
+    public ExportTable ToExportTable(string sheetName)
+    {
+        var cols = Columns.Where(c => !c.ActionOnly).ToList();
+        return new ExportTable(
+            sheetName,
+            [.. cols.Select(c => new ExportColumn(c.Header, c.ExportFormat))],
+            [.. Visible.Select(item => (IReadOnlyList<object?>)[.. cols.Select(c => c.Value(item))])]);
+    }
+
+    protected override void OnParametersSet()
+    {
+        // Data baru (hasil pencarian baru) mengembalikan ke halaman pertama.
+        if (!ReferenceEquals(_viewSource, Items))
+        {
+            _viewSource = Items;
+            _pageIndex = 0;
+            _viewKey = string.Empty;
+        }
+    }
+
+    private IReadOnlyList<TItem> Compute()
+    {
+        var key = $"{_filter}|{_sortColumn}|{_descending}|{Items.Count}";
+        if (key == _viewKey && ReferenceEquals(_viewSource, Items))
+        {
+            return _view;
+        }
+
+        IEnumerable<TItem> q = Items;
+        if (_filter.Length > 0)
+        {
+            var visibleCols = Columns.Where(c => !c.ActionOnly).ToList();
+            q = q.Where(item => visibleCols.Any(c => c.Text(item).Contains(_filter, StringComparison.OrdinalIgnoreCase)));
+        }
+
+        if (_sortColumn >= 0 && _sortColumn < Columns.Count)
+        {
+            var col = Columns[_sortColumn];
+            q = _descending ? q.OrderByDescending(i => col.Value(i), NullSafeComparer.Instance) : q.OrderBy(i => col.Value(i), NullSafeComparer.Instance);
+        }
+
+        _view = [.. q];
+        _viewKey = key;
+        return _view;
+    }
+
+    private void OnFilterInput(ChangeEventArgs e)
+    {
+        _filter = e.Value?.ToString() ?? string.Empty;
+        _pageIndex = 0;
+    }
+
+    private void OnPageSize(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var size) && PageSizes.Contains(size))
+        {
+            _pageSize = size;
+            _pageIndex = 0;
+        }
+    }
+
+    private void SortBy(int index)
+    {
+        if (_sortColumn == index)
+        {
+            _descending = !_descending;
+        }
+        else
+        {
+            _sortColumn = index;
+            _descending = false;
+        }
+
+        _pageIndex = 0;
+    }
+
+    private void GoTo(int page) => _pageIndex = Math.Clamp(page, 0, PageCount - 1);
+
+    private sealed class NullSafeComparer : IComparer<object?>
+    {
+        public static readonly NullSafeComparer Instance = new();
+
+        public int Compare(object? x, object? y)
+        {
+            if (x is null || y is null)
+            {
+                return (x is null ? 0 : 1) - (y is null ? 0 : 1);
+            }
+
+            return x is IComparable c && x.GetType() == y.GetType()
+                ? c.CompareTo(y)
+                : string.Compare(Convert.ToString(x, System.Globalization.CultureInfo.InvariantCulture), Convert.ToString(y, System.Globalization.CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase);
+        }
+    }
+}

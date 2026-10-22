@@ -295,6 +295,10 @@ Urutan berdasarkan ketergantungan:
 5. Pembayaran: `PaymentSchedule`, `RiwayatPembayaran`, `PayOff`, `PCHI`, `Payment`/`PaymentHistory`.
 6. Calendar/PTP: `Calendar`, `SP_PTP_CHANGELIST`, `Search_by_ptp`.
 
+**Status Fase 2 (awal):** `DataGrid` (paging/urut/filter sisi klien, ekspor), `ExportButton` + `NpoiExcelExporter` (xlsx tanpa Office dan tanpa SkiaSharp), dan halaman **Inquiry Status Debitur** (menu 4010, `~/controls/search_debitur.aspx` → `/collection/inquiry/debitur`) sudah jalan terhadap DB DATA asli (baca-saja). Belum: komponen lookup/dropdown referensi (menunggu halaman pertama yang membutuhkannya), kolom aksi Detail/Riwayat/Agunan/Lelang (menunggu halamannya), dan halaman Fase 2 lainnya (info debitur, worklist, dst.).
+
+**Temuan pencarian debitur:** `SP_SEARCH_DEBITUR` tidak membatasi hasil dan memakai `LEFT JOIN TREATMENT_HISTORY` yang kolomnya tidak dipakai: pencarian nama pendek butuh ±56 detik dan mengembalikan 335 ribu baris; tanpa kriteria 116 detik dan 760 ribu baris (±14 detik hingga baris pertama pun untuk nama). Implementasi baru memakai query setara tanpa join itu dengan `TOP 500`: 24 dari 24 uji banding menghasilkan himpunan rekening dan nilai kolom yang identik dengan SP, dan waktunya 0,1–5 detik. Penyimpangan yang disengaja: batas 500 baris, nama minimal 3 huruf, dan pembatasan 8 pencarian bersamaan. Untuk 700 user, pola ini (bukan memanggil SP lama apa adanya) harus dipakai di halaman lain yang memanggil SP berat; `SP_*` perlu diukur sebelum dipakai.
+
 ### Fase 3 — Recovery, AYDA, Lelang, Litigasi, Simulasi, Surat (±8–10 minggu)
 - Modul baru dari `multibrowser`: workflow Recovery, AYDA (cari/upload/hitung/report), Balai Lelang, Hapus Buku/Tagih, SKPM, Restrukturisasi, Notes, distribusi worklist, collateral (lihat 2A).
 - `Recovery/*` (RecoveryList, ListDetail, CredRestru, ChangeInterest, InstSched, PSJT, ProcJatuhTempo), `Litigasi`.
@@ -343,6 +347,7 @@ Total estimasi kasar (dinaikkan karena modul baru): **±9–11 bulan** untuk 1 t
 | 17 | `MENUURL` di `RFMENUX` menunjuk halaman WebForms lama; menu tak bisa diubah (DB tidak boleh disentuh) | Sedang | Tabel pemetaan di kode; menu belum termigrasi disembunyikan/dinonaktifkan atau mengarah ke app lama via token selama paralel |
 | 18 | DB DATA ditentukan dari `RFMODULE` (password plaintext di DB LOGIN) | Sedang | Override via secrets sebagai jalur utama; `RFMODULE` hanya fallback; kosongkan kolom setelah cutover |
 | 19 | Satu host berarti satu titik gagal untuk semua modul dan memori sirkuit bertambah dengan banyak tab | Sedang | Modul dimuat malas, batasi state per tab, pantau memori, siapkan skala (sticky session) |
+| 21 | SP/view lama tidak dibatasi dan bisa sangat berat (mis. `SP_SEARCH_DEBITUR` 56–116 detik, ratusan ribu baris) | Tinggi | Ukur setiap SP sebelum dipakai; tulis ulang sebagai query berbatas (`TOP`) yang divalidasi terhadap SP; batasi konkurensi pencarian berat; jangan panggil SP berat dari sirkuit tanpa batas baris |
 | 20 | Kapasitas: harus melayani >700 user bersamaan (lama hanya ±300–400); Blazor Server menyimpan state per user di memori | Tinggi | Kriteria dan harness beban sejak Fase 1, state ringan, paging server-side, cache bersama, kerja berat di luar sirkuit (2F) |
 | 13 | Office Interop (Excel/Word) dan OleDb upload butuh Office/Jet di server | Sedang | Diganti NPOI (lihat 2C); uji dengan file template/upload nyata (AYDA, Visit, Surat, Bulk Surat) dan bandingkan output dengan versi lama |
 | 14 | Perubahan SP/view di server tidak ada di repo (`Script/` hanya 1 file) | Tinggi | Dump skema dari server; kunci versi skema |
