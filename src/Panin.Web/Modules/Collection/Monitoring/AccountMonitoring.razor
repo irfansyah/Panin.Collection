@@ -1,0 +1,247 @@
+@attribute [ModulePage("60", "/collection/monitoring/debitur")]
+@implements IDisposable
+@using System.Globalization
+@using Panin.Application.Collection
+@using Panin.Application.Export
+@using Panin.Web.Components.Common
+@using Panin.Web.Modules.Collection.Inquiry
+@inject IAccountMonitoringService Monitoring
+@inject ILogger<AccountMonitoring> Logger
+
+<section class="space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold text-slate-800">Monitoring Debitur</h1>
+        @if (_trail.Count > 1)
+        {
+            <button type="button" @onclick="GoUpAsync" disabled="@_busy"
+                    class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-60">
+                ← Kembali ke @_trail[^2].Name
+            </button>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">@_error</div>
+    }
+
+    @if (_viewing is not null)
+    {
+        <Card Title="@($"Ringkasan {_viewing.Name}")">
+            <dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="px-2 py-1"><dt class="text-xs text-slate-500">Target (rekening)</dt><dd class="text-sm font-semibold text-slate-800">@Show(_target, "TARGET_AMOUNT") (@Show(_target, "TARGET_ACCOUNT"))</dd></div>
+                <div class="px-2 py-1"><dt class="text-xs text-slate-500">Pencapaian</dt><dd class="text-sm font-semibold text-slate-800">@Show(_target, "ACHIEVMENT_AMOUNT") (@Show(_target, "ACHIEVMENT_PERCENT")%)</dd></div>
+                <div class="px-2 py-1"><dt class="text-xs text-slate-500">Pencapaian rekening</dt><dd class="text-sm font-semibold text-slate-800">@Show(_target, "ACHIEVEMENT_ACCOUNT") (@Show(_target, "ACHIEVMENT_ACCOUNT_PERCENT")%)</dd></div>
+                <div class="px-2 py-1"><dt class="text-xs text-slate-500">Outstanding</dt><dd class="text-sm font-semibold text-slate-800">@(_outstanding ?? "-")</dd></div>
+            </dl>
+        </Card>
+
+        @if (_team.Count > 0)
+        {
+            <Card Title="@($"User-user dibawah pengawasan {_viewing.Name}")">
+                <DataGrid TItem="MonitoringTeamMember" Items="_team" Columns="_teamColumns" EmptyText="Tidak ada bawahan." />
+            </Card>
+        }
+
+        <div class="rounded-lg border border-slate-200 bg-white">
+            <div class="border-b border-slate-200 px-4 pt-2">
+                <h2 class="pb-2 text-sm font-semibold text-slate-700">Debitur yang ditangani @_viewing.Name</h2>
+                <div role="tablist" class="flex gap-1">
+                    @foreach (var (touched, title) in new[] { (false, "Pending"), (true, "Touched") })
+                    {
+                        <button type="button" role="tab" aria-selected="@(_touched == touched)" @onclick="() => SelectTabAsync(touched)" disabled="@_busy"
+                                class="@(_touched == touched ? "border-sky-700 text-sky-800" : "border-transparent text-slate-600 hover:text-slate-900") -mb-px rounded-t border-b-2 px-4 py-2 text-sm font-medium">
+                            @title
+                        </button>
+                    }
+                </div>
+            </div>
+            <div class="p-4">
+                @if (_busy)
+                {
+                    <p class="text-sm text-slate-500" role="status">Memuat...</p>
+                }
+                else if (_debitors is not null)
+                {
+                    @if (_debitors.Truncated)
+                    {
+                        <div class="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="status">
+                            Menampilkan @_debitors.MaxRows debitur pertama. Pilih bawahan di atas untuk melihat debitur yang lebih sedikit.
+                        </div>
+                    }
+
+                    <DataGrid @ref="_grid" TItem="MonitoringDebitorRow" Items="_debitors.Rows" Columns="_debitorColumns" EmptyText="Tidak ada debitur.">
+                        <Toolbar>
+                            <ExportButton Source="BuildExport" FileName="monitoring-debitur" Disabled="@(_debitors.Rows.Count == 0)" />
+                        </Toolbar>
+                    </DataGrid>
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    private static readonly CultureInfo Id = CultureInfo.GetCultureInfo("id-ID");
+
+    private readonly CancellationTokenSource _cts = new();
+    private readonly List<ViewedUser> _trail = [];
+    private ViewedUser? _viewing => _trail.Count > 0 ? _trail[^1] : null;
+    private IReadOnlyList<MonitoringTeamMember> _team = [];
+    private MonitoringDebitorResult? _debitors;
+    private DetailRecord? _target;
+    private string? _outstanding, _error, _viewerId;
+    private bool _touched, _busy;
+    private DataGrid<MonitoringDebitorRow>? _grid;
+    private IReadOnlyList<GridColumn<MonitoringTeamMember>> _teamColumns = [];
+    private IReadOnlyList<GridColumn<MonitoringDebitorRow>> _debitorColumns = [];
+
+    [CascadingParameter] private IModuleNavigator? Navigator { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _teamColumns =
+        [
+            new() { Header = "Nama", Value = m => m.Name, Template = m => @<button type="button" @onclick="() => DrillDownAsync(m)" class="text-left font-medium text-sky-800 hover:underline">@m.Name</button> },
+            new() { Header = "Group", Value = m => m.Group },
+            new() { Header = "Jml Debitur", Value = m => m.DebitorCount, Numeric = true, ExportFormat = ExportFormat.Count },
+            new() { Header = "O/S", Value = m => m.Outstanding, Display = m => m.Outstanding?.ToString("N0", Id), Numeric = true, ExportFormat = ExportFormat.Count },
+            new() { Header = "Target", Value = m => m.Target, Display = m => m.Target.ToString("N0", Id), Numeric = true, ExportFormat = ExportFormat.Count },
+            new() { Header = "Achievement", Value = m => m.Achievement, Display = m => m.Achievement.ToString("N0", Id), Numeric = true, ExportFormat = ExportFormat.Count },
+            new() { Header = "Cabang", Value = m => m.Branch },
+        ];
+        _debitorColumns =
+        [
+            new() { Header = "", Value = r => r.HasLetterException, Display = r => r.HasLetterException ? "*" : string.Empty, Sortable = false },
+            new() { Header = "Nomor Rekening", Value = r => r.AccountNo },
+            new() { Header = "Nama Nasabah", Value = r => r.CustomerName },
+            new() { Header = "Kota", Value = r => r.City },
+            new() { Header = "Fasilitas", Value = r => r.Facility },
+            new() { Header = "Outstanding Pokok", Value = r => r.Principal, Display = r => r.Principal?.ToString("N0", Id), Numeric = true, ExportFormat = ExportFormat.Count },
+            new() { Header = "DPD", Value = r => r.Dpd, Numeric = true, ExportFormat = ExportFormat.Count },
+            new() { Header = "Status Rekening", Value = r => r.AccountStatus },
+            new() { Header = "Status Akhir", Value = r => r.LastAction },
+            new() { Header = "Angsuran Ke", Value = r => r.InstallmentNo, Numeric = true, ExportFormat = ExportFormat.Count },
+            new() { Header = "Kurang Setor", Value = r => r.ShortPayment, Display = r => r.ShortPayment?.ToString("N0", Id), Numeric = true, ExportFormat = ExportFormat.Count },
+            new() { Header = "Rekomendasi", Value = r => r.Recommendation },
+            new() { Header = "Tgl Penugasan", Value = r => r.AssignedOn, Display = r => r.AssignedOn?.ToString("dd-MMM-yyyy", Id), ExportFormat = ExportFormat.Date },
+            new() { Header = "Status Hari Ini", Value = r => r.TodayStatus },
+            new() { Header = "Aksi", Value = r => r.AccountNo, ActionOnly = true, Sortable = false, Template = r => @<button type="button" @onclick="() => OpenDetail(r)" class="rounded border border-sky-300 px-2 py-0.5 text-xs font-medium text-sky-800 hover:bg-sky-50">Monitoring</button> },
+        ];
+
+        var user = (await AuthState).User.ToSessionUser();
+        if (user is null)
+        {
+            return;
+        }
+
+        _viewerId = user.UserId;
+        _trail.Add(new ViewedUser(user.UserId, user.FullName));
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_viewing is not { } v)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        try
+        {
+            // Empat pembacaan berjalan paralel; hasil di-cache bersama 60 detik di server.
+            var team = Monitoring.GetTeamAsync(v.UserId, _cts.Token);
+            var target = Monitoring.GetTargetAsync(v.UserId, _cts.Token);
+            var os = Monitoring.GetOutstandingAsync(v.UserId, _cts.Token);
+            var debitors = Monitoring.GetDebitorsAsync(v.UserId, _touched, _cts.Token);
+            await Task.WhenAll(team, target, os, debitors);
+            _team = team.Result;
+            _target = target.Result;
+            _outstanding = os.Result;
+            _debitors = debitors.Result;
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Monitoring debitur gagal dimuat");
+            _error = "Data monitoring gagal dimuat. Coba lagi; jika berulang hubungi administrator.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DrillDownAsync(MonitoringTeamMember member)
+    {
+        if (_viewerId is null || !await Monitoring.CanViewAsync(_viewerId, member.UserId, _cts.Token))
+        {
+            _error = "Anda tidak berwenang melihat data user tersebut.";
+            return;
+        }
+
+        _trail.Add(new ViewedUser(member.UserId, member.Name ?? member.UserId));
+        _touched = false;
+        await LoadAsync();
+    }
+
+    private async Task GoUpAsync()
+    {
+        if (_trail.Count > 1)
+        {
+            _trail.RemoveAt(_trail.Count - 1);
+            _touched = false;
+            await LoadAsync();
+        }
+    }
+
+    private async Task SelectTabAsync(bool touched)
+    {
+        if (_touched == touched)
+        {
+            return;
+        }
+
+        _touched = touched;
+        _busy = true;
+        try
+        {
+            _debitors = _viewing is { } v ? await Monitoring.GetDebitorsAsync(v.UserId, touched, _cts.Token) : null;
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Tab monitoring gagal dimuat");
+            _error = "Data gagal dimuat.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void OpenDetail(MonitoringDebitorRow row)
+        => Navigator?.Open<DebiturDetail>(new Dictionary<string, object?> { [nameof(DebiturDetail.AccountNo)] = row.AccountNo, [nameof(DebiturDetail.CustomerRef)] = row.CustomerRef });
+
+    private ExportTable BuildExport() => _grid!.ToExportTable("Monitoring Debitur");
+
+    private static string Show(DetailRecord? record, string column) => record?.Text(column) is { Length: > 0 } t ? t : "-";
+
+    private sealed record ViewedUser(string UserId, string Name);
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

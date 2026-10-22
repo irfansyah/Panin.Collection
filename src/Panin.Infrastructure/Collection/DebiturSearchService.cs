@@ -14,7 +14,7 @@ public sealed class DebiturSearchService(IModuleDbFactory dbs) : IDebiturSearchS
     /// <summary>Pencarian berat dibatasi bersamaan agar 700 user tidak menghantam DB sekaligus.</summary>
     private static readonly SemaphoreSlim Gate = new(8, 8);
 
-    private const string Sql = """
+    public const string Sql = """
         SELECT TOP (@4) D.ACC_NO AS AccountNo, D.[CIF NO.] AS CustomerRef, D.[Customer Name] AS CustomerName,
                D.Facility, D.Outstanding, D.DPD AS Dpd, D.Kolektibility AS Collectibility, D.AKSI_TERAKHIR AS LastAction,
                ISNULL(D.TENOR - D.SISA_SETORAN, 0) AS InstallmentNo, D.[NEXT ACTION] AS Recommendation,

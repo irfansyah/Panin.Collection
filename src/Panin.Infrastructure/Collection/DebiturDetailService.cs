@@ -11,7 +11,7 @@ namespace Panin.Infrastructure.Collection;
 /// </summary>
 public sealed class DebiturDetailService(IModuleDbFactory dbs) : IDebiturDetailService
 {
-    private static readonly string AccountSql =
+    public static readonly string AccountSql =
         "select " + string.Join(", ", DebiturDetailFields.AccountColumns.Select(c => $"[{c}]")) + " from VW_ACCOUNT_SURAT where ACC_NO = @1";
 
     public async Task<DetailRecord?> GetAccountAsync(string accountNo, CancellationToken ct = default)
