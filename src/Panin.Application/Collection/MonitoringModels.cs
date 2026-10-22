@@ -57,6 +57,13 @@ public sealed class MonitoringDebitorRow
 
 public sealed record MonitoringDebitorResult(IReadOnlyList<MonitoringDebitorRow> Rows, bool Truncated, int MaxRows);
 
+/// <summary>Sumber daftar debitur pada layar monitoring: portofolio collection atau recovery (NPL).</summary>
+public enum MonitoringKind
+{
+    Collection,
+    Recovery,
+}
+
 public static class MonitoringRules
 {
     /// <summary>Supervisor teratas dapat mengelola belasan ribu debitur; yang ditampilkan dibatasi (lihat docs/PERFORMANCE.md).</summary>
@@ -80,5 +87,6 @@ public interface IAccountMonitoringService
     Task<string?> GetOutstandingAsync(string userId, CancellationToken ct = default);
 
     /// <param name="touched">False = Pending, true = Touched (sudah ditindaklanjuti).</param>
-    Task<MonitoringDebitorResult> GetDebitorsAsync(string userId, bool touched, CancellationToken ct = default);
+    /// <param name="kind">Collection = <c>SP_ACCOUNT_MONITORING_DEBITUR</c>; Recovery = <c>SP_ACCOUNT_MONITORING_RECOVERY</c> (rekening NPL).</param>
+    Task<MonitoringDebitorResult> GetDebitorsAsync(string userId, bool touched, MonitoringKind kind = MonitoringKind.Collection, CancellationToken ct = default);
 }

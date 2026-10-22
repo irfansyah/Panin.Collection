@@ -12,7 +12,7 @@ public class ReadOnlyGuardAllowsApplicationQueriesTests
     private static readonly string[] Procedures =
     [
         "SP_VW_WARNINGCONTENT", "USP_VWDELINQHIST", "SP_JOB_INFO", "SP_SPOUSE_INFO", "SP_SPOUSE_JOB", "SP_GET_CONTACT_INFO",
-        "SP_ACCOUNT_MONITORING_DEBITUR", "SP_GET_TARGET_ACHIEVMENT", "SP_GET_OS",
+        "SP_ACCOUNT_MONITORING_DEBITUR", "SP_ACCOUNT_MONITORING_RECOVERY", "SP_GET_TARGET_ACHIEVMENT", "SP_GET_OS",
     ];
 
     private static readonly ReadOnlyDb Db = new(null!, new HashSet<string>(Procedures, StringComparer.OrdinalIgnoreCase), "t");
@@ -28,9 +28,33 @@ public class ReadOnlyGuardAllowsApplicationQueriesTests
 
     [Theory]
     [InlineData("exec SP_ACCOUNT_MONITORING_DEBITUR @1, @2")]
+    [InlineData("exec SP_ACCOUNT_MONITORING_RECOVERY @1, @2")]
     [InlineData("exec SP_GET_TARGET_ACHIEVMENT @1, @2")]
     [InlineData("exec SP_GET_OS @1")]
     public void Allowlisted_monitoring_procedures_pass(string sql) => Assert.True(Db.Check(sql));
+}
+
+public class MonitoringKindTests
+{
+    [Theory]
+    [InlineData(MonitoringKind.Collection, "SP_ACCOUNT_MONITORING_DEBITUR")]
+    [InlineData(MonitoringKind.Recovery, "SP_ACCOUNT_MONITORING_RECOVERY")]
+    public void Kind_selects_the_procedure(MonitoringKind kind, string expected) => Assert.Equal(expected, AccountMonitoringService.DebitorProcedure(kind));
+
+    [Fact]
+    public void Configured_allowlist_contains_the_recovery_procedure()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "src", "Panin.Web", "appsettings.json")))
+        {
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(dir);
+        var json = File.ReadAllText(Path.Combine(dir.FullName, "src", "Panin.Web", "appsettings.json"));
+        Assert.Contains("SP_ACCOUNT_MONITORING_RECOVERY", json, StringComparison.Ordinal);
+        Assert.Contains("/collection/monitoring/recovery", json, StringComparison.Ordinal);
+    }
 }
 
 public class MonitoringMapTests

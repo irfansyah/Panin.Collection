@@ -9,7 +9,8 @@ using Panin.Infrastructure.Data;
 namespace Panin.Infrastructure.Collection;
 
 /// <summary>
-/// Layar Monitoring Debitur (menu <c>accmon</c>, <c>AccountMonitoring.ascx</c>). Hanya membaca.
+/// Layar Monitoring Debitur (menu <c>accmon</c>, <c>AccountMonitoring.ascx</c>) dan Monitoring Recovery/NPL (menu <c>recmon</c>,
+/// <c>RecoveryMonitoring.ascx</c>). Keduanya identik kecuali SP daftar debitur; kolom keluarannya sama. Hanya membaca.
 /// <list type="bullet">
 /// <item><c>SP_ACCOUNT_MONITORING_TREE</c> ditulis ulang: tidak ada hubungan antara subquery berkorelasi per anggota tim
 /// dan gabungan sekali jalan; terukur 7,3 s menjadi 0,18 s untuk 39 anggota dengan angka identik.</item>
@@ -87,14 +88,16 @@ public sealed partial class AccountMonitoringService(IModuleDbFactory dbs, Singl
                 : Convert.ToString(row["OUTSTANDING_MF"], CultureInfo.InvariantCulture)?.Trim();
         }).ConfigureAwait(false);
 
-    public async Task<MonitoringDebitorResult> GetDebitorsAsync(string userId, bool touched, CancellationToken ct = default)
-        => await cache.GetOrCreateAsync($"mon-debitor:{userId}:{touched}", CacheFor, async () =>
+    public static string DebitorProcedure(MonitoringKind kind) => kind == MonitoringKind.Recovery ? "SP_ACCOUNT_MONITORING_RECOVERY" : "SP_ACCOUNT_MONITORING_DEBITUR";
+
+    public async Task<MonitoringDebitorResult> GetDebitorsAsync(string userId, bool touched, MonitoringKind kind = MonitoringKind.Collection, CancellationToken ct = default)
+        => await cache.GetOrCreateAsync($"mon-debitor:{kind}:{userId}:{touched}", CacheFor, async () =>
         {
             await Gate.WaitAsync().ConfigureAwait(false);
             try
             {
                 var db = await dbs.GetDataDbAsync("60").ConfigureAwait(false);
-                var table = await db.QueryTableAsync("exec SP_ACCOUNT_MONITORING_DEBITUR @1, @2", [userId, touched], new DbOptions(TimeoutSeconds: 120)).ConfigureAwait(false);
+                var table = await db.QueryTableAsync($"exec {DebitorProcedure(kind)} @1, @2", [userId, touched], new DbOptions(TimeoutSeconds: 120)).ConfigureAwait(false);
                 return (MonitoringDebitorResult?)Map(table);
             }
             finally

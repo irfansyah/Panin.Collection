@@ -65,7 +65,7 @@ Jadwalkan (Task Scheduler) tiap beberapa menit dengan `--apply`, atau jalankan m
 
 ## Cutover (aplikasi lama dimatikan)
 
-Prasyarat: semua fitur yang dipakai operasional sudah ada di aplikasi baru. **Per hari ini belum:** Monitoring Recovery/NPL dan report (58 XtraReports). Pekerjaan latar PANINSVC sudah digantikan `Panin.Worker` (lihat `docs/WORKER.md`; aktifkan hanya saat cutover). Itu harus selesai, atau dipastikan tidak dipakai, sebelum langkah di bawah.
+Prasyarat: semua fitur yang dipakai operasional sudah ada di aplikasi baru. **Per hari ini belum:** report (58 XtraReports), serta tautan lanjutan Monitoring Recovery/NPL (Janji Debitur, Upload Data AYDA, Upload Visit, View News, Manual Update). Pekerjaan latar PANINSVC sudah digantikan `Panin.Worker` (lihat `docs/WORKER.md`; aktifkan hanya saat cutover). Itu harus selesai, atau dipastikan tidak dipakai, sebelum langkah di bawah.
 
 Cara paling sederhana adalah **menukar nama DB**, karena nama DB LOGIN tertanam di view DATA:
 

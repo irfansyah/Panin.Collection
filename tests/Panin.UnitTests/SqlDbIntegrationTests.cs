@@ -54,4 +54,32 @@ public class SqlDbIntegrationTests
         Assert.True(set.Tables.Count <= 1);
         Assert.Equal(0, set.Tables.Count == 0 ? 0 : set.Tables[0].Rows.Count);
     }
+
+    [Fact]
+    public async Task Recovery_procedure_output_maps_like_the_collection_one()
+    {
+        if (Connect() is not { } db)
+        {
+            return;
+        }
+
+        // Pemilik rekening NPL terbanyak pada salinan lokal; bila tidak ada data, tes tidak berarti apa-apa.
+        var owner = await db.ExecuteScalarAsync<string?>(
+            "SELECT TOP 1 LM.USERID FROM LOAN_MASTER LM JOIN ACCOUNT_MASTER AM ON AM.ACC_NO = LM.ACC_NO JOIN LOAN_DETAIL LD ON LD.ACC_NO = LM.ACC_NO WHERE LM.CONFIRMED = '1' AND (AM.STATUS IN ('006','023','024') OR LD.DPD > 90) GROUP BY LM.USERID ORDER BY COUNT(*) DESC", []);
+        if (owner is null)
+        {
+            return;
+        }
+
+        var table = await db.QueryTableAsync("exec SP_ACCOUNT_MONITORING_RECOVERY @1, @2", [owner, false]);
+        var result = Panin.Infrastructure.Collection.AccountMonitoringService.Map(table);
+
+        Assert.NotEmpty(result.Rows);
+        Assert.All(result.Rows, r =>
+        {
+            Assert.False(string.IsNullOrEmpty(r.AccountNo));
+            Assert.False(string.IsNullOrEmpty(r.CustomerName));
+            Assert.False(string.IsNullOrEmpty(r.CustomerRef));
+        });
+    }
 }
