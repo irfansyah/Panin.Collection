@@ -53,3 +53,14 @@ Kunci yang dipakai (nilai asli diisi per mesin, jangan di-commit):
 | `ConnectionStrings:Data:60` / `:70` / `:99` | DB DATA per modul. Kosong = pakai kolom `DB_*` di `RFMODULE` seperti sistem lama |
 
 Untuk server gunakan environment variable (`ConnectionStrings__Login`) atau secret store.
+
+## Database lokal (Docker)
+
+Salinan DB LOGIN yang boleh diubah (mis. `RFMENUX.MENUURL`) untuk pengembangan. DB produksi/lama **tidak diubah**.
+
+```bash
+docker compose -f docker/docker-compose.yml up -d
+```
+
+- SQL Server 2022 di `localhost,14333`, database `LOSPANINLOGIN`. Password SA ada di `docker/.env` (tidak di-commit); buat file itu dengan isi `MSSQL_SA_PASSWORD=<password kuat>` sebelum menjalankan.
+- User-secrets: `ConnectionStrings:Login` menunjuk ke container ini; `ConnectionStrings:LoginSource` menunjuk ke DB LOGIN lama (hanya dibaca untuk menyalin data).

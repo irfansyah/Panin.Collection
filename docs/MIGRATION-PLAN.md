@@ -182,7 +182,7 @@ PaninCollection.sln
 ```
 
 Prinsip:
-- **Dapper, bukan EF Core**: skema tidak boleh berubah, logika ada di view/SP; Dapper memanggil mereka apa adanya dan lebih mudah dipetakan 1:1 dari SQL lama. EF hanya jika ada kebutuhan khusus.
+- **Dapper, bukan EF Core** (keputusan): skema warisan tidak boleh berubah, hampir semua akses lewat view/stored procedure/hasil dinamis (DataTable, multi result set), tidak ada migrasi skema yang dikelola aplikasi, dan SQL lama bisa dipetakan 1:1 sehingga mudah diverifikasi. EF Core tidak memberi nilai tambah di sini dan menambah risiko (query yang di-generate, pemetaan view/SP). Satu pendekatan saja agar kode seragam; EF baru dipertimbangkan bila nanti ada tabel baru milik aplikasi yang butuh migrasi.
 - **Semua SQL berparameter**; framework dinamis disusun ulang dengan whitelist nama tabel/kolom (bukan konkatenasi input).
 - **Satu codebase untuk Collection + MIS** dibedakan oleh konfigurasi/modul, menghapus duplikasi.
 - **Satu host, dua jenis database** (bagian 2D): DB LOGIN lewat secrets; DB DATA per modul lewat `IModuleDbFactory` (override secrets, fallback `RFMODULE`). Connection string tidak pernah dikirim ke klien.
@@ -278,7 +278,7 @@ Total estimasi kasar (dinaikkan karena modul baru): **±9–11 bulan** untuk 1 t
 0. Apakah repo `irfansyah/Panin.Collection` perlu private, dan siapa saja yang diberi akses? (Repo lama dibiarkan apa adanya.)
 0a. ~~Tab modul: state dipertahankan atau dimulai ulang?~~ **Diputuskan: state tiap tab modul dipertahankan selama sesi.**
 0c. DB DATA modul 99 dan 70: dicek langsung ke database (connection string diisi user di user-secrets); sementara `ConnectionStrings:Data:<id>` dikosongkan sehingga memakai `RFMODULE`.
-0d. Apakah user boleh login di lebih dari satu perangkat/tab (aturan `SU_LOGON` lama melarangnya)?
+0d. ~~Multi-sesi~~ **Diputuskan: user tidak boleh login di tempat/tab browser lain; satu sesi aktif per user (seperti `SU_LOGON` lama).**
 0b. Apakah pengembangan di `multibrowser` masih berjalan (UAT/produksi)? Apakah branch itu sudah yang dipakai di produksi?
 1. Apakah ada akses ke DB dev/UAT dan backup skema (agar bisa dump view/SP)?
 2. Lisensi DevExpress yang dimiliki (Blazor + Reporting + Office File API)?

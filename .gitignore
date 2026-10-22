@@ -490,3 +490,4 @@ secrets.json
 /artifacts/
 node_modules/
 src/Panin.Web/wwwroot/css/site.css
+docker/.env
