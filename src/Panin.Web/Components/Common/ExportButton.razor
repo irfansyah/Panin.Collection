@@ -3,14 +3,7 @@
 @inject IExcelExporter Exporter
 @inject IJSRuntime JS
 
-<button type="button" @onclick="() => ExportAsync(false)" disabled="@(Disabled || _busy)"
-        class="no-print rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-40">
-    @(_busy ? "Menyiapkan..." : "Ekspor Excel")
-</button>
-<button type="button" @onclick="() => ExportAsync(true)" disabled="@(Disabled || _busy)"
-        class="no-print rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-40">
-    CSV
-</button>
+<ExportMenu Disabled="@Disabled" Busy="@_busy" OnSelect="ExportAsync" />
 
 @code {
     private IJSObjectReference? _module;
@@ -23,17 +16,17 @@
 
     [Parameter] public bool Disabled { get; set; }
 
-    private async Task ExportAsync(bool csv)
+    private async Task ExportAsync(ExportKind kind)
     {
         _busy = true;
         try
         {
             var table = Source();
-            var bytes = csv ? CsvExporter.Export(table) : Exporter.Export(table);
+            var file = TableExport.Create(table, kind, Exporter);
             _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/download.js");
-            using var stream = new MemoryStream(bytes);
+            using var stream = new MemoryStream(file.Content);
             using var reference = new DotNetStreamReference(stream);
-            await _module.InvokeVoidAsync("downloadFromStream", $"{FileName}-{DateTime.Now:yyyyMMdd-HHmmss}.{(csv ? "csv" : "xlsx")}", csv ? CsvExporter.ContentType : IExcelExporter.ContentType, reference);
+            await _module.InvokeVoidAsync("downloadFromStream", $"{FileName}-{DateTime.Now:yyyyMMdd-HHmmss}.{file.Extension}", file.ContentType, reference);
         }
         finally
         {
