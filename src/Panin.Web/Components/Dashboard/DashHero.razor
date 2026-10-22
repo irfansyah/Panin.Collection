@@ -1,0 +1,29 @@
+@* Pita biru di puncak dashboard: sapaan, tanggal, chip status, dan tombol aksi utama. *@
+<section class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-700 via-sky-800 to-sky-900 p-5 text-white shadow-card sm:p-6">
+    <div class="pointer-events-none absolute -right-16 -top-24 size-80 rounded-full border border-white/20 shadow-[0_0_0_40px_rgb(255_255_255/0.04)]" aria-hidden="true"></div>
+    <div class="relative flex flex-wrap items-end justify-between gap-4">
+        <div class="min-w-0">
+            <p class="text-sm text-white/75">@Subtitle</p>
+            <h1 class="mt-1 text-2xl font-semibold tracking-tight">@Title</h1>
+            @if (Chips is not null)
+            {
+                <div class="mt-4 flex flex-wrap gap-2">@Chips</div>
+            }
+        </div>
+        @if (Actions is not null)
+        {
+            <div class="flex flex-wrap gap-2">@Actions</div>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter] public string Subtitle { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Isi dengan <c>&lt;HeroChip&gt;</c> atau markup chip sendiri.</summary>
+    [Parameter] public RenderFragment? Chips { get; set; }
+
+    [Parameter] public RenderFragment? Actions { get; set; }
+}

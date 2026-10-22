@@ -1,0 +1,22 @@
+@* Cincin persen (conic-gradient). *@
+<div class="grid shrink-0 place-items-center rounded-full" style="@($"width:{Size}px;height:{Size}px;background:conic-gradient({ChartMath.ToneColor(Tone)} {ChartMath.Css(ChartMath.Percent(Value, Total))}%, #e2e8f0 0)")"
+     role="img" aria-label="@($"{Label}: {ChartMath.Css(ChartMath.Percent(Value, Total))} persen")">
+    <div class="grid place-items-center rounded-full bg-white text-center leading-tight" style="@($"width:{Size - 28}px;height:{Size - 28}px")">
+        <span>
+            <b class="text-2xl font-semibold tracking-tight text-slate-900">@ChartMath.Css(Math.Round(ChartMath.Percent(Value, Total)))%</b>
+            <br /><small class="text-[11px] text-slate-500">@Label</small>
+        </span>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public double Value { get; set; }
+
+    [Parameter] public double Total { get; set; } = 100;
+
+    [Parameter] public string Label { get; set; } = string.Empty;
+
+    [Parameter] public string Tone { get; set; } = "info";
+
+    [Parameter] public int Size { get; set; } = 132;
+}

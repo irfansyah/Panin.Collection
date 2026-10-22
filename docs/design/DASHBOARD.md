@@ -1,6 +1,6 @@
 # Rancangan menu samping dan dashboard modul
 
-Status: rancangan **disetujui** (23 Okt 2026). **D1 (shell) sudah dikerjakan**: sidebar rel ikon, Ctrl+B, ikon menu, header baru. Dashboard (D2 dan seterusnya) belum. Mockup interaktif: [dashboard-mockup.html](dashboard-mockup.html) (buka langsung di browser; tab modul, Ctrl+B, tombol tema, dan ukuran layar dapat dicoba). Semua angka dan nama di mockup fiktif.
+Status: rancangan **disetujui** (23 Okt 2026). **D1 (shell), D2 (komponen dasar), dan D3 (dashboard Maintenance, data nyata) sudah dikerjakan.** Dashboard Collection (D4) dan MIS (D5) belum. Mockup interaktif: [dashboard-mockup.html](dashboard-mockup.html) (buka langsung di browser; tab modul, Ctrl+B, tombol tema, dan ukuran layar dapat dicoba). Semua angka dan nama di mockup fiktif.
 
 Acuan: menu samping dan dashboard di repo BNPL (`src/Bnpl.Portal`): `MainLayout.razor`, `NavMenu.razor`, `Icon.razor` (Heroicons, MIT), `Home.razor`, `StatCard.razor`, gaya `Styles/app.css`.
 
@@ -69,7 +69,13 @@ Catatan: beberapa SP report **sangat lambat** (lihat `docs/PERFORMANCE.md` baris
 
 ### 3.3 Maintenance (admin dan checker)
 
+**Sudah diimplementasikan** (`Modules/Maintenance/MaintenanceHome.razor`, `IMaintenanceDashboardService`). Tangkapan layar aplikasi sebenarnya: ![](8-maintenance-nyata.png)
+
+Rancangan awal:
+
 ![](3-dashboard-maintenance.png)
+
+**Penyesuaian terhadap rancangan karena data aslinya:** "Pengajuan saya ditolak" dan "Login gagal" **tidak ada datanya** (penolakan menghapus ajuan tanpa catatan; login gagal tidak dicatat di `SCALLUSERLOG`), jadi diganti "Ajuan Anda menunggu" dan grafik login 14 hari. Sumber: `PARAMETERSYSTEM_TEMPORARY` (antrian), `AUDITTRAIL` (perubahan disetujui), `SCALLUSER`+`SCALLUSERFLAG` (user aktif/terkunci/sedang login), `SCALLUSERLOG` (login per hari). Semua query agregat ringan (≈10 ms pada salinan lokal; `SCALLUSERLOG` 1 juta baris, berindeks tanggal).
 
 | Widget | Isi | Sumber data | Status |
 |---|---|---|---|
@@ -91,8 +97,8 @@ Catatan: beberapa SP report **sangat lambat** (lihat `docs/PERFORMANCE.md` baris
 | Tahap | Isi | Ukuran |
 |---|---|---|
 | D1 ✅ | Shell baru: sidebar rel ikon + Ctrl+B + ikon menu, header (chip data, peringatan, pengguna); kamus ikon `Shell/MenuIcons.cs`; 24 tes unit baru dan uji browser (desktop, rel ikon, sorot, muat ulang, 3 tingkat menu, ponsel). Belum: tombol tema dan kotak cari | M |
-| D2 | Komponen dasar: `StatCard`, `Hero`, `WidgetCard` (skeleton, galat per widget), grafik kolom/garis/cincin/batang (SVG, tanpa pustaka) | M |
-| D3 | Dashboard Maintenance (data sudah ada, risiko terendah) | S |
+| D2 ✅ | Komponen di `Components/Dashboard/`: `DashStat`, `DashHero`, `HeroChip`, `Widget<T>` (skeleton, galat dan tombol ulang per widget), `ColumnChart` (bertumpuk), `LineChart`, `Ring`, `HBars`, hitungan murni `ChartMath` (diuji). SVG/CSS murni, tanpa pustaka | M |
+| D3 ✅ | Dashboard Maintenance dengan data nyata (lihat bagian 3.3) | S |
 | D4 | Dashboard Collection: widget yang datanya sudah ada dulu, lalu sebaran DPD, janji, aturan "Perlu tindakan" | M–L |
 | D5 | Dashboard MIS: tabel ringkasan harian dan job pengisinya (Panin.Worker), lalu widget | L |
 | D6 | Mode gelap penuh, kotak cari global (Ctrl+K), pencatatan klik widget untuk menilai guna | M |

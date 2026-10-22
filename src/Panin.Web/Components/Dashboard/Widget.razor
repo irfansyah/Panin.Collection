@@ -1,0 +1,96 @@
+@typeparam T
+@implements IDisposable
+@inject ILoggerFactory LoggerFactory
+
+@* Kartu dashboard yang memuat datanya sendiri: kerangka (skeleton) saat memuat, pesan + tombol ulang bila gagal, isi bila siap.
+   Satu widget yang gagal tidak mengganggu widget lain. *@
+<section class="rounded-xl border border-slate-200 bg-white p-4 shadow-card" aria-busy="@(_loading ? "true" : "false")">
+    <div class="mb-3 flex items-start justify-between gap-2">
+        <div class="min-w-0">
+            <h2 class="text-sm font-semibold text-slate-900">@Title</h2>
+            @if (!string.IsNullOrEmpty(Subtitle))
+            {
+                <p class="mt-0.5 text-xs text-slate-500">@Subtitle</p>
+            }
+        </div>
+        @if (HeaderContent is not null)
+        {
+            <div class="shrink-0 text-xs">@HeaderContent</div>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <div class="space-y-3 py-2" role="status" aria-label="Memuat">
+            <div class="skeleton h-3 w-3/4"></div>
+            <div class="skeleton h-3 w-full"></div>
+            <div class="skeleton h-3 w-2/3"></div>
+            <div class="skeleton h-3 w-5/6"></div>
+        </div>
+    }
+    else if (_failed)
+    {
+        <div class="flex flex-col items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
+            <span>@(ErrorText ?? "Data tidak dapat dimuat saat ini.")</span>
+            <button type="button" @onclick="ReloadAsync" class="rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs font-medium hover:bg-red-100">Coba lagi</button>
+        </div>
+    }
+    else if (_value is not null && ChildContent is not null)
+    {
+        @ChildContent(_value)
+    }
+</section>
+
+@code {
+    private readonly CancellationTokenSource _cts = new();
+    private T? _value;
+    private bool _loading = true;
+    private bool _failed;
+
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    [Parameter] public string? Subtitle { get; set; }
+
+    [Parameter] public string? ErrorText { get; set; }
+
+    [Parameter, EditorRequired] public Func<CancellationToken, Task<T>> Load { get; set; } = default!;
+
+    [Parameter] public RenderFragment? HeaderContent { get; set; }
+
+    [Parameter] public RenderFragment<T>? ChildContent { get; set; }
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private Task ReloadAsync()
+    {
+        _loading = true;
+        _failed = false;
+        StateHasChanged();
+        return LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _value = await Load(_cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            LoggerFactory.CreateLogger("Panin.Dashboard").LogError(ex, "Widget dashboard gagal dimuat: {Title}", Title);
+            _failed = true;
+        }
+
+        _loading = false;
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

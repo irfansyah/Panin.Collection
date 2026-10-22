@@ -67,6 +67,7 @@ public static class DependencyInjection
         services.AddSingleton<IUserMaintenanceService, Maintenance.UserMaintenanceService>();
         services.AddSingleton<IGroupMaintenanceService, Maintenance.GroupMaintenanceService>();
         services.AddSingleton<IParameterService, Maintenance.ParameterService>();
+        services.AddSingleton<IMaintenanceDashboardService, Maintenance.MaintenanceDashboardService>();
         services.AddSingleton<IContactReferenceService, ContactReferenceService>();
         services.AddSingleton<ITreatmentMenuService, TreatmentMenuService>();
         services.AddSingleton<IExcelExporter, NpoiExcelExporter>();

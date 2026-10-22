@@ -1,0 +1,33 @@
+@* Daftar batang horizontal: label, nilai, dan batang berwarna menurut nada. *@
+@{
+    var max = Max ?? (Items.Count == 0 ? 0 : Items.Max(i => i.Value));
+}
+<ul class="space-y-3">
+    @foreach (var item in Items)
+    {
+        <li @key="item.Label">
+            <div class="flex items-baseline justify-between gap-2 text-sm">
+                <span class="min-w-0 truncate text-slate-700">@item.Label</span>
+                <b class="shrink-0 tabular-nums text-slate-900">@item.Value.ToString("N0", Indonesian)@Suffix</b>
+            </div>
+            <div class="mt-1 h-2 overflow-hidden rounded-full bg-slate-100" role="progressbar" aria-valuemin="0" aria-valuemax="@ChartMath.Css(max)" aria-valuenow="@ChartMath.Css(item.Value)" aria-label="@item.Label">
+                <div class="h-full rounded-full" style="@($"width:{ChartMath.Css(ChartMath.Percent(item.Value, max))}%;background:{ChartMath.ToneColor(item.Tone)}")"></div>
+            </div>
+            @if (!string.IsNullOrEmpty(item.Hint))
+            {
+                <div class="mt-0.5 text-xs text-slate-500">@item.Hint</div>
+            }
+        </li>
+    }
+</ul>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Indonesian = System.Globalization.CultureInfo.GetCultureInfo("id-ID");
+
+    [Parameter, EditorRequired] public IReadOnlyList<BarItem> Items { get; set; } = [];
+
+    /// <summary>Nilai penuh batang; bila kosong memakai nilai terbesar.</summary>
+    [Parameter] public double? Max { get; set; }
+
+    [Parameter] public string Suffix { get; set; } = string.Empty;
+}

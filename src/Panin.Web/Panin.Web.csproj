@@ -1,5 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <PropertyGroup>
+    <!-- RZ10012: tag Razor tak dikenal dianggap elemen HTML biasa (komponen tanpa @using tampil kosong tanpa galat). Jadikan galat build. -->
+    <WarningsAsErrors>$(WarningsAsErrors);RZ10012</WarningsAsErrors>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Panin.Application\Panin.Application.csproj" />
     <ProjectReference Include="..\Panin.Infrastructure\Panin.Infrastructure.csproj" />

@@ -29,6 +29,8 @@ Dokumen ini menjelaskan tampilan baru dan cara memakainya. Tujuan: modern, respo
 - Isian: `rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:ring-2 focus:ring-sky-200`.
 - Pesan: galat `border-red-200 bg-red-50 text-red-700` (`role="alert"`), sukses `border-green-200 bg-green-50 text-green-700` (`role="status"`), peringatan `border-amber-300 bg-amber-50 text-amber-800`.
 - Tabel: `DataGrid` sudah punya filter per kolom, pengelompokan, baris total (`GridColumn.Summary`), CSV, cetak, dan `RowClass`; lihat `docs/DEVEXPRESS-PARITY.md` bagian 5. Kelas `no-print` menyembunyikan elemen saat dicetak.
+- Dashboard: komponen di `Components/Dashboard/` (`DashHero`, `DashStat`, `Widget<T>`, `ColumnChart`, `LineChart`, `Ring`, `HBars`); lihat `docs/design/DASHBOARD.md`. Tiap widget memuat sendiri dan gagal sendiri.
+- Komponen Razor di folder `Modules/` harus punya `@using` namespace-nya: tag yang tidak dikenal dulu dianggap elemen HTML biasa dan tampil kosong; kini RZ10012 menjadi galat build.
 - Daerah gulir: tambahkan kelas `scroll-thin`.
 - Jangan memakai lebar tetap; pakai `w-full` dan batas `sm:`/`lg:`. Titik patah: `sm` 640, `lg` 1024.
 

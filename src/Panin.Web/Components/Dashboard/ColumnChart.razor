@@ -1,0 +1,54 @@
+@* Grafik kolom bertumpuk murni CSS (tanpa pustaka). Seri pertama di dasar kolom. Ringkasan teks di aria-label untuk pembaca layar. *@
+@{
+    var max = Columns.Count == 0 ? 0 : Columns.Max(c => c.Total);
+}
+<div>
+    @if (Series.Count > 0)
+    {
+        <div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+            @for (var s = 0; s < Series.Count; s++)
+            {
+                var index = s;
+                <span class="inline-flex items-center gap-1.5">
+                    <i class="inline-block size-2.5 rounded-sm" style="@($"background:{Series[index].Color}")"></i>@Series[index].Name
+                    <b class="font-semibold tabular-nums text-slate-800">@Columns.Sum(c => index < c.Values.Count ? c.Values[index] : 0).ToString("N0", Indonesian)</b>
+                </span>
+            }
+        </div>
+    }
+    <div class="flex items-end gap-1" style="@($"height:{Height}px")" role="img" aria-label="@AriaLabel">
+        @foreach (var column in Columns)
+        {
+            var percents = ChartMath.StackPercents(column.Values);
+            <div @key="column.Label" class="group relative flex h-full min-w-0 flex-1 flex-col justify-end" title="@(column.Tooltip ?? $"{column.Label}: {column.Total.ToString("N0", Indonesian)}")">
+                <div class="flex flex-col justify-end overflow-hidden rounded-t-md bg-slate-100 transition group-hover:opacity-80" style="@($"height:{ChartMath.Css(ChartMath.ColumnPercent(column.Total, max))}%")">
+                    @for (var i = percents.Count - 1; i >= 0; i--)
+                    {
+                        @if (percents[i] > 0)
+                        {
+                            <div style="@($"height:{ChartMath.Css(percents[i])}%;background:{Series[i].Color}")"></div>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    </div>
+    <div class="mt-1.5 flex gap-1 text-[10px] text-slate-400" aria-hidden="true">
+        @foreach (var column in Columns)
+        {
+            <span class="@("min-w-0 flex-1 text-center " + (column.Highlight ? "font-semibold text-sky-700" : string.Empty))">@column.Label</span>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Indonesian = System.Globalization.CultureInfo.GetCultureInfo("id-ID");
+
+    [Parameter, EditorRequired] public IReadOnlyList<ChartColumn> Columns { get; set; } = [];
+
+    [Parameter, EditorRequired] public IReadOnlyList<ChartSeries> Series { get; set; } = [];
+
+    [Parameter] public int Height { get; set; } = 170;
+
+    [Parameter] public string AriaLabel { get; set; } = "Grafik kolom";
+}

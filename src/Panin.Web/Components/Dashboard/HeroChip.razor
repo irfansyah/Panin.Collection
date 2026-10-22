@@ -1,0 +1,10 @@
+<span class="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white ring-1 ring-inset ring-white/25">
+    <span class="size-2 rounded-full" style="@($"background:{ChartMath.ToneColor(Tone)}")"></span>@ChildContent
+</span>
+
+@code {
+    /// <summary>ok | warn | bad | info</summary>
+    [Parameter] public string Tone { get; set; } = "info";
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}
