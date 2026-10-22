@@ -18,6 +18,10 @@
             {
                 <button type="button" @onclick="OpenVisit" class="rounded-md bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-800">Visitation</button>
             }
+            @if (_canLetter && _account is not null)
+            {
+                <button type="button" @onclick="OpenLetter" class="rounded-md bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-800">Letter</button>
+            }
             @if (Navigator is { CanGoBack: true })
             {
                 <button type="button" @onclick="Navigator.Back" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
@@ -138,7 +142,7 @@
     private HashSet<string> _loadedTabs = [];
     private string _tab = "personal";
     private string? _error, _tabError, _loadedFor;
-    private bool _loading = true, _tabLoading, _canCall, _canVisit;
+    private bool _loading = true, _tabLoading, _canCall, _canVisit, _canLetter;
 
     [Parameter] public string AccountNo { get; set; } = string.Empty;
 
@@ -199,7 +203,11 @@
         IReadOnlyList<TreatmentOption> options = user is null ? [] : await Treatments.GetAsync(user.UserId, _cts.Token);
         _canCall = options.Any(t => t.Function.Equals("Call", StringComparison.OrdinalIgnoreCase));
         _canVisit = options.Any(t => t.Function.Equals("Visitation", StringComparison.OrdinalIgnoreCase));
+        _canLetter = options.Any(t => t.Function.Equals("Letter", StringComparison.OrdinalIgnoreCase));
     }
+
+    private void OpenLetter()
+        => Navigator?.Open<LetterForm>(new Dictionary<string, object?> { [nameof(LetterForm.AccountNo)] = AccountNo, [nameof(LetterForm.CustomerRef)] = CustomerRef });
 
     private void OpenVisit()
         => Navigator?.Open<VisitForm>(new Dictionary<string, object?> { [nameof(VisitForm.AccountNo)] = AccountNo, [nameof(VisitForm.CustomerRef)] = CustomerRef });
