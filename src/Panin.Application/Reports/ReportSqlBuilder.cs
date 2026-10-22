@@ -80,6 +80,15 @@ public static partial class ReportSqlBuilder
             }
         }
 
+        if (report.Latest is { } latest)
+        {
+            var view = Quote(report.View);
+            var date = Quote(latest.DateColumn);
+            var key = Quote(latest.KeyColumn);
+            var match = string.Concat(latest.Match.Select(m => $" AND (@{m.Param.ToString(CultureInfo.InvariantCulture)} IS NULL OR A.{Quote(m.Column)} = @{m.Param.ToString(CultureInfo.InvariantCulture)})"));
+            sb.Append($" AND ({view}.{date} IS NULL OR {view}.{date} = (SELECT MAX(A.{date}) FROM {view} A WHERE A.{key} = {view}.{key}{match}))");
+        }
+
         return sb.ToString();
     }
 

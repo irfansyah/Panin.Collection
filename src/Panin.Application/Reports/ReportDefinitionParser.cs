@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Panin.Application.Reports.Pivot;
 
 namespace Panin.Application.Reports;
@@ -11,29 +12,26 @@ public sealed record ReportParseResult(ReportDefinition? Definition, ReportKind 
 /// <c>@[VIEW|KOLOM]:Judul[:ringkasan]</c> untuk kolom dan <c>@[VIEW|KOLOM]:Judul[:tipe[:SQL pilihan]]</c> untuk filter.
 /// Hanya report dengan satu view sumber, tanpa kondisi kustom, dan tanpa SQL pilihan berbahaya yang dinyatakan tersedia.
 /// </summary>
-public static class ReportDefinitionParser
+public static partial class ReportDefinitionParser
 {
     public static ReportParseResult Parse(string id, string title, string? columnList, string? rowList, string? dataList, string? filterList, string? cond, string? assemblyObj, DateOnly today, string? setting = null, ICustomPivotCatalog? custom = null)
     {
         CustomPivotSpec? spec = null;
+        CustomListSpec? listSpec = null;
         if (!string.IsNullOrWhiteSpace(assemblyObj))
         {
             spec = custom?.Find(assemblyObj.Trim());
-            if (spec is null)
+            listSpec = spec is null ? CustomLists.Find(assemblyObj) : null;
+            if (spec is null && listSpec is null)
             {
                 return new(null, ReportKind.Custom, "Laporan kustom ini belum dimigrasi");
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(cond))
-        {
-            return new(null, ReportKind.List, "Memakai kondisi kustom (PV_COND) yang belum didukung");
-        }
-
-        var isPivot = spec is not null || (!string.IsNullOrWhiteSpace(rowList) && !string.IsNullOrWhiteSpace(dataList));
+        var isPivot = spec is not null || (listSpec is null && !string.IsNullOrWhiteSpace(rowList) && !string.IsNullOrWhiteSpace(dataList));
         string? view = null;
         PivotLayout? pivot = spec?.Layout;
-        var columns = new List<ReportColumn>();
+        var columns = listSpec is null ? new List<ReportColumn>() : [.. listSpec.Columns];
         if (isPivot && spec is null)
         {
             var parsedPivot = ParsePivot(columnList, rowList!, dataList!, setting, ref view, out var pivotError);
@@ -45,7 +43,7 @@ public static class ReportDefinitionParser
             pivot = parsedPivot;
         }
 
-        foreach (var entry in isPivot ? Enumerable.Empty<string>() : Entries(columnList))
+        foreach (var entry in isPivot || listSpec is not null ? Enumerable.Empty<string>() : Entries(columnList))
         {
             if (!TryField(entry, out var v, out var f, out var rest, out var error))
             {
@@ -62,12 +60,13 @@ public static class ReportDefinitionParser
             columns.Add(new ReportColumn(f, caption, parts.Length > 1 ? ParseSummary(parts[1]) : ReportSummary.None));
         }
 
-        if (spec is null && (view is null || (!isPivot && columns.Count == 0)))
+        if (spec is null && listSpec is null && (view is null || (!isPivot && columns.Count == 0)))
         {
             return Unavailable("Tidak ada kolom");
         }
 
         var filters = new List<ReportFilter>();
+        var notes = new List<string>();
         var seq = 1;
         foreach (var entry in Entries(filterList))
         {
@@ -76,13 +75,21 @@ public static class ReportDefinitionParser
                 return Unavailable(error);
             }
 
+            var parts = rest.Split(':', 3);
+            var caption = parts.Length > 0 && parts[0].Trim().Length > 0 ? parts[0].Trim() : f;
+            if (view is not null && spec is null && listSpec is null && !string.Equals(view, v, StringComparison.OrdinalIgnoreCase))
+            {
+                // Layar lama menggabungkan view lain lewat tabel relasi FRAMEWORK_FOREIGNKEY (kosong di salinan lokal); tanpa relasi itu
+                // hasilnya perkalian silang. Filter dari view lain tidak diterapkan dan dicatat agar terlihat di layar.
+                notes.Add($"Filter {caption} (dari {v}) tidak diterapkan: relasi antar-view tidak terdefinisi");
+                continue;
+            }
+
             if (!SameView(ref view, v))
             {
                 return Unavailable("Filter berasal dari view yang berbeda dari kolom");
             }
 
-            var parts = rest.Split(':', 3);
-            var caption = parts.Length > 0 && parts[0].Trim().Length > 0 ? parts[0].Trim() : f;
             var typeText = parts.Length > 1 ? parts[1].Trim() : string.Empty;
             var type = ParseType(typeText);
             string? optionsSql = null;
@@ -101,7 +108,27 @@ public static class ReportDefinitionParser
             seq += filter.ParamCount;
         }
 
-        var definition = new ReportDefinition(id, title, view ?? spec!.Procedure, columns, filters, pivot, spec);
+        ReportLatestRow? latest = null;
+        if (!string.IsNullOrWhiteSpace(cond))
+        {
+            latest = ParseLatest(cond, view!);
+            if (latest is null)
+            {
+                return Unavailable("Memakai kondisi kustom (PV_COND) yang belum dikenali");
+            }
+        }
+
+        var definition = new ReportDefinition(id, title, view ?? spec?.Procedure ?? listSpec!.Procedure, columns, filters, pivot, spec, latest, notes.Count == 0 ? null : notes, listSpec);
+        if (listSpec is not null && definition.ParamCount != listSpec.ParamCount)
+        {
+            return Unavailable($"SP {listSpec.Procedure} menerima {listSpec.ParamCount} parameter, filter report menghasilkan {definition.ParamCount}");
+        }
+
+        if (latest is not null && latest.Match.Any(m => m.Param < 1 || m.Param > definition.ParamCount))
+        {
+            return Unavailable("PV_COND merujuk parameter filter yang tidak ada");
+        }
+
         if (spec is not null && definition.ParamCount != spec.ParamCount)
         {
             return Unavailable($"SP {spec.Procedure} menerima {spec.ParamCount} parameter, filter report menghasilkan {definition.ParamCount}");
@@ -119,6 +146,47 @@ public static class ReportDefinitionParser
 
         ReportParseResult Unavailable(string reason) => new(null, isPivot ? ReportKind.Pivot : ReportKind.List, reason);
     }
+
+    /// <summary>Mengenali pola PV_COND "baris terbaru per kunci"; selain itu <c>null</c>.</summary>
+    public static ReportLatestRow? ParseLatest(string cond, string view)
+    {
+        var m = LatestPattern().Match(cond);
+        if (!m.Success)
+        {
+            return null;
+        }
+
+        string D(string g) => m.Groups[g].Value;
+        bool Same(params string[] names) => names.All(n => string.Equals(D(n), D(names[0]), StringComparison.OrdinalIgnoreCase));
+        if (!Same("d", "d2", "d3") || !Same("k", "k2") || !Same("v", "v2") || !string.Equals(D("v"), view, StringComparison.OrdinalIgnoreCase)
+            || !ReportSqlBuilder.IsSafeIdentifier(D("d")) || !ReportSqlBuilder.IsSafeIdentifier(D("k")))
+        {
+            return null;
+        }
+
+        var match = new List<ReportLatestMatch>();
+        foreach (var part in AndSplit().Split(D("conds")))
+        {
+            var c = MatchCondition().Match(part.Trim());
+            if (!c.Success || !ReportSqlBuilder.IsSafeIdentifier(c.Groups[1].Value))
+            {
+                return null;
+            }
+
+            match.Add(new ReportLatestMatch(c.Groups[1].Value, int.Parse(c.Groups[2].Value, CultureInfo.InvariantCulture)));
+        }
+
+        return new ReportLatestRow(D("d"), D("k"), match);
+    }
+
+    [GeneratedRegex(@"^\s*AND\s+\[(?<d>[^\]]+)\]\s+IN\s*\(\s*SELECT\s+MAX\(\[(?<d2>[^\]]+)\]\)\s+FROM\s+(?<v>\w+)\s+A\s+WHERE\s+A\.(?<k>\w+)\s*=\s*\[(?<v2>\w+)\]\.\[(?<k2>\w+)\]\s+AND\s*\((?<conds>[^()]*)\)\s*\)\s+OR\s+\[(?<d3>[^\]]+)\]\s+IS\s+NULL\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex LatestPattern();
+
+    [GeneratedRegex(@"\s+AND\s+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex AndSplit();
+
+    [GeneratedRegex(@"^A\.(\w+)\s*=\s*@(\d+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex MatchCondition();
 
     // Susunan pivot dinamis: PV_COLUMNLIST = field kolom, PV_ROWLIST = field baris, PV_DATALIST = ukuran.
     // Atribut field: Judul:interval (baris/kolom: year|month|day|date); ukuran: Judul:agregat:tampilkanTotal (agregat: sum|avg|count|min|max|col%|row%).

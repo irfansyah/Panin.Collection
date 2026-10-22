@@ -90,8 +90,7 @@ Satu mesin pivot (`Panin.Application/Reports/Pivot`) untuk kedua jenis report; D
 | `PivotLayoutView` + `PivotView.razor` | Tabel HTML bertingkat dengan sel gabung; ekspor Excel datar (judul kolom digabung " / "). Tampilan dibatasi 30.000 sel; ekspor penuh. |
 | `CustomPivotCatalog` | `pivot-layouts.json` (resource tertanam) berisi SP, jumlah parameter, indeks result set, dan tata letak 53 kelas `PV_*`, diekstrak dari `*.Designer.cs` lama oleh `tools/ReportExtract/extract_pivot_layouts.py` (`python tools/ReportExtract/extract_pivot_layouts.py <repo-lama>`; dijalankan ulang bila kelas lama berubah). |
 
-Cakupan terhadap salinan lokal: seluruh set `DT` (13), `LE` (12), `LD` (12), `FR` (24), `WASIS` (1), `PRK` (4) tersedia; `KPM` 6 dari 7; di `GEN` kini 19 dari 26 (selain 15 daftar: Vintage 1/2,
-Time Spent, Perkiraan Kebutuhan Kolektor). Tes integrasi menjalankan 46 SP kustom plus semua pivot dinamis terhadap DB nyata tanpa galat.
+Cakupan terhadap salinan lokal: seluruh set `DT` (13), `LE` (12), `LD` (12), `FR` (24), `WASIS` (1), `PRK` (4) dan `GEN` (26) tersedia; `KPM` 6 dari 7. Tes integrasi menjalankan 46 SP kustom plus semua pivot dinamis terhadap DB nyata tanpa galat.
 
 Beda/asumsi yang harus diketahui:
 
@@ -102,14 +101,25 @@ Beda/asumsi yang harus diketahui:
 - **`SP_REPORT_WAS_IS_ANALYSIS` (Was Is Report) sangat lambat**: 193 detik untuk rentang satu hari di salinan lokal (40 ribu pinjaman). Tidak dijalankan di tes; perlu ditinjau/diindeks sebelum dipakai di produksi (lihat `docs/QUERY-REGISTRY.md`).
 - Timeout SP kustom mengikuti nilai lama (dibagi sepuluh bila > 3600), mis. 1000 detik; semuanya lewat batas 6 report bersamaan.
 
+## R1b — Kondisi kustom, filter lintas view, dan report berpita (selesai)
+
+Seluruh 26 definisi set `GEN` kini tersedia di salinan lokal.
+
+| Kasus | Penanganan |
+|---|---|
+| **`PV_COND` "baris terbaru per kunci"** (Ad Hock Recovery, Ad Hock Recovery KPM, Report NPL, Report NPL KPM) | Hanya pola ini yang dikenali (regex ketat, nama tervalidasi, parameter harus ada): `AND [DATE] IN (SELECT MAX([DATE]) FROM view A WHERE A.kunci = [view].[kunci] AND (A.k1=@1 AND A.k2=@5)) OR [DATE] IS NULL`. Dibuat menjadi klausa terparameter: `([DATE] IS NULL OR [DATE] = (SELECT MAX(A.[DATE]) FROM view A WHERE A.kunci = view.kunci AND (@1 IS NULL OR A.k1=@1) AND (@5 IS NULL OR A.k2=@5)))` di samping semua filter. Kondisi lain tetap ditandai belum tersedia. |
+| **Beda perilaku dengan layar lama (disengaja)** | SQL lama menempelkan `OR [DATE] IS NULL` tanpa tanda kurung, sehingga (a) filter KCP, nama, Product Group/Type **tidak berlaku** untuk baris bertanggal, dan (b) bila KCU atau Status Rekening tidak dipilih, baris bertanggal tidak muncul sama sekali (`A.KCU_CODE=NULL` tidak pernah benar). Itu hampir pasti bukan maksudnya, jadi di sini semua filter berlaku dan tanpa KCU/Status dipakai baris terbaru dari semua. **Pada salinan lokal semua baris bertanggal NULL, jadi perbedaan ini belum teramati**; mohon dikonfirmasi ke pengguna report sebelum cutover. |
+| **Letter Status Report** (filter KCU/KCP dari `VW_REPORT_AKAN_NPL`) | Layar lama menggabungkan view lain lewat `FRAMEWORK_FOREIGNKEY` (kosong di salinan lokal; tanpa relasi hasilnya perkalian silang). Filter dari view lain **tidak diterapkan** dan ditampilkan sebagai catatan di atas formulir. Bila produksi mengisi relasi itu, perlu keputusan apakah join didukung. |
+| **Collector Productivity** (`usp_ViewReportCollProd`) | Daftar dari SP (result set ke-2) dengan 11 kolom dan total, keterangan supervisor/kolektor dari result set pertama (`CustomLists`). |
+| **Collector Productivity Recovery** | Kelas report-nya tidak ada di sumber aplikasi lama yang dibaca (di sana report ini tidak bisa dibuka), tetapi `USP_VIEWREPORTCOLLPROD_RECOVERY` ada dan bentuk hasilnya sama; dipakai dengan tata letak yang sama. Perlu dikonfirmasi ke pemilik report. |
+
 ## Status
 
 | Item | Status |
 |---|---|
 | Inventaris definisi dan jenis mesin | selesai |
 | R1 Daftar dinamis | selesai |
+| R1b `PV_COND` (4), Letter Status, Collector Productivity (2) | selesai (lihat beda perilaku di atas) |
 | R2 Pivot dinamis | selesai (belum dibandingkan dengan keluaran lama pada data nyata) |
-| R3 Pivot dari SP | selesai untuk 53 kelas; 1 dengan laporan berpita (`PV_Alasan_NPL`: pivot + daftar alasan) belum |
-| R1b `PV_COND` (4 report recovery/KPM) | belum |
-| Collector Productivity (+ Recovery) — laporan berpita dari `usp_ViewReportCollProd` | belum |
-| Letter Status Report (filter dari dua view) | belum |
+| R3 Pivot dari SP | selesai untuk 53 kelas; `PV_Alasan_NPL` (pivot + daftar alasan, laporan berpita) belum |
+| Perbandingan keluaran semua report dengan aplikasi lama pada data nyata | belum |

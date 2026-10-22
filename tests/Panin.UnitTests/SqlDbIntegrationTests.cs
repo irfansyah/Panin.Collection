@@ -114,6 +114,12 @@ public class SqlDbIntegrationTests
                     // Terukur 193 detik untuk rentang satu hari di salinan lokal (docs/QUERY-REGISTRY.md); tidak dijalankan di tes.
                     customRun++;
                 }
+                else if (def.CustomList is { } listSpec)
+                {
+                    var set = await db.QueryDataSetAsync(listSpec.CallSql, args);
+                    Panin.Infrastructure.Reports.ReportService.MapProcedure(listSpec, set, 10);
+                    customRun++;
+                }
                 else if (def.Custom is { } spec)
                 {
                     var set = await db.QueryDataSetAsync(spec.CallSql, args);

@@ -69,11 +69,10 @@ public class ReportParserTests
     public void Plain_date_range_has_no_default() => Assert.Null(Parse("@[V|A]:A", "@[V|T]:Tanggal:dr").Definition!.Filters[0].DefaultFrom);
 
     [Theory]
-    [InlineData("@[V|A]:A", null, "AND x=1", null, "kondisi")]
+    [InlineData("@[V|A]:A", null, "AND x=1", null, "PV_COND")]
     [InlineData("@[V|A]:A", null, null, "LOSCOLLECTION.Report.Template.PV_X", "kustom")]
     [InlineData("", null, null, null, "kolom")]
     [InlineData("@[V|A]:A, @[W|B]:B", null, null, null, "lebih dari satu view")]
-    [InlineData("@[V|A]:A", "@[W|B]:B", null, null, "view yang berbeda")]
     [InlineData("@[V|A]:A", "@[V|B]:B:l:EXEC xp_cmdshell 'x'", null, null, "SELECT")]
     [InlineData("@[V|A]:A", "@[V|B]:B:l:SELECT a,, b FROM T; DROP TABLE T", null, null, "pemisah")]
     [InlineData("@[V|A]:A", "@[V|B]:B:l:SELECT a,, b FROM T WHERE x=@1", null, null, "tidak ada")]
@@ -84,6 +83,48 @@ public class ReportParserTests
         var r = Parse(columns, filters, cond, asm);
         Assert.Null(r.Definition);
         Assert.Contains(reasonPart, r.UnavailableReason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Filters_from_another_view_are_dropped_with_a_visible_note_and_do_not_consume_parameters()
+    {
+        var r = Parse("@[V|A]:A", "@[V|T]:Tanggal:dr, @[W|B]:Cabang:l:SELECT x,, y FROM T, @[V|N]:Nama");
+
+        Assert.Null(r.UnavailableReason);
+        var d = r.Definition!;
+        Assert.Equal(["Tanggal", "Nama"], d.Filters.Select(f => f.Caption));
+        Assert.Equal([1, 3], d.Filters.Select(f => f.Seq));
+        Assert.Contains("Cabang", Assert.Single(d.Notes!), StringComparison.Ordinal);
+    }
+
+    private const string Latest = "AND [DATE] IN (SELECT MAX([DATE]) FROM VW_X A WHERE A.NOMER_LOAN = [VW_X].[NOMER_LOAN] AND (A.KCU_CODE=@1 AND A.KODE_STATUS=@2)) OR [DATE] IS NULL";
+
+    [Fact]
+    public void Latest_row_per_key_condition_is_recognised()
+    {
+        var r = ReportDefinitionParser.Parse("P", "T", "@[VW_X|NAMA]:Nama", null, null, "@[VW_X|KCU_CODE]:KCU:l:SELECT a,, b FROM T, @[VW_X|KODE_STATUS]:Status:l:SELECT a,, b FROM T", Latest, null, Today);
+
+        Assert.Null(r.UnavailableReason);
+        var latest = r.Definition!.Latest!;
+        Assert.Equal(("DATE", "NOMER_LOAN"), (latest.DateColumn, latest.KeyColumn));
+        Assert.Equal([("KCU_CODE", 1), ("KODE_STATUS", 2)], latest.Match.Select(m => (m.Column, m.Param)));
+
+        var sql = ReportSqlBuilder.Where(r.Definition);
+        Assert.Contains("([VW_X].[DATE] IS NULL OR [VW_X].[DATE] = (SELECT MAX(A.[DATE]) FROM [VW_X] A WHERE A.[NOMER_LOAN] = [VW_X].[NOMER_LOAN] AND (@1 IS NULL OR A.[KCU_CODE] = @1) AND (@2 IS NULL OR A.[KODE_STATUS] = @2)))", sql, StringComparison.Ordinal);
+        Assert.Contains("[VW_X].[KCU_CODE] = @1", sql, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("AND [DATE] IN (SELECT MAX([DATE]) FROM VW_Y A WHERE A.K = [VW_X].[K] AND (A.C=@1)) OR [DATE] IS NULL")]
+    [InlineData("AND [DATE] IN (SELECT MAX([DATE]) FROM VW_X A WHERE A.K = [VW_X].[K] AND (A.C=@1; DROP TABLE T)) OR [DATE] IS NULL")]
+    [InlineData("AND [DATE] IN (SELECT MAX([DATE]) FROM VW_X A WHERE A.K = [VW_X].[K] AND (A.C=@1 OR 1=1)) OR [DATE] IS NULL")]
+    [InlineData("AND [DATE] IN (SELECT MAX([DATE]) FROM VW_X A WHERE A.K = [VW_X].[K] AND (A.C=@9)) OR [DATE] IS NULL")]
+    [InlineData("AND 1=1")]
+    public void Other_conditions_stay_unavailable(string cond)
+    {
+        var r = ReportDefinitionParser.Parse("P", "T", "@[VW_X|NAMA]:Nama", null, null, "@[VW_X|C]:C:l:SELECT a,, b FROM T", cond, null, Today);
+        Assert.Null(r.Definition);
+        Assert.Contains("PV_COND", r.UnavailableReason, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -234,4 +275,60 @@ public class ReportMenuResolveTests
 
     [Fact]
     public void Report_menu_is_not_available_in_other_modules() => Assert.True(Catalog().Resolve("99", "~/Report/ReportSet.aspx?setid=DT").IsLegacy);
+}
+
+public class CustomListTests
+{
+    private const string Productivity = "LOSCOLLECTION.Report.Template.CallProductivity";
+    private const string Filters = "@[usp_ViewReportCollProd|CALL_DATE]:Call Date:dr, @[usp_ViewReportCollProd|Upliner]:Supervisor:l:SELECT USERID,, FULL_NAME FROM SCUSER, @[usp_ViewReportCollProd|USERID]:Kolektor:l:SELECT USERID,, FULL_NAME FROM SCUSER where USERID IN (SELECT DOWNLINE FROM TEMP_DOWNLINE WHERE USERID=@3)";
+
+    [Theory]
+    [InlineData(Productivity, "USP_VIEWREPORTCOLLPROD")]
+    [InlineData(Productivity + "Recovery", "USP_VIEWREPORTCOLLPROD_RECOVERY")]
+    public void Productivity_reports_are_parsed_as_procedure_lists(string cls, string procedure)
+    {
+        var r = ReportDefinitionParser.Parse("P", "Collector Productivity", null, null, null, Filters, null, cls, new DateOnly(2026, 10, 22));
+
+        Assert.Null(r.UnavailableReason);
+        var d = r.Definition!;
+        Assert.Equal(procedure, d.CustomList!.Procedure);
+        Assert.Equal("EXEC " + procedure + " @1, @2, @3, @4", d.CustomList.CallSql);
+        Assert.Equal(4, d.ParamCount);
+        Assert.Equal(11, d.Columns.Count);
+        Assert.False(d.IsPivot);
+    }
+
+    [Fact]
+    public void Parameter_count_mismatch_makes_the_report_unavailable()
+    {
+        var r = ReportDefinitionParser.Parse("P", "x", null, null, null, "@[x|CALL_DATE]:Call Date:df", null, Productivity, new DateOnly(2026, 10, 22));
+        Assert.Contains("parameter", r.UnavailableReason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Result_set_is_mapped_by_column_name_with_a_subtitle()
+    {
+        var spec = CustomLists.Find(Productivity)!;
+        var header = new DataTable();
+        header.Columns.Add("UPLINER");
+        header.Columns.Add("COLLECTOR");
+        header.Rows.Add("Budi", "Ani");
+        var detail = new DataTable();
+        foreach (var c in new[] { "USERID", "FULL_NAME", "CALL_DATE", "NUMBER_OF_ACCOUNT", "OUTGOING_CALL", "CONTACTED", "PTP", "PTPAMOUNT", "PK", "PKAMOUNT", "BP", "BPAMOUNT" })
+        {
+            detail.Columns.Add(c, c == "CALL_DATE" ? typeof(DateTime) : c == "FULL_NAME" || c == "USERID" ? typeof(string) : typeof(double));
+        }
+
+        detail.Rows.Add("U1", " ANI ", new DateTime(2026, 1, 5), 3d, 2d, 1d, 0d, 0d, 0d, 0d, 0d, 0d);
+        var set = new DataSet();
+        set.Tables.Add(header);
+        set.Tables.Add(detail);
+
+        var result = ReportService.MapProcedure(spec, set, 100);
+
+        Assert.Equal("Supervisor: Budi   Kolektor: Ani", result.Subtitle);
+        Assert.Equal("ANI", result.Rows[0][0]);
+        Assert.Equal(ReportCellKind.Date, result.Columns[1].Kind);
+        Assert.Equal(ReportSummary.Sum, result.Columns[2].Summary);
+    }
 }

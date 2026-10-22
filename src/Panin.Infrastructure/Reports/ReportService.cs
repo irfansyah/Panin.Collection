@@ -93,11 +93,22 @@ public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache,
         }
 
         var max = forExport ? ReportLimits.ExportRows : ReportLimits.PreviewRows;
-        var sql = ReportSqlBuilder.Select(report, max + 1);
         await Gate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
             var db = await dbs.GetDataDbAsync(moduleId, ct).ConfigureAwait(false);
+            if (report.CustomList is { } list)
+            {
+                var set = await db.QueryDataSetAsync(list.CallSql, args, new DbOptions(TimeoutSeconds: list.TimeoutSeconds), ct).ConfigureAwait(false);
+                if (set.Tables.Count <= list.DataTable)
+                {
+                    throw new InvalidOperationException($"SP {list.Procedure} tidak mengembalikan result set ke-{list.DataTable + 1}");
+                }
+
+                return MapProcedure(list, set, max);
+            }
+
+            var sql = ReportSqlBuilder.Select(report, max + 1);
             var table = await db.QueryTableAsync(sql, args, new DbOptions(TimeoutSeconds: 180), ct).ConfigureAwait(false);
             return Map(report, table, max);
         }
@@ -149,6 +160,17 @@ public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache,
         {
             Gate.Release();
         }
+    }
+
+    public static ReportResult MapProcedure(CustomListSpec list, DataSet set, int max)
+    {
+        var table = set.Tables[list.DataTable];
+        var truncated = table.Rows.Count > max;
+        var columns = list.Columns.Select(c => new ReportResultColumn(c.Caption, table.Columns.Contains(c.Field) ? Kind(table.Columns[c.Field]!.DataType) : ReportCellKind.Text, c.Summary)).ToList();
+        var rows = table.Rows.Cast<DataRow>().Take(max).Select(r => list.Columns
+            .Select(c => table.Columns.Contains(c.Field) && r[c.Field] is not DBNull ? (r[c.Field] is string s ? s.Trim() : r[c.Field]) : null)
+            .ToArray()).ToList();
+        return new ReportResult(columns, rows, truncated, max, CustomLists.Subtitle(list, set.Tables[0]));
     }
 
     public static ReportResult Map(ReportDefinition report, DataTable table, int max)

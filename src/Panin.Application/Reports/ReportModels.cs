@@ -73,6 +73,15 @@ public sealed record ReportFilter(
     public bool OptionDependsOnInvalid(int paramCount) => OptionDependsOn.Any(n => n < 1 || n > paramCount || n >= Seq);
 }
 
+/// <summary>Kolom pencocok pada subquery "baris terbaru per kunci": kolom view yang harus sama dengan parameter filter pada posisi tersebut.</summary>
+public sealed record ReportLatestMatch(string Column, int Param);
+
+/// <summary>
+/// Pola <c>PV_COND</c> yang dikenali: hanya baris terbaru (tanggal terbesar) per <paramref name="KeyColumn"/>. Baris tanpa tanggal tetap lolos.
+/// Menggantikan potongan SQL mentah <c>AND [DATE] IN (SELECT MAX([DATE]) FROM view A WHERE A.kunci = [view].[kunci] AND (A.k1=@1 AND A.k2=@5)) OR [DATE] IS NULL</c>.
+/// </summary>
+public sealed record ReportLatestRow(string DateColumn, string KeyColumn, IReadOnlyList<ReportLatestMatch> Match);
+
 public sealed record ReportDefinition(
     string Id,
     string Title,
@@ -80,7 +89,10 @@ public sealed record ReportDefinition(
     IReadOnlyList<ReportColumn> Columns,
     IReadOnlyList<ReportFilter> Filters,
     PivotLayout? Pivot = null,
-    CustomPivotSpec? Custom = null)
+    CustomPivotSpec? Custom = null,
+    ReportLatestRow? Latest = null,
+    IReadOnlyList<string>? Notes = null,
+    CustomListSpec? CustomList = null)
 {
     public bool IsPivot => Pivot is not null;
 
@@ -99,7 +111,8 @@ public enum ReportCellKind
 
 public sealed record ReportResultColumn(string Caption, ReportCellKind Kind, ReportSummary Summary);
 
-public sealed record ReportResult(IReadOnlyList<ReportResultColumn> Columns, IReadOnlyList<object?[]> Rows, bool Truncated, int MaxRows);
+/// <param name="Subtitle">Keterangan di atas hasil (mis. supervisor dan kolektor) dari SP kustom.</param>
+public sealed record ReportResult(IReadOnlyList<ReportResultColumn> Columns, IReadOnlyList<object?[]> Rows, bool Truncated, int MaxRows, string? Subtitle = null);
 
 public static class ReportLimits
 {

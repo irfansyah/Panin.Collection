@@ -28,6 +28,18 @@
     }
     else
     {
+        @if (_def.Notes is { Count: > 0 })
+        {
+            <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="note">
+                <ul class="list-disc pl-5">
+                    @foreach (var note in _def.Notes)
+                    {
+                        <li>@note</li>
+                    }
+                </ul>
+            </div>
+        }
+
         <form @onsubmit="RunAsync" class="rounded-lg border border-slate-200 bg-white p-4">
             @if (_def.Filters.Count > 0)
             {
@@ -147,6 +159,11 @@
                 <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="status">
                     Menampilkan @_result.MaxRows.ToString("N0", Id) baris pertama; persempit filter atau gunakan Ekspor Excel (maks. @ReportLimits.ExportRows.ToString("N0", Id) baris).
                 </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_result.Subtitle))
+            {
+                <p class="text-sm font-medium text-slate-700">@_result.Subtitle</p>
             }
 
             @if (_totals.Count > 0)
