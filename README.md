@@ -45,4 +45,11 @@ dotnet user-secrets init --project src/Panin.Web
 dotnet user-secrets set "ConnectionStrings:Login" "<connection string>" --project src/Panin.Web
 ```
 
-Untuk server gunakan environment variable atau secret store.
+Kunci yang dipakai (nilai asli diisi per mesin, jangan di-commit):
+
+| Kunci | Isi |
+|---|---|
+| `ConnectionStrings:Login` | DB LOGIN (`LOSPANINLOGIN`) |
+| `ConnectionStrings:Data:60` / `:70` / `:99` | DB DATA per modul. Kosong = pakai kolom `DB_*` di `RFMODULE` seperti sistem lama |
+
+Untuk server gunakan environment variable (`ConnectionStrings__Login`) atau secret store.

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
     <ProjectReference Include="..\Panin.Application\Panin.Application.csproj" />
@@ -7,6 +7,7 @@
 
   <PropertyGroup>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <UserSecretsId>f53902af-5c32-489a-8b41-f0cba6e4934a</UserSecretsId>
   </PropertyGroup>
 
   <!-- Tailwind CSS: Styles/tailwind.css -> wwwroot/css/site.css (hasil build, tidak di-commit) -->

@@ -153,7 +153,7 @@ Komponen kunci (sebagian di `Panin.Application`, implementasi di `Panin.Infrastr
 
 **Tab modul**: tampil bila group punya lebih dari satu modul (sama seperti lama). Tab menyimpan state modulnya masing-masing selama sesi (beda dari lama yang kehilangan state saat pindah) dan modul dimuat malas saat pertama dibuka. Setiap modul memakai `IDb` DATA-nya sendiri; hak akses menu tetap dari DB LOGIN.
 
-**Menu URL**: `RFMENUX.MENUURL` berisi path halaman WebForms (mis. `~/Main/Main.aspx?...`). Migrasi butuh tabel pemetaan `url lama → rute baru` di kode (bukan mengubah DB). Menu yang belum dimigrasi tampil nonaktif atau disembunyikan lewat konfigurasi. Selama jalan paralel, menu bisa mengarah ke app lama dengan token.
+**Menu URL**: `RFMENUX.MENUURL` saat ini berisi path halaman WebForms. Arah yang dipilih: nilainya diubah menjadi **rute halaman Blazor**. Karena baris itu juga dipakai aplikasi lama, selama masa paralel dipakai tabel pemetaan di kode (`url lama → rute Blazor`); data `MENUURL` baru diganti saat cutover modul itu (lewat skrip data terpisah, bukan perubahan skema). Menu yang belum dimigrasi disembunyikan/dinonaktifkan atau mengarah ke app lama dengan token.
 
 **Token SSO**: tidak dipakai di dalam host. Tetap didukung (opsional) untuk dua hal: (a) menerima login dari LOSLOGIN lama selama masa paralel, (b) mengarahkan menu yang belum dimigrasi ke app lama. Kedua-duanya memakai `ES_SAVETOKEN`/`VW_ES_APPTOKEN`/`ES_APPTOKEN_DELETE` apa adanya.
 
@@ -276,8 +276,8 @@ Total estimasi kasar (dinaikkan karena modul baru): **±9–11 bulan** untuk 1 t
 
 ## 6. Pertanyaan terbuka
 0. Apakah repo `irfansyah/Panin.Collection` perlu private, dan siapa saja yang diberi akses? (Repo lama dibiarkan apa adanya.)
-0a. Tab modul: state tiap modul dipertahankan selama sesi (usulan) atau dimulai ulang saat berpindah seperti sistem lama?
-0c. DB DATA modul 99 (Maintenance): apakah sama dengan DB LOGIN? Berapa DB DATA yang ada selain `LOSPANINCOLLECTION`, dan apakah modul 70 (MIS) memakai DB yang sama dengan 60?
+0a. ~~Tab modul: state dipertahankan atau dimulai ulang?~~ **Diputuskan: state tiap tab modul dipertahankan selama sesi.**
+0c. DB DATA modul 99 dan 70: dicek langsung ke database (connection string diisi user di user-secrets); sementara `ConnectionStrings:Data:<id>` dikosongkan sehingga memakai `RFMODULE`.
 0d. Apakah user boleh login di lebih dari satu perangkat/tab (aturan `SU_LOGON` lama melarangnya)?
 0b. Apakah pengembangan di `multibrowser` masih berjalan (UAT/produksi)? Apakah branch itu sudah yang dipakai di produksi?
 1. Apakah ada akses ke DB dev/UAT dan backup skema (agar bisa dump view/SP)?
