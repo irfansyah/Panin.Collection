@@ -37,7 +37,7 @@ Angka login/logout di bawah diambil dari pengamat query aplikasi (`/_diag/querie
 | `SP_JOB_INFO`, `SP_SPOUSE_INFO`, `SP_SPOUSE_JOB` | tab Pekerjaan, Pasangan, Pekerjaan Pasangan | 21–34 ms | Pakai (baca-saja, diperiksa) | dimuat hanya saat tab dibuka |
 | `SP_GET_CONTACT_INFO` | tab Kontak | ±26 ms | Pakai (baca-saja) | |
 | `USP_VWDELINQHIST` | riwayat kolektibilitas | ±27 ms (pertama di aplikasi ±1 s) | Pakai (baca-saja) | |
-| `LOAN_MASTER` ⨝ `RFPRODUCT` (APP_TYPE) | sorotan PRK | ms (pertama di aplikasi ±550 ms, 0 baris untuk rekening tanpa produk) | Pakai | |
+| `LOAN_MASTER` ⨝ `RFPRODUCT` (APP_TYPE) | sorotan PRK | tidak diukur terpisah (pertama di aplikasi ±550 ms, 0 baris untuk rekening tanpa produk) | Pakai | |
 | `SP_VIEW_OTHER_RELATION` | tab Relasi lain | 30 ms | **Tunda** | parameter `@FUNC` belum jelas artinya |
 
 ## Belum diukur / menunggu halaman
