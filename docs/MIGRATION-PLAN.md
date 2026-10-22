@@ -272,7 +272,7 @@ Prinsip:
 - Dump skema **dari server** (view/SP/FNC) dan cocokkan dengan objek yang dipanggil kode branch `multibrowser`.
 - Keluaran: `Panin.Infrastructure` dengan `IDb` pengganti `DbConnection`, test terhadap DB dev.
 
-### Fase 1 — Auth & shell (±2 minggu)
+### Fase 1 — Auth & shell (±2 minggu) — *dikerjakan (lihat catatan di bawah)*
 - **Akses dua database**: `ILoginDb`, `IModuleRegistry` (baca `RFMODULE`), `IModuleDbFactory` (DB DATA per modul), cache modul.
 - Login di host yang sama (replika `SU_USERLOGINGIN` → `SU_LOGINSTARTED`; revoke/lock, `SU_LOGON` login tunggal, false-password-count, password default/expired → ganti password).
 - Kompatibilitas SHA1 hash; upgrade ke hash kuat bertahap saat login (butuh persetujuan karena ubah data kolom).
@@ -283,6 +283,8 @@ Prinsip:
 - Token SSO (`ES_SAVETOKEN`, `VW_ES_APPTOKEN`, `ES_APPTOKEN_DELETE`) hanya sebagai jembatan ke aplikasi lama selama paralel.
 - Harness uji beban awal (klien SignalR sintetis) dan baseline memori per sirkuit (bagian 2F).
 - Kriteria selesai: user login di host baru dengan akun yang sama, melihat tab modul dan menu sesuai group, dan sesi/heartbeat/logout berperilaku seperti lama.
+
+**Status Fase 1:** login, ganti password (tiket), sesi tunggal (registry memori + reaper + antrean logout + retry deadlock), cookie auth dengan validasi sesi, shell dengan tab modul (state dipertahankan), menu dari `RFMENUX`/`GRPMENUX`, footer, heartbeat/idle dan logout, `IModuleDbFactory`, serta harness beban HTTP sudah jalan dan teruji di salinan DB lokal (37 unit test, uji beban 700 login). **Belum**: cek kesegaran data dan warning di footer, area user (`VW_AUTH_USERAREA`), halaman news, jembatan token SSO ke app lama, dan uji beban tingkat sirkuit (lihat `docs/LOAD-TESTING.md`). Ketiga hal pertama menunggu akses DB DATA modul 60.
 
 ### Fase 2 — Inti Collection (±6–8 minggu)
 Urutan berdasarkan ketergantungan:
