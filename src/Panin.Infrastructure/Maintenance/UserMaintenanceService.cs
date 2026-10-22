@@ -364,7 +364,7 @@ public sealed partial class UserMaintenanceService(
     }
 
     private static Task WritePendingAsync(IDb db, string userId, string status, string maker, IReadOnlyDictionary<string, string?> after, IReadOnlyDictionary<string, string?>? before, CancellationToken ct)
-        => ParameterEngine.WritePendingAsync(db, Table, "USERID", userId, status, maker, Fields, after, before, ct);
+        => ParameterEngine.WritePendingAsync(db, Table, [new("USERID", userId)], status, maker, Fields, after, before, ct);
 
     private static Task DeletePendingAsync(IDb db, Guid id, CancellationToken ct) => ParameterEngine.DeletePendingAsync(db, id, ct);
 

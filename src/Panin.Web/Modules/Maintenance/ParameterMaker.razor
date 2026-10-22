@@ -1,0 +1,392 @@
+@attribute [ModulePage("99", "/maintenance/parameter/maker")]
+@implements IDisposable
+@using Panin.Application.Collection
+@using Panin.Application.Maintenance
+@using Panin.Web.Components.Common
+@inject IParameterService Parameters
+@inject ILogger<ParameterMaker> Logger
+
+<section class="space-y-4">
+    <div class="flex items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold text-slate-800">@Title <span class="text-base font-normal text-slate-500">· Maker</span></h1>
+        <div class="flex gap-2">
+            @if (_table is not null)
+            {
+                <button type="button" @onclick="RefreshAsync" disabled="@_busy" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-60">Muat ulang</button>
+            }
+            @if (Navigator is { CanGoBack: true })
+            {
+                <button type="button" @onclick="Navigator.Back" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">← Kembali</button>
+            }
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat...</p>
+    }
+    else if (!_allowed)
+    {
+        <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">Group Anda tidak punya hak Maker untuk parameter ini.</div>
+    }
+    else if (_table is null)
+    {
+        <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">Parameter ini tidak terdaftar atau tidak dapat dikelola dari sini.</div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <div class="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700" role="status">@_message</div>
+        }
+
+        @if (_errors.Count > 0)
+        {
+            <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                <ul class="list-disc pl-5">
+                    @foreach (var e in _errors)
+                    {
+                        <li>@e</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        @if (_confirm is not null)
+        {
+            <div class="flex flex-wrap items-center gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alertdialog" aria-label="Konfirmasi">
+                <span>@_confirm.Prompt</span>
+                <button type="button" @onclick="RunConfirmedAsync" disabled="@_busy" class="rounded-md bg-red-700 px-3 py-1 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60">Ya</button>
+                <button type="button" @onclick="() => _confirm = null" class="rounded-md border border-slate-300 bg-white px-3 py-1 text-sm hover:bg-slate-100">Tidak</button>
+            </div>
+        }
+
+        @if (!_table.CanEdit)
+        {
+            <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="status">@_table.ReadOnlyReason</div>
+        }
+        else
+        {
+            <form @onsubmit="SaveAsync" class="rounded-lg border border-slate-200 bg-white p-4">
+                <h2 class="mb-3 text-sm font-semibold text-slate-700">@(_isEdit ? "Ubah data" : "Tambah data")</h2>
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach (var f in _table.Fields.Where(f => f.Kind != ParameterKind.Unsupported))
+                    {
+                        <Field @key="f.Name" Label="@f.Label" Required="@(f.IsKey || f.IsMandatory)">
+                            @if (f.LookupSql is not null)
+                            {
+                                <select value="@_values.GetValueOrDefault(f.Name)" @onchange="e => Set(f, e.Value?.ToString())" disabled="@(_isEdit && f.IsKey)" class="@InputClass">
+                                    <option value="">- pilih -</option>
+                                    @foreach (var item in _lookups.GetValueOrDefault(f.Name) ?? [])
+                                    {
+                                        <option value="@item.Code" selected="@(item.Code == _values.GetValueOrDefault(f.Name))">@item.Text</option>
+                                    }
+                                </select>
+                            }
+                            else if (f.Kind == ParameterKind.Boolean)
+                            {
+                                <label class="flex items-center gap-2 py-2 text-sm">
+                                    <input type="checkbox" checked="@(_values.GetValueOrDefault(f.Name) == "1")" @onchange="e => SetBool(f, e)" disabled="@(_isEdit && f.IsKey)" /> Ya
+                                </label>
+                            }
+                            else if (f.Kind == ParameterKind.DateTime)
+                            {
+                                <input type="datetime-local" value="@ToLocal(_values.GetValueOrDefault(f.Name))" @onchange="e => Set(f, FromLocal(e.Value?.ToString()))" disabled="@(_isEdit && f.IsKey)" class="@InputClass" />
+                            }
+                            else
+                            {
+                                <input value="@_values.GetValueOrDefault(f.Name)" @onchange="e => Set(f, e.Value?.ToString())" maxlength="@(f.Kind == ParameterKind.Text && f.MaxLength > 0 ? f.MaxLength : 50)"
+                                       inputmode="@(f.Kind is ParameterKind.Integer or ParameterKind.Decimal ? "decimal" : "text")" disabled="@(_isEdit && f.IsKey)" class="@InputClass" />
+                            }
+                        </Field>
+                    }
+                </div>
+                <p class="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">Perubahan baru berlaku setelah disetujui di menu Approval.</p>
+                <div class="mt-4 flex gap-2">
+                    <button type="submit" disabled="@_busy" class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">Simpan ke pending</button>
+                    <button type="button" @onclick="ResetForm" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Batal</button>
+                </div>
+            </form>
+        }
+
+        <Card Title="Menunggu persetujuan">
+            <DataGrid TItem="PendingParameterRow" Items="_pending" Columns="_pendingColumns" EmptyText="Tidak ada ajuan." />
+        </Card>
+
+        <Card Title="Data">
+            @if (_rows is { Truncated: true })
+            {
+                <p class="mb-2 text-xs text-amber-800" role="status">Menampilkan @_rows.MaxRows dari @_rows.Total baris pertama.</p>
+            }
+
+            <DataGrid TItem="ParameterRow" Items="_rows?.Rows ?? []" Columns="_columns" EmptyText="Tidak ada data." />
+        </Card>
+    }
+</section>
+
+@code {
+    private const string InputClass = "w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm disabled:bg-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+    private const string ActionClass = "rounded border border-sky-300 px-2 py-0.5 text-xs font-medium text-sky-800 hover:bg-sky-50";
+
+    private sealed record Confirm(string Prompt, Func<Task<MaintenanceResult>> Run, string Done);
+
+    private readonly CancellationTokenSource _cts = new();
+    private readonly Dictionary<string, string?> _values = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, IReadOnlyList<LookupItem>> _lookups = new(StringComparer.OrdinalIgnoreCase);
+    private Confirm? _confirm;
+    private ParameterTable? _table;
+    private ParameterRows? _rows;
+    private IReadOnlyList<PendingParameterRow> _pending = [];
+    private IReadOnlyList<string> _errors = [];
+    private IReadOnlyList<GridColumn<ParameterRow>> _columns = [];
+    private IReadOnlyList<GridColumn<PendingParameterRow>> _pendingColumns = [];
+    private ParameterActor? _actor;
+    private string? _message;
+    private bool _loading = true, _allowed, _busy, _isEdit;
+
+    [Parameter, EditorRequired] public string SetId { get; set; } = "GEN";
+
+    [Parameter, EditorRequired] public string ModuleId { get; set; } = "60";
+
+    [Parameter, EditorRequired] public string Table { get; set; } = string.Empty;
+
+    [Parameter] public string Title { get; set; } = string.Empty;
+
+    [CascadingParameter] private IModuleNavigator? Navigator { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var user = (await AuthState).User.ToSessionUser();
+            if (user is null)
+            {
+                return;
+            }
+
+            _actor = new ParameterActor(user.UserId, user.GroupId);
+            _allowed = await Parameters.HasRoleAsync(user.GroupId, MaintenanceRole.Maker, SetId, _cts.Token);
+            if (!_allowed)
+            {
+                return;
+            }
+
+            _table = await Parameters.GetTableAsync(SetId, ModuleId, Table, _cts.Token);
+            if (_table is null)
+            {
+                return;
+            }
+
+            foreach (var f in _table.Fields.Where(f => f.LookupSql is not null))
+            {
+                _lookups[f.Name] = await Parameters.GetLookupAsync(_table, f.Name, _cts.Token);
+            }
+
+            BuildColumns();
+            ResetForm();
+            await ReloadAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Halaman maker parameter {Table} gagal dimuat", Table);
+            _errors = [$"Halaman gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void BuildColumns()
+    {
+        string? Show(ParameterField f, string? v) => f.Kind == ParameterKind.Boolean ? (v == "1" ? "Ya" : v == "0" ? "Tidak" : v)
+            : f.LookupSql is not null && v is not null ? _lookups.GetValueOrDefault(f.Name)?.FirstOrDefault(i => i.Code == v)?.Text ?? v : v;
+
+        var fields = _table!.Fields.Where(f => f.Kind != ParameterKind.Unsupported).ToList();
+        var rowCols = fields.Select(f => new GridColumn<ParameterRow> { Header = f.Label, Value = r => r.Get(f.Name), Display = r => Show(f, r.Get(f.Name)) }).ToList();
+        if (_table.CanEdit)
+        {
+            rowCols.Add(new GridColumn<ParameterRow>
+            {
+                Header = "Aksi", Value = r => r, ActionOnly = true, Sortable = false,
+                Template = r => @<div class="flex gap-1">
+                    <button type="button" @onclick="() => Edit(r)" class="@ActionClass">Ubah</button>
+                    <button type="button" @onclick="() => AskDelete(r)" class="@ActionClass">Hapus</button>
+                </div>,
+            });
+        }
+
+        _columns = rowCols;
+
+        var pendCols = new List<GridColumn<PendingParameterRow>>
+        {
+            new() { Header = "Status", Value = p => p.Status },
+            new() { Header = "Diajukan oleh", Value = p => p.CreatedBy },
+            new() { Header = "Perubahan", Value = p => p.Changes },
+        };
+        pendCols.AddRange(fields.Select(f => new GridColumn<PendingParameterRow> { Header = f.Label, Value = p => p.Get(f.Name), Display = p => Show(f, p.Get(f.Name)) }));
+        pendCols.Add(new GridColumn<PendingParameterRow>
+        {
+            Header = "Aksi", Value = p => p, ActionOnly = true, Sortable = false,
+            Template = p => @<div class="flex gap-1">
+                @if (p.Status != "Delete" && _table!.CanEdit) { <button type="button" @onclick="() => EditPending(p)" class="@ActionClass">Ubah</button> }
+                @if (string.Equals(p.CreatedBy, _actor?.UserId, StringComparison.OrdinalIgnoreCase)) { <button type="button" @onclick="() => CancelAsync(p)" class="@ActionClass">Batalkan</button> }
+            </div>,
+        });
+        _pendingColumns = pendCols;
+    }
+
+    private async Task ReloadAsync()
+    {
+        var rows = Parameters.GetRowsAsync(_table!, _cts.Token);
+        var pending = Parameters.GetPendingAsync(_table!, _cts.Token);
+        await Task.WhenAll(rows, pending);
+        _rows = rows.Result;
+        _pending = pending.Result;
+    }
+
+    private async Task RefreshAsync()
+    {
+        _busy = true;
+        try
+        {
+            await ReloadAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Muat ulang parameter {Table} gagal", Table);
+            _errors = [$"Data gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Set(ParameterField field, string? value) => _values[field.Name] = value;
+
+    private void SetBool(ParameterField field, ChangeEventArgs e) => _values[field.Name] = e.Value is true ? "1" : "0";
+
+    private void ResetForm()
+    {
+        _values.Clear();
+        _isEdit = false;
+        foreach (var f in _table!.Fields.Where(f => f.Kind == ParameterKind.Boolean))
+        {
+            _values[f.Name] = "0";
+        }
+
+        _errors = [];
+    }
+
+    private void Edit(ParameterRow row) => Load(row.Values, isEdit: true);
+
+    private void EditPending(PendingParameterRow p) => Load(p.Values, isEdit: p.Status == "Update");
+
+    private void Load(IReadOnlyDictionary<string, string?> values, bool isEdit)
+    {
+        _message = null;
+        _errors = [];
+        _values.Clear();
+        foreach (var (k, v) in values)
+        {
+            _values[k] = v;
+        }
+
+        _isEdit = isEdit;
+    }
+
+    private Task SaveAsync()
+    {
+        var draft = new ParameterDraft { IsEdit = _isEdit };
+        foreach (var (k, v) in _values)
+        {
+            draft.Values[k] = v;
+        }
+
+        return RunAsync(() => Parameters.SavePendingAsync(_actor!, _table!, draft, _cts.Token), "Ajuan tersimpan dan menunggu persetujuan.", reset: true);
+    }
+
+    private void AskDelete(ParameterRow row)
+    {
+        var keys = _table!.Keys.ToDictionary(k => k.Name, k => row.Get(k.Name));
+        var label = string.Join(", ", keys.Values);
+        _confirm = new($"Ajukan penghapusan data {label}?", () => Parameters.DeleteToPendingAsync(_actor!, _table!, keys, _cts.Token), "Ajuan hapus tersimpan dan menunggu persetujuan.");
+    }
+
+    private Task CancelAsync(PendingParameterRow p) => RunAsync(() => Parameters.CancelPendingAsync(_actor!, _table!, p.TemporaryId, _cts.Token), "Ajuan dibatalkan.", reset: false);
+
+    private async Task RunConfirmedAsync()
+    {
+        if (_confirm is not { } c)
+        {
+            return;
+        }
+
+        _confirm = null;
+        await RunAsync(c.Run, c.Done, reset: false);
+    }
+
+    private async Task RunAsync(Func<Task<MaintenanceResult>> action, string done, bool reset)
+    {
+        if (_busy || _actor is null)
+        {
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        _errors = [];
+        try
+        {
+            var result = await action();
+            _errors = result.Errors;
+            if (result.Success)
+            {
+                _message = done;
+                if (reset)
+                {
+                    ResetForm();
+                }
+
+                await ReloadAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Aksi maintenance parameter {Table} gagal", Table);
+            _errors = [$"Aksi gagal. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // <input type="datetime-local"> memakai "yyyy-MM-ddTHH:mm"; penyimpanan memakai "yyyy-MM-dd HH:mm:ss".
+    private static string? ToLocal(string? stored)
+        => DateTime.TryParse(stored, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d.ToString("yyyy-MM-ddTHH:mm", System.Globalization.CultureInfo.InvariantCulture) : null;
+
+    private static string? FromLocal(string? local)
+        => DateTime.TryParse(local, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) : null;
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

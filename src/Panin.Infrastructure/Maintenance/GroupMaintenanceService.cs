@@ -94,7 +94,7 @@ public sealed partial class GroupMaintenanceService(
         var before = existing is null ? null : Fields.ToDictionary(f => f, f => ParameterEngine.ToText(existing[f]));
         try
         {
-            await ParameterEngine.WritePendingAsync(db, Table, "GROUPID", groupId, existing is null ? "Insert" : "Update", makerUserId, Fields, after, before, ct).ConfigureAwait(false);
+            await ParameterEngine.WritePendingAsync(db, Table, [new("GROUPID", groupId)], existing is null ? "Insert" : "Update", makerUserId, Fields, after, before, ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -130,7 +130,7 @@ public sealed partial class GroupMaintenanceService(
         var values = Fields.ToDictionary(f => f, f => ParameterEngine.ToText(existing[f]));
         try
         {
-            await ParameterEngine.WritePendingAsync(db, Table, "GROUPID", groupId, "Delete", makerUserId, Fields, values, values, ct).ConfigureAwait(false);
+            await ParameterEngine.WritePendingAsync(db, Table, [new("GROUPID", groupId)], "Delete", makerUserId, Fields, values, values, ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

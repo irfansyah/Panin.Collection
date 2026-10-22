@@ -1,5 +1,5 @@
 @using Panin.Application.Maintenance
-@inject IParameterSetService Sets
+@inject IParameterService Parameters
 @inject ILogger<ParameterSetList> Logger
 
 <section class="space-y-4">
@@ -18,11 +18,11 @@
         <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             @foreach (var item in _items)
             {
-                var page = PageFor(item.Link);
-                <li @key="item.Title">
-                    @if (page is not null)
+                var open = Resolve(item);
+                <li @key="item.Link">
+                    @if (open is not null)
                     {
-                        <button type="button" @onclick="() => Navigator?.Open(page)"
+                        <button type="button" @onclick="() => Navigator?.Open(open.Value.Page, open.Value.Parameters)"
                                 class="w-full rounded-lg border border-slate-200 bg-white p-4 text-left text-sm font-medium text-sky-800 shadow-sm hover:border-sky-300 hover:bg-sky-50">
                             @item.Title
                         </button>
@@ -55,7 +55,7 @@
     {
         try
         {
-            _items = await Sets.GetItemsAsync(SetId, Maker);
+            _items = await Parameters.GetItemsAsync(SetId, Maker);
         }
         catch (Exception ex)
         {
@@ -64,17 +64,26 @@
         }
     }
 
-    // Tujuan ditentukan dari nama berkas pada tautan lama; yang belum punya halaman baru ditandai "Belum dimigrasi".
-    private static Type? PageFor(string link)
+    // Tujuan ditentukan dari nama berkas pada tautan lama. User dan Group punya halaman khusus; sisanya memakai editor generik
+    // (ParamMaker/ParamApprv.aspx?TBLNM=...&Moduleid=...).
+    private (Type Page, IDictionary<string, object?> Parameters)? Resolve(ParameterSetItem item)
     {
-        var file = link.Split('?')[0].Split('/').Last().ToLowerInvariant();
-        return file switch
+        var none = new Dictionary<string, object?>();
+        switch (item.File)
         {
-            "usermaker.aspx" => typeof(UserMaker),
-            "userapprv.aspx" => typeof(UserApproval),
-            "groupmaker.aspx" => typeof(GroupMaker),
-            "groupapprv.aspx" => typeof(GroupApproval),
-            _ => null,
-        };
+            case "usermaker.aspx": return (typeof(UserMaker), none);
+            case "userapprv.aspx": return (typeof(UserApproval), none);
+            case "groupmaker.aspx": return (typeof(GroupMaker), none);
+            case "groupapprv.aspx": return (typeof(GroupApproval), none);
+            case "parammaker.aspx" or "paramapprv.aspx" when item.Table is not null && item.ModuleId is not null:
+                return (item.File == "parammaker.aspx" ? typeof(ParameterMaker) : typeof(ParameterApproval), new Dictionary<string, object?>
+                {
+                    [nameof(ParameterMaker.SetId)] = SetId,
+                    [nameof(ParameterMaker.ModuleId)] = item.ModuleId,
+                    [nameof(ParameterMaker.Table)] = item.Table,
+                    [nameof(ParameterMaker.Title)] = item.Title,
+                });
+            default: return null;
+        }
     }
 }

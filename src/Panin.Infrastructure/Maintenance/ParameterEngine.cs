@@ -13,12 +13,19 @@ namespace Panin.Infrastructure.Maintenance;
 internal static class ParameterEngine
 {
     public const string ModuleId = "99";
-    private const string MakerMenuId = "201010";
-    private const string ApproverMenuId = "201020";
 
-    public static async Task<bool> HasRoleAsync(IMenuService menus, string groupId, MaintenanceRole role, CancellationToken ct)
+    /// <summary>Menu Maker/Approval per set parameter (RFMENUX modul 99). Hak diberikan lewat GRPMENUX, sama seperti di layar lama.</summary>
+    public static (string Maker, string Approver) MenuIds(string setId) => setId.ToUpperInvariant() switch
     {
-        var wanted = role == MaintenanceRole.Maker ? MakerMenuId : ApproverMenuId;
+        "GEN" => ("20201010", "20201020"),
+        "PROC" => ("20202010", "20202020"),
+        _ => ("201010", "201020"),
+    };
+
+    public static async Task<bool> HasRoleAsync(IMenuService menus, string groupId, MaintenanceRole role, CancellationToken ct, string setId = "USER")
+    {
+        var ids = MenuIds(setId);
+        var wanted = role == MaintenanceRole.Maker ? ids.Maker : ids.Approver;
         var tree = await menus.GetMenuAsync(ModuleId, groupId, ct).ConfigureAwait(false);
         return Contains(tree, wanted);
 
@@ -31,12 +38,20 @@ internal static class ParameterEngine
     /// Nilai "sebelum" disimpan untuk pembanding di layar approval.
     /// </summary>
     public static async Task WritePendingAsync(
-        IDb db, string table, string keyField, string keyValue, string status, string maker, IReadOnlyList<string> fields,
+        IDb db, string table, IReadOnlyList<KeyValuePair<string, string?>> keys, string status, string maker, IReadOnlyList<string> fields,
         IReadOnlyDictionary<string, string?> after, IReadOnlyDictionary<string, string?>? before, CancellationToken ct)
     {
-        var existingId = await db.ExecuteScalarAsync<Guid?>(
-            "SELECT TOP 1 T.TEMPORARYID FROM PARAMETERSYSTEM_TEMPORARY T JOIN PARAMETERSYSTEM_TEMPORARYDETAIL D ON D.TEMPORARYID = T.TEMPORARYID AND D.FIELDNAME = @3 AND D.FIELDVALUE = @1 WHERE T.TABLENAME = @2",
-            [keyValue, table, keyField], ct: ct).ConfigureAwait(false);
+        // Satu ajuan per objek: cari ajuan yang kunci-kuncinya sama (semua pasangan kunci harus cocok).
+        var findArgs = new List<object?> { table };
+        var find = new StringBuilder("SELECT TOP 1 T.TEMPORARYID FROM PARAMETERSYSTEM_TEMPORARY T WHERE T.TABLENAME = @1");
+        foreach (var (name, value) in keys)
+        {
+            findArgs.Add(name);
+            findArgs.Add(value);
+            find.Append(CultureInfo.InvariantCulture, $" AND EXISTS (SELECT 1 FROM PARAMETERSYSTEM_TEMPORARYDETAIL D WHERE D.TEMPORARYID = T.TEMPORARYID AND D.FIELDNAME = @{findArgs.Count - 1} AND D.FIELDVALUE = @{findArgs.Count})");
+        }
+
+        var existingId = await db.ExecuteScalarAsync<Guid?>(find.ToString(), [.. findArgs], ct: ct).ConfigureAwait(false);
         var id = existingId ?? Guid.NewGuid();
 
         var args = new List<object?> { id, table, status, maker };

@@ -52,7 +52,7 @@ public static class DependencyInjection
         services.Configure<Maintenance.MaintenanceOptions>(configuration.GetSection(Maintenance.MaintenanceOptions.SectionName));
         services.AddSingleton<IUserMaintenanceService, Maintenance.UserMaintenanceService>();
         services.AddSingleton<IGroupMaintenanceService, Maintenance.GroupMaintenanceService>();
-        services.AddSingleton<IParameterSetService, Maintenance.ParameterSetService>();
+        services.AddSingleton<IParameterService, Maintenance.ParameterService>();
         services.AddSingleton<IContactReferenceService, ContactReferenceService>();
         services.AddSingleton<ITreatmentMenuService, TreatmentMenuService>();
         services.AddSingleton<IExcelExporter, NpoiExcelExporter>();
