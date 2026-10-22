@@ -26,6 +26,9 @@ public sealed class SingleFlightCache(IMemoryCache cache)
         return (T?)await flight.Value.ConfigureAwait(false);
     }
 
+    /// <summary>Membuang isi cache (mis. setelah data berubah oleh aksi user sendiri).</summary>
+    public void Remove(string key) => cache.Remove(key);
+
     private async Task<object?> RunAsync<T>(string key, TimeSpan ttl, Func<Task<T?>> factory)
     {
         try

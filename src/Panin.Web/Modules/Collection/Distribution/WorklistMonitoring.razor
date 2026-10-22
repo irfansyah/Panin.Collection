@@ -1,0 +1,295 @@
+@attribute [ModulePage("60", "/collection/worklist")]
+@implements IDisposable
+@using System.Globalization
+@using Panin.Application.Collection
+@using Panin.Web.Components.Common
+@using Panin.Web.Modules.Collection.Inquiry
+@inject IWorklistService Worklist
+@inject ILogger<WorklistMonitoring> Logger
+
+<section class="space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold text-slate-800">Distribusi Debitur</h1>
+        @if (_trail.Count > 1)
+        {
+            <button type="button" @onclick="GoUpAsync" disabled="@_busy"
+                    class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-60">
+                ← Kembali ke @_trail[^2].Name
+            </button>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">@_error</div>
+    }
+
+    @if (!string.IsNullOrEmpty(_message))
+    {
+        <div class="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700" role="status">@_message</div>
+    }
+
+    @if (_viewing is not null)
+    {
+        @if (_team.Count > 0)
+        {
+            <Card Title="@($"User-user dibawah pengawasan {_viewing.Name}")">
+                <DataGrid TItem="WorklistTeamMember" Items="_team" Columns="_teamColumns" EmptyText="Tidak ada bawahan." />
+                <p class="mt-2 text-xs text-slate-500">User yang dicentang akan memindahkan seluruh debiturnya beserta debitur bawahannya.</p>
+            </Card>
+        }
+
+        <div class="rounded-lg border border-slate-200 bg-white">
+            <div class="border-b border-slate-200 px-4 py-2">
+                <h2 class="text-sm font-semibold text-slate-700">Debitur yang ditangani @_viewing.Name</h2>
+            </div>
+            <div class="p-4">
+                @if (_busy)
+                {
+                    <p class="text-sm text-slate-500" role="status">Memuat...</p>
+                }
+                else if (_debitors is not null)
+                {
+                    @if (_debitors.Truncated)
+                    {
+                        <div class="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="status">
+                            Menampilkan @_debitors.MaxRows.ToString("N0", Id) dari @_debitors.Total.ToString("N0", Id) debitur (terbaru dulu). Pilih bawahan di atas untuk daftar yang lebih kecil.
+                        </div>
+                    }
+
+                    <div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
+                        <button type="button" @onclick="SelectAllAccounts" class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-100">Pilih semua</button>
+                        <button type="button" @onclick="ClearAccounts" class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-100">Kosongkan</button>
+                        <span class="text-slate-600">@_accounts.Count debitur dan @_groups.Count user dipilih</span>
+                    </div>
+
+                    <DataGrid TItem="WorklistDebitorRow" Items="_debitors.Rows" Columns="_debitorColumns" EmptyText="Tidak ada debitur." />
+                }
+            </div>
+        </div>
+
+        <Card Title="Pindahkan ke user lain">
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Field Label="User ID tujuan" Required>
+                    <input @bind="_targetUser" @bind:event="oninput" list="worklist-team" maxlength="20" class="@InputClass" />
+                    <datalist id="worklist-team">
+                        @foreach (var m in _team)
+                        {
+                            <option value="@m.UserId">@m.Name</option>
+                        }
+                    </datalist>
+                </Field>
+                <Field Label="Permanent">
+                    <label class="flex items-center gap-2 py-2 text-sm"><input type="checkbox" @bind="_permanent" /> Pindah permanen</label>
+                </Field>
+                @if (!_permanent)
+                {
+                    <Field Label="Sampai tanggal" Required>
+                        <input type="date" @bind="_until" class="@InputClass" />
+                    </Field>
+                }
+            </div>
+            <div class="mt-4">
+                <button type="button" @onclick="ReassignAsync" disabled="@(_busy || _moving)"
+                        class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">
+                    @(_moving ? "Memindahkan..." : "Pindahkan")
+                </button>
+            </div>
+        </Card>
+    }
+</section>
+
+@code {
+    private const string InputClass = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+    private static readonly CultureInfo Id = CultureInfo.GetCultureInfo("id-ID");
+
+    private readonly CancellationTokenSource _cts = new();
+    private readonly List<ViewedUser> _trail = [];
+    private readonly HashSet<string> _groups = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _accounts = new(StringComparer.OrdinalIgnoreCase);
+    private ViewedUser? _viewing => _trail.Count > 0 ? _trail[^1] : null;
+    private IReadOnlyList<WorklistTeamMember> _team = [];
+    private WorklistDebitorResult? _debitors;
+    private string? _error, _message, _viewerId, _targetUser;
+    private DateTime? _until = DateTime.Today;
+    private bool _busy, _moving, _permanent = true;
+    private IReadOnlyList<GridColumn<WorklistTeamMember>> _teamColumns = [];
+    private IReadOnlyList<GridColumn<WorklistDebitorRow>> _debitorColumns = [];
+
+    [CascadingParameter] private IModuleNavigator? Navigator { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _teamColumns =
+        [
+            new() { Header = "", Value = m => m.UserId, ActionOnly = true, Sortable = false, Template = m => @<input type="checkbox" checked="@_groups.Contains(m.UserId)" @onchange="e => Toggle(_groups, m.UserId, e)" aria-label="@($"Pilih {m.Name}")" /> },
+            new() { Header = "Nama", Value = m => m.Name, Template = m => @<button type="button" @onclick="() => DrillDownAsync(m)" class="text-left font-medium text-sky-800 hover:underline">@m.Name</button> },
+            new() { Header = "User ID", Value = m => m.UserId },
+            new() { Header = "Group", Value = m => m.Group },
+            new() { Header = "Jml Debitur", Value = m => m.DebitorCount, Numeric = true },
+            new() { Header = "Cabang", Value = m => m.Branch },
+        ];
+        _debitorColumns =
+        [
+            new() { Header = "", Value = r => r.AccountNo, ActionOnly = true, Sortable = false, Template = r => @<input type="checkbox" checked="@_accounts.Contains(r.AccountNo)" @onchange="e => Toggle(_accounts, r.AccountNo, e)" aria-label="@($"Pilih {r.AccountNo}")" /> },
+            new() { Header = "Nomor Rekening", Value = r => r.AccountNo },
+            new() { Header = "Nama", Value = r => r.Name },
+            new() { Header = "Fasilitas", Value = r => r.Facility },
+            new() { Header = "Tgl Penugasan", Value = r => r.AssignedOn, Display = r => r.AssignedOn?.ToString("dd-MMM-yyyy", Id) },
+            new() { Header = "Lama Ditangani (hari)", Value = r => r.DaysHandled, Numeric = true },
+            new() { Header = "DPD", Value = r => r.Dpd, Numeric = true },
+            new() { Header = "Aksi", Value = r => r.Action },
+            new() { Header = "Rekomendasi", Value = r => r.Recommendation },
+            new() { Header = "Status Rekening", Value = r => r.AccountStatus },
+            new() { Header = "Reassign", Value = r => r.Reassign },
+            new() { Header = "Detail", Value = r => r.AccountNo, ActionOnly = true, Sortable = false, Template = r => @<button type="button" @onclick="() => OpenDetail(r)" class="rounded border border-sky-300 px-2 py-0.5 text-xs font-medium text-sky-800 hover:bg-sky-50">Detail</button> },
+        ];
+
+        var user = (await AuthState).User.ToSessionUser();
+        if (user is null)
+        {
+            return;
+        }
+
+        _viewerId = user.UserId;
+        _trail.Add(new ViewedUser(user.UserId, user.FullName));
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_viewing is not { } v)
+        {
+            return;
+        }
+
+        _busy = true;
+        _error = null;
+        _groups.Clear();
+        _accounts.Clear();
+        try
+        {
+            var team = Worklist.GetTeamAsync(v.UserId, _cts.Token);
+            var debitors = Worklist.GetDebitorsAsync(v.UserId, _cts.Token);
+            await Task.WhenAll(team, debitors);
+            _team = team.Result;
+            _debitors = debitors.Result;
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Distribusi debitur gagal dimuat");
+            _error = "Data gagal dimuat. Coba lagi; jika berulang hubungi administrator.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DrillDownAsync(WorklistTeamMember member)
+    {
+        if (_viewerId is null || !await Worklist.CanViewAsync(_viewerId, member.UserId, _cts.Token))
+        {
+            _error = "Anda tidak berwenang melihat data user tersebut.";
+            return;
+        }
+
+        _message = null;
+        _trail.Add(new ViewedUser(member.UserId, member.Name ?? member.UserId));
+        await LoadAsync();
+    }
+
+    private async Task GoUpAsync()
+    {
+        if (_trail.Count > 1)
+        {
+            _message = null;
+            _trail.RemoveAt(_trail.Count - 1);
+            await LoadAsync();
+        }
+    }
+
+    private async Task ReassignAsync()
+    {
+        if (_viewerId is null || _moving)
+        {
+            return;
+        }
+
+        _moving = true;
+        _error = _message = null;
+        try
+        {
+            var request = new ReassignRequest
+            {
+                TargetUserId = _targetUser?.Trim() ?? string.Empty,
+                GroupUserIds = [.. _groups],
+                AccountNos = [.. _accounts],
+                Permanent = _permanent,
+                Until = _until,
+            };
+            var result = await Worklist.ReassignAsync(_viewerId, request, _cts.Token);
+            if (result.Success)
+            {
+                _message = $"Data telah dipindahkan ke {result.TargetName ?? request.TargetUserId}";
+                await LoadAsync();
+            }
+            else
+            {
+                _error = string.Join("; ", result.Errors);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Pemindahan debitur gagal");
+            _error = "Pemindahan gagal. Coba lagi atau hubungi administrator.";
+        }
+        finally
+        {
+            _moving = false;
+        }
+    }
+
+    private static void Toggle(HashSet<string> set, string key, ChangeEventArgs e)
+    {
+        if (e.Value is true)
+        {
+            set.Add(key);
+        }
+        else
+        {
+            set.Remove(key);
+        }
+    }
+
+    private void SelectAllAccounts()
+    {
+        foreach (var r in _debitors?.Rows ?? [])
+        {
+            _accounts.Add(r.AccountNo);
+        }
+    }
+
+    private void ClearAccounts() => _accounts.Clear();
+
+    private void OpenDetail(WorklistDebitorRow row)
+        => Navigator?.Open<DebiturDetail>(new Dictionary<string, object?> { [nameof(DebiturDetail.AccountNo)] = row.AccountNo, [nameof(DebiturDetail.CustomerRef)] = row.CustomerRef });
+
+    private sealed record ViewedUser(string UserId, string Name);
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}
