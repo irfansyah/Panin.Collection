@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Panin.Application/Panin.Application.csproj" />
+    <Project Path="src/Panin.Domain/Panin.Domain.csproj" />
+    <Project Path="src/Panin.Infrastructure/Panin.Infrastructure.csproj" />
+    <Project Path="src/Panin.Web/Panin.Web.csproj" />
+    <Project Path="src/Panin.Worker/Panin.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Panin.UnitTests/Panin.UnitTests.csproj" />
+  </Folder>
+</Solution>
