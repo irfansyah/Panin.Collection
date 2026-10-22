@@ -321,7 +321,7 @@ Urutan berdasarkan ketergantungan:
 - SP: `SU_SCALLUSER_*`, `SU_SCALLGROUP_*`, `SU_SCUSERPASSWORD`, `VW_*PENDING`.
 
 ### Fase 6 — Worker service (±1–2 minggu)
-- Port `PANINSVC` ke `BackgroundService`: scan folder, upload file `AOC;CAB;PRD;REL;CUS;ACC;HIS;COL;DUE;MIS`, pindah ke Done/Fail, panggil `SP_UPLOAD_CUSTACC`, jendela waktu & interval dari config.
+- Port `PANINSVC` ke `BackgroundService`: scan folder, upload file `AOC;CAB;PRD;REL;CUS;ACC;HIS;COL;DUE;MIS`, pindah ke Done/Fail, panggil `SP_UPLOAD_CUSTACC`, jendela waktu & interval dari config. **Selesai** — `src/Panin.Worker`, lihat `docs/WORKER.md`.
 
 ### Fase 7 — Hardening & cutover (±3–4 minggu)
 - Uji beban 700 dan 1.000 sesi bersamaan sesuai kriteria 2F, terhadap salinan DB berukuran realistis.

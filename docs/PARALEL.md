@@ -65,12 +65,12 @@ Jadwalkan (Task Scheduler) tiap beberapa menit dengan `--apply`, atau jalankan m
 
 ## Cutover (aplikasi lama dimatikan)
 
-Prasyarat: semua fitur yang dipakai operasional sudah ada di aplikasi baru. **Per hari ini belum:** cetak surat, Monitoring Recovery/NPL, report (58 XtraReports), dan pekerjaan latar **PANINSVC** (batch unggah data/distribusi). Itu harus selesai, atau dipastikan tidak dipakai, sebelum langkah di bawah.
+Prasyarat: semua fitur yang dipakai operasional sudah ada di aplikasi baru. **Per hari ini belum:** Monitoring Recovery/NPL dan report (58 XtraReports). Pekerjaan latar PANINSVC sudah digantikan `Panin.Worker` (lihat `docs/WORKER.md`; aktifkan hanya saat cutover). Itu harus selesai, atau dipastikan tidak dipakai, sebelum langkah di bawah.
 
 Cara paling sederhana adalah **menukar nama DB**, karena nama DB LOGIN tertanam di view DATA:
 
 1. Jadwalkan jendela perawatan; hentikan akses ke aplikasi lama.
-2. Jalankan `Panin.LoginSync --apply` satu kali terakhir.
+2. Jalankan `Panin.LoginSync --apply` satu kali terakhir. Hentikan layanan **PANINSVC** lama dan ubah `Upload:Mode` worker baru menjadi `Run` (jangan keduanya aktif).
 3. Hentikan aplikasi lama dan aplikasi baru.
 4. Ganti nama DB (putuskan koneksi dulu: `ALTER DATABASE ... SET SINGLE_USER WITH ROLLBACK IMMEDIATE`):
    - DB LOGIN lama → `<nama lama>_LAMA` (disimpan untuk rujukan/rollback).
@@ -83,3 +83,7 @@ Cara paling sederhana adalah **menukar nama DB**, karena nama DB LOGIN tertanam 
 Alternatif tanpa ganti nama: ubah 3 view DATA (`SCUSER`, `RFGROUP`, `TEMP_DOWNLINE`) dan `SP_UPLOAD_CUSTACC` agar menunjuk ke nama DB LOGIN baru.
 
 Yang tidak ikut pindah otomatis: riwayat `SCALLUSERLOG` dan `AUDITTRAIL*` di DB LOGIN lama. Simpan DB lama (`_LAMA`) untuk rujukan, atau salin sekali bila perlu laporan audit lintas masa.
+
+## Worker unggah harian selama uji paralel
+
+PANINSVC lama dan `Panin.Worker` **tidak boleh sama-sama menjalankan unggah**: keduanya memanggil `SP_UPLOAD_CUSTACC` pada DB DATA yang sama. Selama paralel biarkan `Upload:Mode` = `Off` (bawaan) atau `Observe` (hanya melaporkan berkas yang terlihat; tidak menjalankan SP dan tidak memindahkan berkas). Detail: `docs/WORKER.md`.
