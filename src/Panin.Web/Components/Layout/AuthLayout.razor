@@ -1,7 +1,26 @@
 @inherits LayoutComponentBase
 
-<div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950 p-4">
-    <div class="w-full max-w-sm rounded-xl bg-white p-8 shadow-2xl">
-        @Body
+<div class="grid min-h-dvh lg:grid-cols-2">
+    <aside class="relative hidden overflow-hidden bg-gradient-to-br from-sky-800 via-sky-900 to-sky-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <div class="flex items-center gap-3">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-white/15 text-lg font-bold" aria-hidden="true">P</span>
+            <span class="text-lg font-semibold tracking-wide">Panin Collection</span>
+        </div>
+        <div>
+            <h2 class="max-w-md text-3xl font-semibold leading-tight">Kelola penagihan lebih cepat dan terarah.</h2>
+            <p class="mt-3 max-w-md text-sky-200">Worklist, monitoring, dan laporan dalam satu tempat.</p>
+        </div>
+        <p class="text-xs text-sky-300">&copy; PT Bank Pan Indonesia Tbk</p>
+        <div class="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-white/5" aria-hidden="true"></div>
+        <div class="pointer-events-none absolute -right-10 top-20 h-48 w-48 rounded-full bg-white/5" aria-hidden="true"></div>
+    </aside>
+    <div class="flex items-center justify-center bg-slate-50 p-5 sm:p-8">
+        <div class="w-full max-w-sm">
+            <div class="mb-8 flex items-center gap-2 lg:hidden">
+                <span class="grid h-9 w-9 place-items-center rounded-xl bg-sky-700 font-bold text-white" aria-hidden="true">P</span>
+                <span class="text-lg font-semibold text-slate-800">Panin Collection</span>
+            </div>
+            @Body
+        </div>
     </div>
 </div>

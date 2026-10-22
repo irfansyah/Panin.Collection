@@ -2,6 +2,63 @@
 @source "../Components";
 @source "../Modules";
 
+/* Sistem desain: lihat docs/DESIGN.md. Palet "sky" dipetakan ke biru merek supaya seluruh halaman ikut berganti. */
+@theme {
+    --font-sans: "Inter", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --color-sky-50: #eff6ff;
+    --color-sky-100: #dbeafe;
+    --color-sky-200: #bfdbfe;
+    --color-sky-300: #93c5fd;
+    --color-sky-400: #60a5fa;
+    --color-sky-500: #2f6fdc;
+    --color-sky-600: #1d5bc4;
+    --color-sky-700: #1649a0;
+    --color-sky-800: #123b82;
+    --color-sky-900: #0e2d65;
+    --color-sky-950: #0a1f48;
+    --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 1px 3px rgb(15 23 42 / 0.06);
+}
+
+@layer base {
+    html {
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        font-family: var(--font-sans);
+        color: var(--color-slate-800);
+        background: var(--color-slate-100);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-sky-500);
+        outline-offset: 2px;
+    }
+
+    input, select, textarea {
+        border-radius: var(--radius-lg);
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    button:not(:disabled), [role=button] {
+        cursor: pointer;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+}
+
+/* Komponen bersama */
+@utility scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-slate-300) transparent;
+}
+
 /* Gaya bawaan Blazor (validasi form, error boundary) */
 h1:focus {
     outline: none;

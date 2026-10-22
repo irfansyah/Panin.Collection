@@ -1,10 +1,10 @@
 @typeparam TItem
 @using Panin.Application.Export
 
-<div class="rounded-lg border border-slate-200 bg-white">
+<div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-2">
         <input type="search" placeholder="Filter hasil..." value="@_filter" @oninput="OnFilterInput"
-               class="w-56 rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" aria-label="Filter hasil" />
+               class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm sm:w-64 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" aria-label="Filter hasil" />
         <div class="flex items-center gap-3 text-xs text-slate-500">
             <span>@Visible.Count baris@(_filter.Length > 0 ? $" dari {Items.Count}" : string.Empty)</span>
             <label class="flex items-center gap-1">
@@ -23,9 +23,9 @@
         </div>
     </div>
 
-    <div class="overflow-x-auto">
+    <div class="scroll-thin max-h-[70vh] overflow-auto">
         <table class="w-full text-left text-sm">
-            <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead class="sticky top-0 z-10 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 shadow-[0_1px_0_var(--color-slate-200)]">
                 <tr>
                     @for (var i = 0; i < Columns.Count; i++)
                     {
@@ -51,11 +51,11 @@
             <tbody class="divide-y divide-slate-100">
                 @if (Page.Count == 0)
                 {
-                    <tr><td colspan="@Columns.Count" class="px-3 py-8 text-center text-slate-500">@EmptyText</td></tr>
+                    <tr><td colspan="@Columns.Count" class="px-3 py-12 text-center text-slate-400">@EmptyText</td></tr>
                 }
                 @foreach (var item in Page)
                 {
-                    <tr @key="item" class="hover:bg-slate-50">
+                    <tr @key="item" class="transition-colors even:bg-slate-50/50 hover:bg-sky-50">
                         @foreach (var col in Columns)
                         {
                             <td class="@(col.Numeric ? "text-right tabular-nums" : "") px-3 py-1.5 text-slate-700">

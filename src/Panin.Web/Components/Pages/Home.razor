@@ -20,18 +20,34 @@
     return;
 }
 
-<div class="flex h-screen flex-col bg-slate-100 text-slate-800">
-    <header class="flex items-center justify-between bg-slate-900 px-4 py-2 text-white">
-        <div class="text-base font-semibold tracking-wide">Panin Collection</div>
-        <form method="post" action="/auth/logout" id="logout-form">
-            <AntiforgeryToken />
-            <button type="submit" class="rounded px-3 py-1 text-sm text-slate-200 hover:bg-slate-700">Logout</button>
-        </form>
+<div class="flex h-dvh flex-col bg-slate-100 text-slate-800">
+    <header class="flex items-center gap-3 bg-sky-950 px-3 py-2 text-white shadow-md sm:px-4">
+        @if (_modules.Count > 0)
+        {
+            <button type="button" @onclick="() => _menuOpen = !_menuOpen" aria-label="Buka menu" aria-expanded="@_menuOpen"
+                    class="rounded-lg p-2 text-sky-100 hover:bg-white/10 lg:hidden">
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+        }
+        <div class="flex items-center gap-2">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-white/15 text-sm font-bold" aria-hidden="true">P</span>
+            <span class="text-base font-semibold tracking-wide">Panin Collection</span>
+        </div>
+        <div class="ml-auto flex items-center gap-3">
+            <div class="hidden text-right leading-tight sm:block">
+                <div class="text-sm font-medium">@User.FullName</div>
+                <div class="text-xs text-sky-200">@User.GroupName</div>
+            </div>
+            <form method="post" action="/auth/logout" id="logout-form">
+                <AntiforgeryToken />
+                <button type="submit" class="rounded-lg border border-white/20 px-3 py-1.5 text-sm text-sky-50 hover:bg-white/10">Logout</button>
+            </form>
+        </div>
     </header>
 
     @if (_modules.Count == 0)
     {
-        <div class="m-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800" role="alert">
+        <div class="m-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800" role="alert">
             Menu Access Not Yet Defined For This User.
         </div>
     }
@@ -39,20 +55,24 @@
     {
         @if (_modules.Count > 1)
         {
-            <nav class="flex gap-1 border-b border-slate-300 bg-white px-3 pt-2" aria-label="Modul">
+            <nav class="scroll-thin flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-2 sm:px-3" aria-label="Modul">
                 @foreach (var m in _modules)
                 {
                     var active = m.Id == State.ActiveModuleId;
                     <button type="button" @key="m.Id" @onclick="() => ActivateAsync(m)"
-                            class="@(active ? "border-sky-700 text-sky-800" : "border-transparent text-slate-600 hover:text-slate-900") -mb-px rounded-t border-b-2 px-4 py-2 text-sm font-medium">
+                            class="@(active ? "border-sky-600 text-sky-800" : "border-transparent text-slate-500 hover:text-slate-900") -mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-3 text-sm font-medium transition-colors">
                         @m.Name
                     </button>
                 }
             </nav>
         }
 
-        <div class="flex min-h-0 flex-1">
-            <aside class="w-64 shrink-0 overflow-y-auto border-r border-slate-300 bg-white p-2">
+        <div class="relative flex min-h-0 flex-1">
+            @if (_menuOpen)
+            {
+                <div class="fixed inset-0 z-30 bg-slate-900/50 lg:hidden" @onclick="() => _menuOpen = false" aria-hidden="true"></div>
+            }
+            <aside class="@(_menuOpen ? "translate-x-0" : "-translate-x-full") scroll-thin fixed inset-y-0 left-0 z-40 w-72 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-2 pt-16 shadow-xl transition-transform duration-200 lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:pt-2 lg:shadow-none">
                 @foreach (var ws in State.Opened)
                 {
                     <div @key="ws.Module.Id" class="@(ws.Module.Id == State.ActiveModuleId ? "" : "hidden")">
@@ -61,7 +81,7 @@
                 }
             </aside>
 
-            <main class="min-w-0 flex-1 overflow-auto p-4">
+            <main class="scroll-thin min-w-0 flex-1 overflow-auto p-3 sm:p-5">
                 @foreach (var ws in State.Opened)
                 {
                     <div @key="ws.Module.Id" class="@(ws.Module.Id == State.ActiveModuleId ? "" : "hidden")">
@@ -86,12 +106,12 @@
         </div>
     }
 
-    <footer class="flex items-center justify-between border-t border-slate-300 bg-white px-4 py-1.5 text-xs text-slate-600">
-        <div>
-            <span class="font-medium text-slate-800">@User.FullName</span>
+    <footer class="flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5 border-t border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500 sm:px-4">
+        <div class="hidden sm:block">
+            <span class="font-medium text-slate-700">@User.FullName</span>
             <span>( @User.GroupName - @User.UserId )</span>
         </div>
-        <div class="flex items-center gap-4">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-0.5 sm:ml-auto">
             @if (_freshness is { IsStale: true })
             {
                 <span class="text-amber-700" title="Data terakhir diperbarui @_freshness.LastUpdate.ToString("d MMMM yyyy", Indonesian)">
@@ -100,7 +120,7 @@
             }
             @if (_warnings.HasRows)
             {
-                <button type="button" @onclick="() => _showWarnings = true" class="rounded bg-red-100 px-2 py-0.5 font-medium text-red-700 hover:bg-red-200">
+                <button type="button" @onclick="() => _showWarnings = true" class="rounded-full bg-red-100 px-2.5 py-0.5 font-medium text-red-700 hover:bg-red-200">
                     Peringatan (@_warnings.Rows.Count)
                 </button>
             }
@@ -126,6 +146,7 @@
     private DataFreshness? _freshness;
     private WarningSet _warnings = WarningSet.Empty;
     private bool _showWarnings;
+    private bool _menuOpen;
     private int _clockTicks;
     private Timer? _clock;
     private static readonly CultureInfo Indonesian = CultureInfo.GetCultureInfo("id-ID");
@@ -219,6 +240,7 @@
     private Task SelectAsync(ModuleWorkspace ws, MenuNode node)
     {
         ws.ActiveMenuId = node.Id;
+        _menuOpen = false;
         var page = Pages.Resolve(ws.Module.Id, node.Url);
         if (page.PageType is not null)
         {

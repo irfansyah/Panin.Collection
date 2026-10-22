@@ -14,8 +14,8 @@
 
 <PageTitle>Login - Panin Collection</PageTitle>
 
-<h1 class="text-xl font-semibold text-slate-800">Panin Collection</h1>
-<p class="mb-6 text-sm text-slate-500">Silakan login untuk melanjutkan.</p>
+<h1 class="text-2xl font-semibold text-slate-900">Selamat datang</h1>
+<p class="mb-6 mt-1 text-sm text-slate-500">Silakan login untuk melanjutkan.</p>
 
 @if (!string.IsNullOrEmpty(Message))
 {
@@ -30,14 +30,14 @@ else if (Changed)
     <div>
         <label for="userid" class="mb-1 block text-sm font-medium text-slate-700">User ID</label>
         <InputText id="userid" @bind-Value="Model.UserId" autocomplete="username" autofocus
-                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                   class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200" />
     </div>
     <div>
         <label for="password" class="mb-1 block text-sm font-medium text-slate-700">Password</label>
         <InputText id="password" type="password" @bind-Value="Model.Password" autocomplete="current-password"
-                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500" />
+                   class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200" />
     </div>
-    <button type="submit" class="w-full rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+    <button type="submit" class="w-full rounded-lg bg-sky-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sky-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
         Login
     </button>
 </EditForm>
