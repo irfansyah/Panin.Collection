@@ -60,7 +60,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Daftar parameter gagal dimuat");
-            _error = "Daftar parameter gagal dimuat. Coba lagi atau hubungi administrator.";
+            _error = $"Daftar parameter gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}";
         }
     }
 

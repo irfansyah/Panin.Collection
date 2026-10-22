@@ -188,7 +188,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Gagal memuat detail debitur");
-            _error = "Data debitur gagal dimuat. Coba lagi; jika berulang hubungi administrator.";
+            _error = $"Data debitur gagal dimuat. Coba lagi; jika berulang hubungi administrator. {ErrorReference.Tag}";
         }
         finally
         {

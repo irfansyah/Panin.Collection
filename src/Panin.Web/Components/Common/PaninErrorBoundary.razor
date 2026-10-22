@@ -1,0 +1,31 @@
+@inherits ErrorBoundaryBase
+@using Panin.Application.Diagnostics
+@inject ILogger<PaninErrorBoundary> Logger
+
+@if (CurrentException is null)
+{
+    @ChildContent
+}
+else
+{
+    <div class="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+        <p class="font-semibold">Halaman ini mengalami kesalahan.</p>
+        <p class="mt-1">
+            Kesalahan sudah tercatat. Sebutkan kode ini bila menghubungi administrator:
+            <code class="rounded bg-white px-1.5 py-0.5 font-mono text-red-900">@_reference</code>
+        </p>
+        <button type="button" @onclick="Recover" class="mt-3 rounded-md border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-100">Coba lagi</button>
+    </div>
+}
+
+@code {
+    private string _reference = string.Empty;
+
+    // Dipanggil framework saat komponen di dalamnya melempar (render, event, atau siklus hidup). Di sinilah galat dicatat agar tidak hilang.
+    protected override Task OnErrorAsync(Exception exception)
+    {
+        _reference = ErrorReference.Current.ToUpperInvariant();
+        Logger.LogError(exception, "Halaman gagal dirender atau menangani event (kode {Reference})", _reference);
+        return Task.CompletedTask;
+    }
+}

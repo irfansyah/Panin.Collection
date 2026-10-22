@@ -3,6 +3,7 @@
 @inject IAuthService Auth
 @inject IOptions<SessionOptions> Options
 @inject ILogger<SessionKeeper> Logger
+@inject Panin.Web.Infrastructure.Logging.ICircuitContext CircuitContext
 
 @if (_warningSeconds is { } remaining)
 {
@@ -50,6 +51,8 @@
             return;
         }
 
+        using var activity = Panin.Application.Diagnostics.Telemetry.Begin("session.tick");
+        using var scope = Panin.Application.Diagnostics.CorrelationContext.Set(CircuitContext.Info);
         try
         {
             var o = Options.Value;

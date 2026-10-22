@@ -28,9 +28,9 @@ public sealed partial class ActivityMonitoringService(IModuleDbFactory dbs, Sing
             return (IReadOnlyList<LookupItem>?)[.. table.Rows.Cast<DataRow>().Select(r => new LookupItem(Cell(r, 0), Cell(r, 1)))];
         }).ConfigureAwait(false) ?? [];
 
-    public async Task<ActivitySearchResult> SearchAsync(string viewerUserId, string collectorUserId, ActivityKind kind, DateTime? from, DateTime? to, CancellationToken ct = default)
+    public async Task<ActivitySearchResult> SearchAsync(string viewerUserId, string collectorUserId, ActivityKind kind, DateTime? fromDate, DateTime? toDate, CancellationToken ct = default)
     {
-        var errors = ActivityRules.Validate(from, to);
+        var errors = ActivityRules.Validate(fromDate, toDate);
         if (string.IsNullOrWhiteSpace(collectorUserId))
         {
             errors = [.. errors, "Nama wajib diisi"];
@@ -53,7 +53,7 @@ public sealed partial class ActivityMonitoringService(IModuleDbFactory dbs, Sing
         {
             var db = await dbs.GetDataDbAsync("60", ct).ConfigureAwait(false);
             var table = await db.QueryTableAsync("exec SP_ACTIVITY_SEARCH @1, @2, @3, @4",
-                [((int)kind).ToString(CultureInfo.InvariantCulture), from!.Value.Date, to!.Value.Date, collectorUserId.Trim()],
+                [((int)kind).ToString(CultureInfo.InvariantCulture), fromDate!.Value.Date, toDate!.Value.Date, collectorUserId.Trim()],
                 new DbOptions(TimeoutSeconds: 120), ct).ConfigureAwait(false);
             return new ActivitySearchResult(true, Map(table), []);
         }

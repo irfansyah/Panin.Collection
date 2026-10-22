@@ -71,7 +71,9 @@
                                 @if (entry.PageType is not null)
                                 {
                                     <CascadingValue Value="ws.Navigator" IsFixed="true">
-                                        <DynamicComponent Type="entry.PageType" Parameters="entry.Parameters" />
+                                        <PaninErrorBoundary>
+                                            <DynamicComponent Type="entry.PageType" Parameters="entry.Parameters" />
+                                        </PaninErrorBoundary>
                                     </CascadingValue>
                                 }
                             </div>

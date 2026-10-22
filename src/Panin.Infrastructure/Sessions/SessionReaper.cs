@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Panin.Application.Auth;
+using Panin.Application.Diagnostics;
 using Panin.Application.Sessions;
 
 namespace Panin.Infrastructure.Sessions;
@@ -24,11 +25,23 @@ public sealed partial class SessionReaper(
         {
             foreach (var s in registry.ReapExpired(abandoned))
             {
+                using var activity = Telemetry.Begin("session.reap");
+                using var scope = CorrelationContext.Set(new CorrelationInfo(null, s.UserId, s.GroupId, s.SessionId));
                 LogReaped(logger, s.UserId);
-                await auth.RecordLogoutAsync(s.UserId, s.GroupId, s.Host, stoppingToken).ConfigureAwait(false);
+                try
+                {
+                    await auth.RecordLogoutAsync(s.UserId, s.GroupId, s.Host, stoppingToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    LogReapFailed(logger, ex, s.UserId);
+                }
             }
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Pencatatan logout sesi terbengkalai gagal untuk {UserId}")]
+    private static partial void LogReapFailed(ILogger logger, Exception ex, string userId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Sesi {UserId} dilepas karena tidak ada detak")]
     private static partial void LogReaped(ILogger logger, string userId);

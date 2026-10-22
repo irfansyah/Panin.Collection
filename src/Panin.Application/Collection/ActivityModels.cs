@@ -64,5 +64,5 @@ public interface IActivityMonitoringService
     Task<IReadOnlyList<LookupItem>> GetCollectorsAsync(string viewerUserId, CancellationToken ct = default);
 
     /// <summary>Validasi, pastikan collector yang dipilih termasuk daftar di atas (layar lama mempercayai dropdown), lalu cari.</summary>
-    Task<ActivitySearchResult> SearchAsync(string viewerUserId, string collectorUserId, ActivityKind kind, DateTime? from, DateTime? to, CancellationToken ct = default);
+    Task<ActivitySearchResult> SearchAsync(string viewerUserId, string collectorUserId, ActivityKind kind, DateTime? fromDate, DateTime? toDate, CancellationToken ct = default);
 }

@@ -23,7 +23,7 @@ public sealed partial class QueryStats(IConfiguration configuration, ILogger<Que
     private readonly ConcurrentDictionary<string, Entry> _entries = new();
     private readonly double _slowMs = configuration.GetValue("Diagnostics:SlowQueryMs", 1000d);
 
-    public void Observe(string database, string sql, TimeSpan elapsed, int? rows, bool failed)
+    public void Observe(string database, string sql, TimeSpan elapsed, int? rows, bool failed, Exception? exception = null)
     {
         var ms = elapsed.TotalMilliseconds;
         var key = database + "|" + Normalize(sql);
@@ -35,7 +35,12 @@ public sealed partial class QueryStats(IConfiguration configuration, ILogger<Que
         var entry = _entries.GetOrAdd(key, k => new Entry(database, k[(database.Length + 1)..]));
         entry.Add(ms, rows, failed, ms >= _slowMs);
 
-        if (ms >= _slowMs)
+        if (failed)
+        {
+            // Galat DB selalu dicatat di sini dengan TraceId/UserId alur pemanggil, apa pun yang dilakukan pemanggil sesudahnya.
+            LogFailed(logger, exception, database, (long)ms, Truncate(sql), exception is Microsoft.Data.SqlClient.SqlException sqlEx ? sqlEx.Number : null);
+        }
+        else if (ms >= _slowMs)
         {
             LogSlow(logger, database, (long)ms, rows, entry.Sql);
         }
@@ -49,6 +54,15 @@ public sealed partial class QueryStats(IConfiguration configuration, ILogger<Que
     {
         var s = Whitespace().Replace(sql.Trim(), " ");
         return s.Length > KeyLength ? s[..KeyLength] : s;
+    }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Query gagal di {Database} setelah {ElapsedMs} ms (SQL error {SqlError}): {Sql}")]
+    private static partial void LogFailed(ILogger logger, Exception? exception, string database, long elapsedMs, string sql, int? sqlError);
+
+    private static string Truncate(string sql)
+    {
+        var s = Whitespace().Replace(sql.Trim(), " ");
+        return s.Length > 500 ? s[..500] + "…" : s;
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Query lambat di {Database}: {ElapsedMs} ms, {Rows} baris: {Sql}")]

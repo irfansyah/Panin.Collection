@@ -105,7 +105,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Daftar collector gagal dimuat");
-            _errors = ["Daftar user gagal dimuat. Coba lagi atau hubungi administrator."];
+            _errors = [$"Daftar user gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
         }
     }
 
@@ -136,7 +136,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Pencarian aktivitas gagal");
-            _errors = ["Data tidak dapat dimunculkan. Coba lagi atau hubungi administrator."];
+            _errors = [$"Data tidak dapat dimunculkan. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
         }
         finally
         {

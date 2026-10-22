@@ -113,7 +113,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Halaman approval user gagal dimuat");
-            _errors = ["Halaman gagal dimuat. Coba lagi atau hubungi administrator."];
+            _errors = [$"Halaman gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
         }
         finally
         {
@@ -136,7 +136,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Muat ulang approval user gagal");
-            _errors = ["Data gagal dimuat. Coba lagi atau hubungi administrator."];
+            _errors = [$"Data gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
         }
         finally
         {
@@ -194,7 +194,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Keputusan approval gagal");
-            _errors = ["Aksi gagal. Coba lagi atau hubungi administrator."];
+            _errors = [$"Aksi gagal. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
         }
         finally
         {

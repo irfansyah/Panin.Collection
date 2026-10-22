@@ -1,3 +1,4 @@
+using Panin.Application.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -98,7 +99,7 @@ public sealed partial class GroupMaintenanceService(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogFailed(logger, ex, "simpan ajuan group", makerUserId, groupId);
-            return MaintenanceResult.Fail("Ajuan gagal disimpan. Coba lagi atau hubungi administrator.");
+            return MaintenanceResult.Fail($"Ajuan gagal disimpan. Coba lagi atau hubungi administrator. {ErrorReference.Tag}");
         }
 
         LogPending(logger, makerUserId, existing is null ? "Insert" : "Update", groupId);
@@ -134,7 +135,7 @@ public sealed partial class GroupMaintenanceService(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogFailed(logger, ex, "ajukan hapus group", makerUserId, groupId);
-            return MaintenanceResult.Fail("Ajuan gagal disimpan. Coba lagi atau hubungi administrator.");
+            return MaintenanceResult.Fail($"Ajuan gagal disimpan. Coba lagi atau hubungi administrator. {ErrorReference.Tag}");
         }
 
         LogPending(logger, makerUserId, "Delete", groupId);
@@ -343,7 +344,7 @@ public sealed partial class GroupMaintenanceService(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogFailed(logger, ex, "simpan akses menu", makerUserId, $"{groupId}/{moduleId}");
-            return MaintenanceResult.Fail("Akses menu gagal disimpan. Tidak ada perubahan yang tercatat; coba lagi atau hubungi administrator.");
+            return MaintenanceResult.Fail($"Akses menu gagal disimpan. Tidak ada perubahan yang tercatat; coba lagi atau hubungi administrator. {ErrorReference.Tag}");
         }
 
         InvalidateGroup(groupId);

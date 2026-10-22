@@ -1,3 +1,4 @@
+using Panin.Application.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -162,7 +163,7 @@ public sealed partial class UserMaintenanceService(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogFailed(logger, ex, "simpan ajuan", makerUserId, userId);
-            return MaintenanceResult.Fail("Ajuan gagal disimpan. Coba lagi atau hubungi administrator.");
+            return MaintenanceResult.Fail($"Ajuan gagal disimpan. Coba lagi atau hubungi administrator. {ErrorReference.Tag}");
         }
 
         LogPending(logger, makerUserId, existing is null ? "Insert" : "Update", userId);
@@ -197,7 +198,7 @@ public sealed partial class UserMaintenanceService(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogFailed(logger, ex, "ajukan hapus", makerUserId, userId);
-            return MaintenanceResult.Fail("Ajuan gagal disimpan. Coba lagi atau hubungi administrator.");
+            return MaintenanceResult.Fail($"Ajuan gagal disimpan. Coba lagi atau hubungi administrator. {ErrorReference.Tag}");
         }
 
         LogPending(logger, makerUserId, "Delete", userId);

@@ -1,3 +1,4 @@
+using Panin.Application.Diagnostics;
 using System.Data;
 using System.Globalization;
 using System.Net;
@@ -99,7 +100,7 @@ public sealed partial class VisitService(IModuleDbFactory dbs, SingleFlightCache
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogSaveFailed(logger, ex, userId, entry.AccountNo);
-            return CallSaveResult.Fail("Data gagal disimpan. Tidak ada perubahan yang tercatat; coba lagi atau hubungi administrator.");
+            return CallSaveResult.Fail($"Data gagal disimpan. Tidak ada perubahan yang tercatat; coba lagi atau hubungi administrator. {ErrorReference.Tag}");
         }
 
         LogSaved(logger, userId, entry.AccountNo);

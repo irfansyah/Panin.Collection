@@ -205,7 +205,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Halaman maker group gagal dimuat");
-            _errors = ["Halaman gagal dimuat. Coba lagi atau hubungi administrator."];
+            _errors = [$"Halaman gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
         }
         finally
         {
@@ -236,7 +236,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Muat ulang maker group gagal");
-            _errors = ["Data gagal dimuat. Coba lagi atau hubungi administrator."];
+            _errors = [$"Data gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
         }
         finally
         {
@@ -324,7 +324,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Menu modul gagal dimuat");
-            _errors = ["Menu gagal dimuat. Coba lagi atau hubungi administrator."];
+            _errors = [$"Menu gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
         }
     }
 
@@ -418,7 +418,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Aksi maintenance group gagal");
-            _errors = ["Aksi gagal. Coba lagi atau hubungi administrator."];
+            _errors = [$"Aksi gagal. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
         }
         finally
         {

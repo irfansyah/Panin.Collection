@@ -10,5 +10,6 @@ public interface IQueryObserver
     /// <param name="database">Nama DB logis (mis. "login", "data:60").</param>
     /// <param name="sql">Teks SQL (tanpa nilai parameter).</param>
     /// <param name="rows">Jumlah baris hasil pertama bila diketahui.</param>
-    void Observe(string database, string sql, TimeSpan elapsed, int? rows, bool failed);
+    /// <param name="exception">Galat yang menyebabkan <paramref name="failed"/>; dicatat bersama teks SQL agar tidak hilang.</param>
+    void Observe(string database, string sql, TimeSpan elapsed, int? rows, bool failed, Exception? exception = null);
 }

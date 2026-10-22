@@ -184,7 +184,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Distribusi debitur gagal dimuat");
-            _error = "Data gagal dimuat. Coba lagi; jika berulang hubungi administrator.";
+            _error = $"Data gagal dimuat. Coba lagi; jika berulang hubungi administrator. {ErrorReference.Tag}";
         }
         finally
         {
@@ -252,7 +252,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Pemindahan debitur gagal");
-            _error = "Pemindahan gagal. Coba lagi atau hubungi administrator.";
+            _error = $"Pemindahan gagal. Coba lagi atau hubungi administrator. {ErrorReference.Tag}";
         }
         finally
         {

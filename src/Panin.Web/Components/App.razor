@@ -4,12 +4,14 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="trace-id" content="@TraceId" />
     <base href="/" />
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["css/site.css"]" />
     <link rel="stylesheet" href="@Assets["Panin.Web.styles.css"]" />
     <ImportMap />
     <HeadOutlet />
+    <script src="@Assets["js/clientlog.js"]"></script>
 </head>
 
 <body>
@@ -19,3 +21,8 @@
 </body>
 
 </html>
+
+@code {
+    // TraceId request halaman ini; dikirim bersama laporan galat browser agar bisa dicocokkan dengan log server.
+    private static string? TraceId => System.Diagnostics.Activity.Current?.TraceId.ToString();
+}

@@ -92,9 +92,9 @@ public class SqlDb(string connectionString, string name = "db", IQueryObserver? 
             observer.Observe(name, sql, Stopwatch.GetElapsedTime(started), rowCount?.Invoke(result), failed: false);
             return result;
         }
-        catch
+        catch (Exception ex)
         {
-            observer.Observe(name, sql, Stopwatch.GetElapsedTime(started), null, failed: true);
+            observer.Observe(name, sql, Stopwatch.GetElapsedTime(started), null, failed: true, ex);
             throw;
         }
     }

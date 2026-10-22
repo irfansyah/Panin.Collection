@@ -131,7 +131,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Gagal memuat form surat");
-            _errors = ["Form gagal dimuat. Coba lagi atau hubungi administrator."];
+            _errors = [$"Form gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
         }
         finally
         {
@@ -167,7 +167,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Simpan surat gagal");
-            _errors = ["Data gagal disimpan. Coba lagi atau hubungi administrator."];
+            _errors = [$"Data gagal disimpan. Coba lagi atau hubungi administrator. {ErrorReference.Tag}"];
         }
         finally
         {

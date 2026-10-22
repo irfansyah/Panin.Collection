@@ -1,3 +1,4 @@
+using Panin.Application.Diagnostics;
 using System.Data;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
@@ -70,7 +71,7 @@ public sealed partial class LetterService(IModuleDbFactory dbs, ICallService cal
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogSaveFailed(logger, ex, userId, account);
-            return LetterSaveResult.Fail("Data gagal disimpan. Tidak ada perubahan yang tercatat; coba lagi atau hubungi administrator.");
+            return LetterSaveResult.Fail($"Data gagal disimpan. Tidak ada perubahan yang tercatat; coba lagi atau hubungi administrator. {ErrorReference.Tag}");
         }
     }
 

@@ -1,3 +1,4 @@
+using Panin.Application.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Panin.Application.Abstractions;
@@ -168,7 +169,7 @@ public sealed partial class WorklistService(IModuleDbFactory dbs, SingleFlightCa
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogFailed(logger, ex, actorUserId, request.TargetUserId);
-            return ReassignResult.Fail("Pemindahan gagal. Tidak ada perubahan yang tercatat; coba lagi atau hubungi administrator.");
+            return ReassignResult.Fail($"Pemindahan gagal. Tidak ada perubahan yang tercatat; coba lagi atau hubungi administrator. {ErrorReference.Tag}");
         }
 
         // Daftar tim/debitur milik pemindah dan penerima sudah berubah.

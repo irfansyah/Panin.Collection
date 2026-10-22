@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -5,15 +6,45 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.HttpOverrides;
 using Panin.Application.Auth;
+using Panin.Application.Diagnostics;
 using Panin.Application.Modules;
 using Panin.Application.Sessions;
 using Panin.Infrastructure;
 using Panin.Infrastructure.Data;
 using Panin.Web.Components;
 using Panin.Web.Infrastructure;
+using Panin.Web.Infrastructure.Logging;
 using Panin.Web.Shell;
+using Serilog;
 
+// Logger awal: galat saat start (konfigurasi, koneksi) pun harus tercatat sebelum logger utama siap.
+Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
+AppDomain.CurrentDomain.UnhandledException += (_, e) => Log.Fatal(e.ExceptionObject as Exception, "Galat tak tertangani di luar request (proses {Terminating})", e.IsTerminating ? "berhenti" : "lanjut");
+TaskScheduler.UnobservedTaskException += (_, e) =>
+{
+    Log.Error(e.Exception, "Task gagal tanpa ada yang menunggu hasilnya");
+    e.SetObserved();
+};
+
+// Tanpa pendengar, Activity (TraceId) tidak dibuat; dengan ini setiap request, interaksi sirkuit, dan pekerjaan latar punya TraceId.
+ActivitySource.AddActivityListener(new ActivityListener
+{
+    ShouldListenTo = source => source.Name is Telemetry.SourceName or "Microsoft.AspNetCore",
+    Sample = static (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+});
+
+try
+{
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, logger) => logger
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.With(new CorrelationEnricher(services.GetService<IHttpContextAccessor>()))
+    .Enrich.WithProperty("Application", "Panin.Collection")
+    .Enrich.WithProperty("Machine", Environment.MachineName));
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddClientLogRateLimit();
 
 builder.Services.AddPaninInfrastructure(builder.Configuration);
 builder.Services.AddSingleton<IEnumerable<ModuleDefinition>>(ModuleCatalog.Definitions);
@@ -23,6 +54,9 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<AuthenticationStateProvider, SessionRevalidatingAuthenticationStateProvider>();
 builder.Services.AddSingleton<CircuitTracker>();
 builder.Services.AddSingleton<CircuitHandler>(sp => sp.GetRequiredService<CircuitTracker>());
+builder.Services.AddScoped<CircuitCorrelationHandler>();
+builder.Services.AddScoped<CircuitHandler>(sp => sp.GetRequiredService<CircuitCorrelationHandler>());
+builder.Services.AddScoped<ICircuitContext>(sp => sp.GetRequiredService<CircuitCorrelationHandler>());
 builder.Services.AddScoped<WorkspaceState>();
 builder.Services.AddSingleton<ModulePageCatalog>();
 builder.Services.AddDataProtection();
@@ -62,6 +96,16 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+app.UseTraceIdHeader();
+app.UseSerilogRequestLogging(o =>
+{
+    // Satu baris per request; aset statis dan health check tidak dicatat agar log tetap terbaca.
+    o.GetLevel = (http, _, ex) => ex is not null || http.Response.StatusCode >= 500 ? Serilog.Events.LogEventLevel.Error
+        : http.Response.StatusCode >= 400 ? Serilog.Events.LogEventLevel.Warning
+        : http.Request.Path.StartsWithSegments("/healthz") || http.Request.Path.StartsWithSegments("/_framework") || http.Request.Path.StartsWithSegments("/_blazor") || http.Request.Path.Value!.Contains('.', StringComparison.Ordinal)
+            ? Serilog.Events.LogEventLevel.Verbose : Serilog.Events.LogEventLevel.Information;
+});
+app.UseRateLimiter();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
@@ -76,6 +120,7 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapHealthChecks("/healthz").AllowAnonymous();
+app.MapClientLog();
 
 app.MapPost("/auth/logout", async (HttpContext http, IAuthService auth, IAntiforgery antiforgery) =>
 {
@@ -120,6 +165,16 @@ if (app.Configuration.GetValue("Diagnostics:Enabled", false))
 app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
 app.Run();
+}
+catch (Exception ex) when (ex is not HostAbortedException)
+{
+    Log.Fatal(ex, "Aplikasi berhenti karena galat saat start atau saat berjalan");
+    throw;
+}
+finally
+{
+    Log.CloseAndFlush();
+}
 
 /// <summary>Dibutuhkan oleh WebApplicationFactory pada uji integrasi.</summary>
 public partial class Program;

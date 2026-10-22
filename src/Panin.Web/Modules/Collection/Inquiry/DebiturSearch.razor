@@ -120,7 +120,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Pencarian debitur gagal");
-            _error = "Pencarian gagal. Coba lagi atau persempit kriteria; jika berulang hubungi administrator.";
+            _error = $"Pencarian gagal. Coba lagi atau persempit kriteria; jika berulang hubungi administrator. {ErrorReference.Tag}";
         }
         finally
         {
