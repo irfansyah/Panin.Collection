@@ -76,3 +76,7 @@ Pembanding: untuk setiap halaman yang dimigrasi, **ukur halaman lama yang setara
 - Anggaran di bagian 1 perlu disepakati (terutama pencarian dan login).
 - Pengukuran aplikasi lama sebagai pembanding resmi (waktu halaman nyata dari browser, bukan hanya SP) belum dilakukan; saat ini pembanding adalah waktu SP/query pada DB yang sama.
 - Persetujuan untuk indeks DB lama (`SCALLUSERLOG`, dan kandidat lain yang ditemukan lewat registry).
+
+## Catatan alat
+
+- **`DbClone` membuang aturan `ON DELETE CASCADE`** pada foreign key (diperbaiki; salinan lokal diperbaiki manual untuk 6 FK: `PARAMETERSYSTEM_TEMPORARYDETAIL`, `AUDITTRAIL_DETAIL`, `SCALLUSERFLAG` (juga `ON UPDATE CASCADE`), `COLLATERAL_CAR/DEP/TNH`). Ditemukan lewat uji persetujuan Maintenance: `SP_AUDITTRAIL` menghapus header ajuan dan mengandalkan cascade untuk detailnya. Salinan DB baru dari alat ini sekarang membawa aturan itu.

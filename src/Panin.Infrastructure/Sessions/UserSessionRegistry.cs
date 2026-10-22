@@ -96,6 +96,14 @@ public sealed class UserSessionRegistry(IOptions<SessionOptions> options, TimePr
         }
     }
 
+    public bool ReleaseAll(string userId)
+    {
+        lock (_gate)
+        {
+            return _entries.Remove(userId);
+        }
+    }
+
     public IReadOnlyList<ExpiredSession> ReapExpired(TimeSpan maxAge)
     {
         lock (_gate)

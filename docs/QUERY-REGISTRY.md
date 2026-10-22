@@ -74,3 +74,18 @@ Diukur pada salinan lokal DB DATA (Docker), bukan server dev bersama; aplikasi t
 ## Belum diukur / menunggu halaman
 
 `SP_ALL_HISTORY`, `SP_ALL_HISTORY_RECOVERY`, `SP_GET_RESULT`, `SP_GET_CONTACT`, `SP_GET_TREATMENT_MENU`, `SP_WORKLIST_*`, `SP_PTP_CHANGELIST`, `SP_VW_REPORT_*`, `SP_SAVE_*`, `VW_*` lain: ukur saat halaman terkait dikerjakan dan tambahkan baris di atas **sebelum** dipakai.
+
+## Maintenance (modul 99): User Parameter
+
+DB modul 99 = DB LOGIN. Mesin maker-checker lama (`PARAMETERSYSTEM_TEMPORARY` + `PARAMETERSYSTEM_TEMPORARYDETAIL`) dipertahankan agar aplikasi lama dan baru bisa berjalan berdampingan.
+
+| Objek | Dipakai oleh | Keputusan | Catatan |
+|---|---|---|---|
+| `PARAMETERSYSTEM_TEMPORARY` / `...DETAIL` | ajuan user (Insert/Update/Delete) | Pakai, semua nilai sebagai **parameter** | Layar lama menyusun SQL dari teks (`toSql` + penggabungan string) dan menulis kolom secara dinamis; di sini kolom `SCALLUSER` yang boleh diubah adalah daftar tetap (8 kolom). Satu ajuan per user (diganti bila diajukan ulang). **Bergantung pada `ON DELETE CASCADE`** pada FK detail->header (ada di DB sumber; `SP_AUDITTRAIL` menghapus header tanpa menghapus detail). |
+| `SP_AUDITTRAIL` (@TEMPORARYID, @USERID) | persetujuan | Pakai, **satu transaksi dengan penulisan `SCALLUSER`** | Menyalin ajuan ke `AUDITTRAIL`; untuk Insert memberi password awal (`LOGINPARAM.DEF_PWD`) dan masa berlaku; untuk Delete memindahkan rekening user itu ke upliner di `LOSPANINCOLLECTION.dbo.LOAN_MASTER` (nama DB tertanam di SP); lalu menghapus ajuan. |
+| trigger `INS_USER`/`UPD_USER`/`DEL_USER` pada `SCALLUSER` | menjaga `TEMP_DOWNLINE` | Pakai | Mengasumsikan penulisan satu baris; `UPD_USER` menghitung ulang bawahan setiap `UPDATE` yang menyebut `SU_UPLINER`. |
+| `VW_SCALLUSER` (`SELECT *`) | daftar user | **Diganti** SELECT kolom eksplisit | Layar lama membaca seluruh kolom, termasuk `SU_PWD` (hash), ke browser. Baru: hash password tidak pernah dibaca aplikasi di layar ini. |
+| `VW_SCALLUSERPENDING` | daftar ajuan | Pakai + ringkasan perubahan (`FieldValueBefore` vs `FieldValue`) | 7 subquery berkorelasi per baris; ajuan biasanya <100 baris. |
+| `UPDATE SCALLUSERFLAG SET SU_LOGON/SU_REVOKE = 0`, `SU_PWD = DEF_PWD` | buka kunci / cabut revoke / reset password | Pakai, **dicatat di log** + hak Maker | Layar lama tanpa pencatatan. Buka kunci juga melepas sesi di server baru (`ReleaseAll`). |
+
+Penjagaan baru (tidak ada di layar lama): maker dan approver harus berbeda orang (`Maintenance:RequireDifferentApprover`, default true); hak maker/approver diperiksa di server dari menu 201010/201020; user tidak bisa mengajukan penghapusan dirinya sendiri atau user yang masih punya bawahan; upliner harus ada dan tidak boleh melingkar; pembatalan ajuan hanya oleh pembuatnya.

@@ -1,0 +1,204 @@
+@attribute [ModulePage("99", "/maintenance/user/approval")]
+@implements IDisposable
+@using Panin.Application.Maintenance
+@using Panin.Web.Components.Common
+@inject IUserMaintenanceService Users
+@inject ILogger<UserApproval> Logger
+
+<section class="space-y-4">
+    <div class="flex items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold text-slate-800">User Parameter - Approval</h1>
+        @if (_allowed)
+        {
+            <button type="button" @onclick="RefreshAsync" disabled="@_busy" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-60">Muat ulang</button>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat...</p>
+    }
+    else if (!_allowed)
+    {
+        <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">
+            Group Anda tidak punya hak Approval untuk User Parameter.
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <div class="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700" role="status">@_message</div>
+        }
+
+        @if (_errors.Count > 0)
+        {
+            <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                <ul class="list-disc pl-5">
+                    @foreach (var e in _errors)
+                    {
+                        <li>@e</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <Card Title="Menunggu persetujuan">
+            <div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
+                <button type="button" @onclick="() => DecideAsync(true)" disabled="@(_busy || _selected.Count == 0)"
+                        class="rounded-md bg-sky-700 px-3 py-1.5 font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">Setujui terpilih</button>
+                <button type="button" @onclick="() => DecideAsync(false)" disabled="@(_busy || _selected.Count == 0)"
+                        class="rounded-md border border-red-300 bg-white px-3 py-1.5 font-medium text-red-700 enabled:hover:bg-red-50 disabled:opacity-60">Tolak terpilih</button>
+                <button type="button" @onclick="SelectAll" class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-100">Pilih semua</button>
+                <button type="button" @onclick="() => _selected.Clear()" class="rounded border border-slate-300 px-2 py-1 text-xs hover:bg-slate-100">Kosongkan</button>
+                <span class="text-slate-600">@_selected.Count dipilih</span>
+            </div>
+            <DataGrid TItem="PendingUserRow" Items="_pending" Columns="_columns" EmptyText="Tidak ada ajuan." />
+        </Card>
+    }
+</section>
+
+@code {
+    private readonly CancellationTokenSource _cts = new();
+    private readonly HashSet<Guid> _selected = [];
+    private IReadOnlyList<PendingUserRow> _pending = [];
+    private IReadOnlyList<string> _errors = [];
+    private IReadOnlyList<GridColumn<PendingUserRow>> _columns = [];
+    private string? _actor, _message;
+    private bool _loading = true, _allowed, _busy;
+
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _columns =
+        [
+            new() { Header = "", Value = p => p.TemporaryId, ActionOnly = true, Sortable = false, Template = p => @<input type="checkbox" checked="@_selected.Contains(p.TemporaryId)" @onchange="e => Toggle(p.TemporaryId, e)" aria-label="@($"Pilih {p.UserId}")" /> },
+            new() { Header = "Status", Value = p => p.Status },
+            new() { Header = "User ID", Value = p => p.UserId },
+            new() { Header = "Nama", Value = p => p.FullName },
+            new() { Header = "Group", Value = p => p.GroupName ?? p.GroupId },
+            new() { Header = "Cabang", Value = p => p.BranchCode },
+            new() { Header = "Upliner", Value = p => p.Upliner },
+            new() { Header = "Aktif", Value = p => p.Active, Display = p => p.Active == true ? "Ya" : "Tidak" },
+            new() { Header = "Perubahan", Value = p => p.Changes },
+            new() { Header = "Diajukan oleh", Value = p => p.CreatedBy },
+        ];
+
+        try
+        {
+            var user = (await AuthState).User.ToSessionUser();
+            if (user is null)
+            {
+                return;
+            }
+
+            _actor = user.UserId;
+            _allowed = await Users.HasRoleAsync(user.GroupId, MaintenanceRole.Approver, _cts.Token);
+            if (_allowed)
+            {
+                _pending = await Users.GetPendingAsync(_cts.Token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Halaman approval user gagal dimuat");
+            _errors = ["Halaman gagal dimuat. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        _busy = true;
+        try
+        {
+            _selected.Clear();
+            _pending = await Users.GetPendingAsync(_cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Muat ulang approval user gagal");
+            _errors = ["Data gagal dimuat. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Toggle(Guid id, ChangeEventArgs e)
+    {
+        if (e.Value is true)
+        {
+            _selected.Add(id);
+        }
+        else
+        {
+            _selected.Remove(id);
+        }
+    }
+
+    private void SelectAll()
+    {
+        foreach (var p in _pending)
+        {
+            _selected.Add(p.TemporaryId);
+        }
+    }
+
+    private async Task DecideAsync(bool approve)
+    {
+        if (_busy || _actor is null || _selected.Count == 0)
+        {
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        _errors = [];
+        try
+        {
+            var ids = _selected.ToList();
+            var result = approve ? await Users.ApproveAsync(_actor, ids, _cts.Token) : await Users.RejectAsync(_actor, ids, _cts.Token);
+            _errors = result.Errors;
+            if (result.Success)
+            {
+                _message = approve ? $"{ids.Count} ajuan disetujui." : $"{ids.Count} ajuan ditolak.";
+            }
+
+            _selected.Clear();
+            _pending = await Users.GetPendingAsync(_cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Keputusan approval gagal");
+            _errors = ["Aksi gagal. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

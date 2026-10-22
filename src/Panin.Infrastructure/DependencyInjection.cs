@@ -4,6 +4,7 @@ using Panin.Application.Abstractions;
 using Panin.Application.Auth;
 using Panin.Application.Collection;
 using Panin.Application.Export;
+using Panin.Application.Maintenance;
 using Panin.Application.Modules;
 using Panin.Application.Sessions;
 using Panin.Application.Status;
@@ -48,6 +49,8 @@ public static class DependencyInjection
         services.AddSingleton<IWorklistService, WorklistService>();
         services.AddSingleton<ILetterService, LetterService>();
         services.AddSingleton<IActivityMonitoringService, ActivityMonitoringService>();
+        services.Configure<Maintenance.MaintenanceOptions>(configuration.GetSection(Maintenance.MaintenanceOptions.SectionName));
+        services.AddSingleton<IUserMaintenanceService, Maintenance.UserMaintenanceService>();
         services.AddSingleton<IContactReferenceService, ContactReferenceService>();
         services.AddSingleton<ITreatmentMenuService, TreatmentMenuService>();
         services.AddSingleton<IExcelExporter, NpoiExcelExporter>();

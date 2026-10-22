@@ -504,7 +504,7 @@ order by i.index_id, ic.is_included_column, ic.key_ordinal", ("@t", "dbo." + tab
 static async Task<List<string>> ScriptForeignKeys(SqlConnection s, List<string> tables)
 {
     var rows = await Rows(s, @"
-select fk.name, object_name(fk.parent_object_id), pc.name, object_name(fk.referenced_object_id), rc.name, fkc.constraint_column_id
+select fk.name, object_name(fk.parent_object_id), pc.name, object_name(fk.referenced_object_id), rc.name, fkc.constraint_column_id, fk.delete_referential_action_desc, fk.update_referential_action_desc
 from sys.foreign_keys fk
 join sys.foreign_key_columns fkc on fkc.constraint_object_id = fk.object_id
 join sys.columns pc on pc.object_id = fkc.parent_object_id and pc.column_id = fkc.parent_column_id
@@ -520,11 +520,16 @@ order by fk.name, fkc.constraint_column_id");
         }
 
         result.Add($"ALTER TABLE [dbo].[{f[1]}] WITH NOCHECK ADD CONSTRAINT [{g.Key}] FOREIGN KEY ({string.Join(", ", g.Select(r => $"[{r[2]}]"))}) " +
-                   $"REFERENCES [dbo].[{f[3]}] ({string.Join(", ", g.Select(r => $"[{r[4]}]"))})");
+                   $"REFERENCES [dbo].[{f[3]}] ({string.Join(", ", g.Select(r => $"[{r[4]}]"))})" +
+                   Action("DELETE", f[6]) + Action("UPDATE", f[7]));
     }
 
     return result;
 }
+
+// ON DELETE/UPDATE CASCADE (dll.) harus ikut disalin: kode aplikasi bergantung padanya (mis. PARAMETERSYSTEM_TEMPORARYDETAIL).
+static string Action(string kind, object? desc)
+    => desc?.ToString() is { } d && d != "NO_ACTION" ? $" ON {kind} {d.Replace('_', ' ')}" : string.Empty;
 
 static async Task<long> CopyData(SqlConnection s, SqlConnection d, string table)
 {

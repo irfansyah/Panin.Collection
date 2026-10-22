@@ -34,6 +34,9 @@ public interface IUserSessionRegistry
     /// <returns>True bila sesi itu memang yang dilepas.</returns>
     bool Release(string userId, string sessionId);
 
+    /// <summary>Melepas sesi user di server ini apa pun idnya (admin membuka kunci login). Sirkuit yang masih terbuka akan ditolak pada validasi berikutnya.</summary>
+    bool ReleaseAll(string userId);
+
     /// <summary>Melepas sesi yang tidak ada detak dalam <paramref name="maxAge"/>.</summary>
     IReadOnlyList<ExpiredSession> ReapExpired(TimeSpan maxAge);
 }

@@ -1,0 +1,336 @@
+@attribute [ModulePage("99", "/maintenance/user/maker")]
+@implements IDisposable
+@using Panin.Application.Collection
+@using Panin.Application.Maintenance
+@using Panin.Web.Components.Common
+@inject IUserMaintenanceService Users
+@inject ILogger<UserMaker> Logger
+
+<section class="space-y-4">
+    <div class="flex items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold text-slate-800">User Parameter - Maker</h1>
+        @if (_allowed)
+        {
+            <button type="button" @onclick="RefreshAsync" disabled="@_busy" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-60">Muat ulang</button>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat...</p>
+    }
+    else if (!_allowed)
+    {
+        <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="alert">
+            Group Anda tidak punya hak Maker untuk User Parameter.
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <div class="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700" role="status">@_message</div>
+        }
+
+        @if (_errors.Count > 0)
+        {
+            <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                <ul class="list-disc pl-5">
+                    @foreach (var e in _errors)
+                    {
+                        <li>@e</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        @if (_confirm is not null)
+        {
+            <div class="flex flex-wrap items-center gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" role="alertdialog" aria-label="Konfirmasi">
+                <span>@_confirm.Prompt</span>
+                <button type="button" @onclick="RunConfirmedAsync" disabled="@_busy" class="rounded-md bg-red-700 px-3 py-1 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60">Ya</button>
+                <button type="button" @onclick="() => _confirm = null" class="rounded-md border border-slate-300 bg-white px-3 py-1 text-sm hover:bg-slate-100">Tidak</button>
+            </div>
+        }
+
+        <EditForm Model="_draft" OnSubmit="SaveAsync" class="rounded-lg border border-slate-200 bg-white p-4">
+            <h2 class="mb-3 text-sm font-semibold text-slate-700">@(_draft.IsEdit ? $"Ubah user {_draft.UserId}" : "Tambah user")</h2>
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Field Label="User ID" Required>
+                    <InputText @bind-Value="_draft.UserId" disabled="@_draft.IsEdit" maxlength="20" class="@InputClass" />
+                </Field>
+                <Field Label="Group" Required>
+                    <Select Items="_groups" @bind-Value="_draft.GroupId" />
+                </Field>
+                <Field Label="Cabang">
+                    <Select Items="_branches" @bind-Value="_draft.BranchCode" />
+                </Field>
+                <Field Label="Nama lengkap" Required>
+                    <InputText @bind-Value="_draft.FullName" maxlength="300" class="@InputClass" />
+                </Field>
+                <Field Label="No. HP">
+                    <InputText @bind-Value="_draft.Phone" maxlength="15" class="@InputClass" />
+                </Field>
+                <Field Label="Email">
+                    <InputText @bind-Value="_draft.Email" maxlength="50" class="@InputClass" />
+                </Field>
+                <Field Label="Upliner">
+                    <InputText @bind-Value="_draft.Upliner" maxlength="20" class="@InputClass" />
+                </Field>
+                <Field Label="Aktif">
+                    <label class="flex items-center gap-2 py-2 text-sm"><InputCheckbox @bind-Value="_draft.Active" /> Aktif</label>
+                </Field>
+            </div>
+            <p class="mt-3 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                Perubahan baru berlaku setelah disetujui di menu Approval. User baru mendapat password awal saat disetujui.
+            </p>
+            <div class="mt-4 flex gap-2">
+                <button type="submit" disabled="@_busy" class="rounded-md bg-sky-700 px-4 py-2 text-sm font-medium text-white enabled:hover:bg-sky-800 disabled:opacity-60">Simpan ke pending</button>
+                <button type="button" @onclick="ResetForm" class="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Batal</button>
+            </div>
+        </EditForm>
+
+        <Card Title="Menunggu persetujuan">
+            <DataGrid TItem="PendingUserRow" Items="_pending" Columns="_pendingColumns" EmptyText="Tidak ada ajuan." />
+        </Card>
+
+        <Card Title="Daftar user">
+            <DataGrid TItem="UserRow" Items="_rows" Columns="_userColumns" EmptyText="Tidak ada user." />
+        </Card>
+    }
+</section>
+
+@code {
+    private const string InputClass = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500";
+
+    private sealed record Confirm(string Prompt, Func<Task<MaintenanceResult>> Run, string Done);
+
+    private readonly CancellationTokenSource _cts = new();
+    private Confirm? _confirm;
+    private UserDraft _draft = new();
+    private IReadOnlyList<UserRow> _rows = [];
+    private IReadOnlyList<PendingUserRow> _pending = [];
+    private IReadOnlyList<LookupItem> _groups = [], _branches = [];
+    private IReadOnlyList<string> _errors = [];
+    private IReadOnlyList<GridColumn<UserRow>> _userColumns = [];
+    private IReadOnlyList<GridColumn<PendingUserRow>> _pendingColumns = [];
+    private string? _actor, _message;
+    private bool _loading = true, _allowed, _busy;
+
+    [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _userColumns =
+        [
+            new() { Header = "User ID", Value = u => u.UserId },
+            new() { Header = "Nama", Value = u => u.FullName },
+            new() { Header = "Group", Value = u => u.GroupName ?? u.GroupId },
+            new() { Header = "Cabang", Value = u => u.BranchCode },
+            new() { Header = "Upliner", Value = u => u.Upliner },
+            new() { Header = "Aktif", Value = u => u.Active, Display = u => u.Active == true ? "Ya" : "Tidak" },
+            new() { Header = "Status", Value = u => u.LoggedOn, Display = u => string.Join(", ", new[] { u.LoggedOn ? "Sedang login" : null, u.Revoked ? "Revoke" : null }.Where(s => s is not null)) },
+            new() { Header = "Aksi", Value = u => u.UserId, ActionOnly = true, Sortable = false, Template = u => @<div class="flex flex-wrap gap-1">
+                <button type="button" @onclick="() => Edit(u)" class="@ActionClass">Ubah</button>
+                <button type="button" @onclick="() => AskDelete(u)" class="@ActionClass">Hapus</button>
+                @if (u.LoggedOn) { <button type="button" @onclick="() => AskUnlock(u)" class="@ActionClass">Buka kunci</button> }
+                @if (u.Revoked) { <button type="button" @onclick="() => AskClearRevoke(u)" class="@ActionClass">Cabut revoke</button> }
+                <button type="button" @onclick="() => AskReset(u)" class="@ActionClass">Reset password</button>
+            </div> },
+        ];
+        _pendingColumns =
+        [
+            new() { Header = "Status", Value = p => p.Status },
+            new() { Header = "User ID", Value = p => p.UserId },
+            new() { Header = "Nama", Value = p => p.FullName },
+            new() { Header = "Group", Value = p => p.GroupName ?? p.GroupId },
+            new() { Header = "Diajukan oleh", Value = p => p.CreatedBy },
+            new() { Header = "Perubahan", Value = p => p.Changes },
+            new() { Header = "Aksi", Value = p => p.TemporaryId, ActionOnly = true, Sortable = false, Template = p => @<div class="flex gap-1">
+                @if (p.Status != "Delete") { <button type="button" @onclick="() => EditPending(p)" class="@ActionClass">Ubah</button> }
+                @if (string.Equals(p.CreatedBy, _actor, StringComparison.OrdinalIgnoreCase)) { <button type="button" @onclick="() => CancelAsync(p)" class="@ActionClass">Batalkan</button> }
+            </div> },
+        ];
+
+        try
+        {
+            var user = (await AuthState).User.ToSessionUser();
+            if (user is null)
+            {
+                return;
+            }
+
+            _actor = user.UserId;
+            _allowed = await Users.HasRoleAsync(user.GroupId, MaintenanceRole.Maker, _cts.Token);
+            if (_allowed)
+            {
+                var groups = Users.GetGroupsAsync(_cts.Token);
+                var branches = Users.GetBranchesAsync(_cts.Token);
+                await Task.WhenAll(groups, branches);
+                _groups = groups.Result;
+                _branches = branches.Result;
+                await ReloadAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Halaman maker user gagal dimuat");
+            _errors = ["Halaman gagal dimuat. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private const string ActionClass = "rounded border border-sky-300 px-2 py-0.5 text-xs font-medium text-sky-800 hover:bg-sky-50";
+
+    private async Task RefreshAsync()
+    {
+        _busy = true;
+        try
+        {
+            await ReloadAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Muat ulang maker user gagal");
+            _errors = ["Data gagal dimuat. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        var rows = Users.GetUsersAsync(_cts.Token);
+        var pending = Users.GetPendingAsync(_cts.Token);
+        await Task.WhenAll(rows, pending);
+        _rows = rows.Result;
+        _pending = pending.Result;
+    }
+
+    private void Edit(UserRow u)
+    {
+        _message = null;
+        _errors = [];
+        _draft = new UserDraft
+        {
+            UserId = u.UserId, GroupId = u.GroupId, BranchCode = u.BranchCode, FullName = u.FullName, Phone = u.Phone,
+            Email = u.Email, Upliner = u.Upliner, Active = u.Active ?? false, IsEdit = true,
+        };
+    }
+
+    private void EditPending(PendingUserRow p)
+    {
+        _message = null;
+        _errors = [];
+        _draft = new UserDraft
+        {
+            UserId = p.UserId ?? string.Empty, GroupId = p.GroupId, BranchCode = p.BranchCode, FullName = p.FullName, Phone = p.Phone,
+            Upliner = p.Upliner, Active = p.Active ?? false, IsEdit = p.Status == "Update",
+        };
+    }
+
+    private void ResetForm()
+    {
+        _draft = new UserDraft();
+        _errors = [];
+        _message = null;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_actor is null)
+        {
+            return;
+        }
+
+        await RunAsync(() => Users.SavePendingAsync(_actor, _draft, _cts.Token), "Ajuan tersimpan dan menunggu persetujuan.", resetForm: true);
+    }
+
+    private void AskDelete(UserRow u) => _confirm = new($"Ajukan penghapusan user {u.UserId} ({u.FullName})? Rekeningnya akan dipindahkan ke upliner saat disetujui.", () => Users.DeleteToPendingAsync(_actor!, u.UserId, _cts.Token), "Ajuan hapus tersimpan dan menunggu persetujuan.");
+
+    private void AskUnlock(UserRow u) => _confirm = new($"Buka kunci login {u.UserId}? Sesi yang masih aktif di server ini akan dilepas.", () => Users.UnlockLoginAsync(_actor!, u.UserId, _cts.Token), $"Kunci login {u.UserId} dibuka.");
+
+    private void AskClearRevoke(UserRow u) => _confirm = new($"Cabut status revoke {u.UserId}?", () => Users.ClearRevokeAsync(_actor!, u.UserId, _cts.Token), $"Status revoke {u.UserId} dicabut.");
+
+    private void AskReset(UserRow u) => _confirm = new($"Kembalikan password {u.UserId} ke password awal?", () => Users.ResetPasswordAsync(_actor!, u.UserId, _cts.Token), $"Password {u.UserId} dikembalikan ke password awal.");
+
+    private async Task RunConfirmedAsync()
+    {
+        if (_confirm is not { } c)
+        {
+            return;
+        }
+
+        _confirm = null;
+        await RunAsync(c.Run, c.Done, resetForm: false);
+    }
+
+    private async Task CancelAsync(PendingUserRow p)
+    {
+        if (_actor is null)
+        {
+            return;
+        }
+
+        await RunAsync(() => Users.CancelPendingAsync(_actor, p.TemporaryId, _cts.Token), "Ajuan dibatalkan.", resetForm: false);
+    }
+
+    private async Task RunAsync(Func<Task<MaintenanceResult>> action, string done, bool resetForm)
+    {
+        if (_busy)
+        {
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        _errors = [];
+        try
+        {
+            var result = await action();
+            _errors = result.Errors;
+            if (result.Success)
+            {
+                _message = done;
+                if (resetForm)
+                {
+                    _draft = new UserDraft();
+                }
+
+                await ReloadAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Aksi maintenance user gagal");
+            _errors = ["Aksi gagal. Coba lagi atau hubungi administrator."];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}
