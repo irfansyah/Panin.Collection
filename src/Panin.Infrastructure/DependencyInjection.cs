@@ -26,9 +26,12 @@ public static class DependencyInjection
 
         services.Configure<SessionOptions>(configuration.GetSection(SessionOptions.SectionName));
         services.AddMemoryCache();
+        services.AddSingleton<SingleFlightCache>();
         services.AddSingleton(TimeProvider.System);
 
-        services.AddSingleton<ILoginDb>(_ => new LoginDb(loginConnection));
+        services.AddSingleton<QueryStats>();
+        services.AddSingleton<IQueryObserver>(sp => sp.GetRequiredService<QueryStats>());
+        services.AddSingleton<ILoginDb>(sp => new LoginDb(loginConnection, sp.GetRequiredService<IQueryObserver>()));
         services.AddSingleton<IUserSessionRegistry, UserSessionRegistry>();
         services.AddSingleton<IAuthService, AuthService>();
         services.AddSingleton<IModuleRegistry, ModuleRegistry>();

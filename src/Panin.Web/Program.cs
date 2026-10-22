@@ -8,6 +8,7 @@ using Panin.Application.Auth;
 using Panin.Application.Modules;
 using Panin.Application.Sessions;
 using Panin.Infrastructure;
+using Panin.Infrastructure.Data;
 using Panin.Web.Components;
 using Panin.Web.Infrastructure;
 using Panin.Web.Shell;
@@ -91,6 +92,9 @@ app.MapPost("/auth/logout", async (HttpContext http, IAuthService auth, IAntifor
 
 if (app.Configuration.GetValue("Diagnostics:Enabled", false))
 {
+    app.MapGet("/_diag/queries", (QueryStats stats, int? top) => Results.Json(stats.Top(top ?? 20)
+        .Select(s => new { s.Database, s.Sql, s.Count, s.Failed, s.Slow, totalMs = (long)s.TotalMs, avgMs = (long)s.AverageMs, maxMs = (long)s.MaxMs, s.Rows }))).AllowAnonymous();
+
     app.MapGet("/_diag", (CircuitTracker circuits, IUserSessionRegistry sessions, bool? gc) =>
     {
         if (gc == true)

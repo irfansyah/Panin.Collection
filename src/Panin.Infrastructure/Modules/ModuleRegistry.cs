@@ -1,11 +1,11 @@
 using System.Data;
-using Microsoft.Extensions.Caching.Memory;
 using Panin.Application.Abstractions;
 using Panin.Application.Modules;
+using Panin.Infrastructure.Data;
 
 namespace Panin.Infrastructure.Modules;
 
-public sealed class ModuleRegistry(ILoginDb db, IEnumerable<ModuleDefinition> definitions, IMemoryCache cache) : IModuleRegistry
+public sealed class ModuleRegistry(ILoginDb db, IEnumerable<ModuleDefinition> definitions, SingleFlightCache cache) : IModuleRegistry
 {
     private static readonly TimeSpan CacheFor = TimeSpan.FromMinutes(5);
     private readonly ModuleDefinition[] _definitions = [.. definitions];
@@ -14,11 +14,10 @@ public sealed class ModuleRegistry(ILoginDb db, IEnumerable<ModuleDefinition> de
 
     public async Task<IReadOnlyList<AccessibleModule>> GetAccessibleAsync(string groupId, CancellationToken ct = default)
     {
-        var rows = await cache.GetOrCreateAsync($"modules:group:{groupId}", async entry =>
+        var rows = await cache.GetOrCreateAsync($"modules:group:{groupId}", CacheFor, async () =>
         {
-            entry.AbsoluteExpirationRelativeToNow = CacheFor;
             var table = await db.QueryTableAsync(
-                "select MODULEID, MODULENAME from VW_GRPACCESSMODULE where GROUPID = @1 order by MODULEID", [groupId], ct: ct).ConfigureAwait(false);
+                "select MODULEID, MODULENAME from VW_GRPACCESSMODULE where GROUPID = @1 order by MODULEID", [groupId]).ConfigureAwait(false);
             return table.Rows.Cast<DataRow>().Select(r => (Id: S(r, "MODULEID"), Name: S(r, "MODULENAME"))).ToArray();
         }).ConfigureAwait(false) ?? [];
 
@@ -37,11 +36,10 @@ public sealed class ModuleRegistry(ILoginDb db, IEnumerable<ModuleDefinition> de
 
     public async Task<ModuleRecord?> GetRecordAsync(string moduleId, CancellationToken ct = default)
     {
-        return await cache.GetOrCreateAsync($"modules:record:{moduleId}", async entry =>
+        return await cache.GetOrCreateAsync($"modules:record:{moduleId}", CacheFor, async () =>
         {
-            entry.AbsoluteExpirationRelativeToNow = CacheFor;
             var r = await db.QueryFirstOrDefaultAsync(
-                "select MODULEID, MODULENAME, DB_IP, DB_NAMA, DB_LOGINID, DB_LOGINPWD, ACTIVE from RFMODULE where MODULEID = @1", [moduleId], ct: ct).ConfigureAwait(false);
+                "select MODULEID, MODULENAME, DB_IP, DB_NAMA, DB_LOGINID, DB_LOGINPWD, ACTIVE from RFMODULE where MODULEID = @1", [moduleId]).ConfigureAwait(false);
             return r is null
                 ? null
                 : new ModuleRecord(S(r, "MODULEID"), S(r, "MODULENAME"), N(r, "DB_IP"), N(r, "DB_NAMA"), N(r, "DB_LOGINID"), N(r, "DB_LOGINPWD"), S(r, "ACTIVE") is "1" or "True");

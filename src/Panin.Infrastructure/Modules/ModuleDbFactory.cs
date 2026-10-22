@@ -7,7 +7,7 @@ using Panin.Infrastructure.Data;
 
 namespace Panin.Infrastructure.Modules;
 
-public sealed class ModuleDbFactory(IConfiguration configuration, IModuleRegistry registry) : IModuleDbFactory
+public sealed class ModuleDbFactory(IConfiguration configuration, IModuleRegistry registry, IQueryObserver observer) : IModuleDbFactory
 {
     private readonly ConcurrentDictionary<string, IDb> _cache = new();
 
@@ -49,7 +49,7 @@ public sealed class ModuleDbFactory(IConfiguration configuration, IModuleRegistr
 
     private IDb Wrap(string moduleId, string connectionString)
     {
-        IDb db = new SqlDb(connectionString);
+        IDb db = new SqlDb(connectionString, $"data:{moduleId}", observer);
 
         // Baca-saja bila diminta lewat konfigurasi, atau bila connection string sendiri berniat ReadOnly
         // (dipakai untuk DB dev bersama yang tidak boleh ditulis dari mesin pengembang).

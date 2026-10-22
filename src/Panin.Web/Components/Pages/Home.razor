@@ -9,7 +9,6 @@
 @inject IMenuService Menus
 @inject ModulePageCatalog Pages
 @inject WorkspaceState State
-@inject IUserAreaService Areas
 @inject IDataStatusService DataStatus
 @inject IWarningService Warnings
 @inject ILogger<Home> Logger
@@ -133,7 +132,6 @@
         _modules = await Modules.GetAccessibleAsync(User.GroupId);
         UpdateClock();
         _clock = new Timer(_ => _ = InvokeAsync(OnClockTickAsync), null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-        _ = LoadStatusAsync();
 
         if (State.Active is null && _modules.Count > 0)
         {
@@ -153,6 +151,17 @@
         StateHasChanged();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Hanya sirkuit interaktif (bukan prarender) yang memuat status; ditunda acak beberapa detik supaya
+        // lonjakan login (700 user) tidak menjadi lonjakan query status di DB DATA. Status bersifat sekunder.
+        if (firstRender && User is not null)
+        {
+            await Task.Delay(Random.Shared.Next(1000, 8000));
+            await LoadStatusAsync();
+        }
+    }
+
     private async Task LoadStatusAsync()
     {
         if (User is null)
@@ -170,7 +179,6 @@
             _warnings = warnings;
             StateHasChanged();
         });
-        State.Area ??= await Areas.GetAsync(userId);
     }
 
     private void UpdateClock() => _now = DateTime.Now.ToString("HH:mm - dddd, d MMMM yyyy", Indonesian);

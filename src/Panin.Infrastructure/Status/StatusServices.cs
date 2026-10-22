@@ -1,9 +1,9 @@
 using System.Data;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Panin.Application.Modules;
 using Panin.Application.Status;
+using Panin.Infrastructure.Data;
 
 namespace Panin.Infrastructure.Status;
 
@@ -13,18 +13,17 @@ internal static class StatusModule
     public const string Id = "60";
 }
 
-public sealed partial class UserAreaService(IModuleDbFactory dbs, IMemoryCache cache, ILogger<UserAreaService> logger) : IUserAreaService
+public sealed partial class UserAreaService(IModuleDbFactory dbs, SingleFlightCache cache, ILogger<UserAreaService> logger) : IUserAreaService
 {
     public async Task<UserArea?> GetAsync(string userId, CancellationToken ct = default)
     {
         try
         {
-            return await cache.GetOrCreateAsync($"area:{userId}", async entry =>
+            return await cache.GetOrCreateAsync($"area:{userId}", TimeSpan.FromMinutes(30), async () =>
             {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
-                var db = await dbs.GetDataDbAsync(StatusModule.Id, ct).ConfigureAwait(false);
+                var db = await dbs.GetDataDbAsync(StatusModule.Id).ConfigureAwait(false);
                 var r = await db.QueryFirstOrDefaultAsync(
-                    "select BRANCH_CODE, AREA_ID, CITY_ID from VW_AUTH_USERAREA where USERID = @1", [userId], ct: ct).ConfigureAwait(false);
+                    "select BRANCH_CODE, AREA_ID, CITY_ID from VW_AUTH_USERAREA where USERID = @1", [userId]).ConfigureAwait(false);
                 return r is null ? null : new UserArea(Text(r, "BRANCH_CODE"), Text(r, "AREA_ID"), Text(r, "CITY_ID"));
             }).ConfigureAwait(false);
         }
@@ -41,18 +40,17 @@ public sealed partial class UserAreaService(IModuleDbFactory dbs, IMemoryCache c
     private static partial void LogFailure(ILogger logger, Exception ex, string userId);
 }
 
-public sealed partial class DataStatusService(IModuleDbFactory dbs, IMemoryCache cache, ILogger<DataStatusService> logger) : IDataStatusService
+public sealed partial class DataStatusService(IModuleDbFactory dbs, SingleFlightCache cache, ILogger<DataStatusService> logger) : IDataStatusService
 {
     public async Task<DataFreshness?> GetFreshnessAsync(CancellationToken ct = default)
     {
         try
         {
-            return await cache.GetOrCreateAsync("data-freshness", async entry =>
+            return await cache.GetOrCreateAsync("data-freshness", TimeSpan.FromMinutes(10), async () =>
             {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-                var db = await dbs.GetDataDbAsync(StatusModule.Id, ct).ConfigureAwait(false);
+                var db = await dbs.GetDataDbAsync(StatusModule.Id).ConfigureAwait(false);
                 var r = await db.QueryFirstOrDefaultAsync(
-                    "select max(AS_OF_DATE) as LAST_DATE, isnull(datediff(day, max(AS_OF_DATE), getdate()), 0) as DAYS_BEHIND from ACCOUNT_MASTER", ct: ct).ConfigureAwait(false);
+                    "select max(AS_OF_DATE) as LAST_DATE, isnull(datediff(day, max(AS_OF_DATE), getdate()), 0) as DAYS_BEHIND from ACCOUNT_MASTER").ConfigureAwait(false);
                 return r is null || r["LAST_DATE"] is DBNull
                     ? null
                     : new DataFreshness(Convert.ToDateTime(r["LAST_DATE"], System.Globalization.CultureInfo.InvariantCulture), Convert.ToInt32(r["DAYS_BEHIND"], System.Globalization.CultureInfo.InvariantCulture));
@@ -70,18 +68,28 @@ public sealed partial class DataStatusService(IModuleDbFactory dbs, IMemoryCache
 }
 
 /// <summary>Membungkus <c>SP_VW_WARNINGCONTENT</c> (peringatan janji bayar, dsb.) yang mengembalikan judul dan tabel berisi HTML lama.</summary>
-public sealed partial class WarningService(IModuleDbFactory dbs, IMemoryCache cache, ILogger<WarningService> logger) : IWarningService
+public sealed partial class WarningService(IModuleDbFactory dbs, SingleFlightCache cache, ILogger<WarningService> logger) : IWarningService
 {
+    /// <summary>Peringatan bersifat sekunder: dibatasi bersamaan agar lonjakan login tidak membanjiri DB DATA (terukur: 326 panggilan bersamaan rata-rata 8 detik).</summary>
+    private static readonly SemaphoreSlim Gate = new(6, 6);
+
     public async Task<WarningSet> GetAsync(string userId, CancellationToken ct = default)
     {
         try
         {
-            return await cache.GetOrCreateAsync($"warning:{userId}", async entry =>
+            return await cache.GetOrCreateAsync($"warning:{userId}", TimeSpan.FromMinutes(5), async () =>
             {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
-                var db = await dbs.GetDataDbAsync(StatusModule.Id, ct).ConfigureAwait(false);
-                var ds = await db.QueryDataSetAsync("exec SP_VW_WARNINGCONTENT @1", [userId], ct: ct).ConfigureAwait(false);
-                return Parse(ds);
+                var db = await dbs.GetDataDbAsync(StatusModule.Id).ConfigureAwait(false);
+                await Gate.WaitAsync().ConfigureAwait(false);
+                try
+                {
+                    var ds = await db.QueryDataSetAsync("exec SP_VW_WARNINGCONTENT @1", [userId]).ConfigureAwait(false);
+                    return Parse(ds);
+                }
+                finally
+                {
+                    Gate.Release();
+                }
             }).ConfigureAwait(false) ?? WarningSet.Empty;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

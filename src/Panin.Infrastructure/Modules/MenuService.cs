@@ -1,23 +1,22 @@
 using System.Data;
-using Microsoft.Extensions.Caching.Memory;
 using Panin.Application.Abstractions;
 using Panin.Application.Modules;
+using Panin.Infrastructure.Data;
 
 namespace Panin.Infrastructure.Modules;
 
-public sealed class MenuService(ILoginDb db, IMemoryCache cache) : IMenuService
+public sealed class MenuService(ILoginDb db, SingleFlightCache cache) : IMenuService
 {
     private static readonly TimeSpan CacheFor = TimeSpan.FromMinutes(5);
 
     public async Task<IReadOnlyList<MenuNode>> GetMenuAsync(string moduleId, string groupId, CancellationToken ct = default)
     {
-        return await cache.GetOrCreateAsync($"menu:{moduleId}:{groupId}", async entry =>
+        return await cache.GetOrCreateAsync($"menu:{moduleId}:{groupId}", CacheFor, async () =>
         {
-            entry.AbsoluteExpirationRelativeToNow = CacheFor;
             var table = await db.QueryTableAsync(
                 "select A.MENUID, A.MENUDESC, A.MENUURL, A.MENUPARENT, A.MENUPOSITION " +
                 "from RFMENUX A join GRPMENUX B on A.TYPEID = B.TYPEID and A.MENUID = B.MENUID " +
-                "where B.TYPEID = @1 and B.GROUPID = @2 order by A.MENUPARENT, A.MENUPOSITION", [moduleId, groupId], ct: ct).ConfigureAwait(false);
+                "where B.TYPEID = @1 and B.GROUPID = @2 order by A.MENUPARENT, A.MENUPOSITION", [moduleId, groupId]).ConfigureAwait(false);
             return (IReadOnlyList<MenuNode>)BuildTree(table);
         }).ConfigureAwait(false) ?? [];
     }
