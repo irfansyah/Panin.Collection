@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
+using Panin.Application.Reports;
 using Panin.Application.Reports.Pivot;
 
 namespace Panin.Infrastructure.Reports.Custom;
@@ -65,6 +66,14 @@ public sealed class CustomPivotCatalog : ICustomPivotCatalog
                 ColumnTotals: Option("columnTotals"),
                 ColumnGrandTotal: Option("columnGrandTotals"));
 
+            CompanionSpec? companion = null;
+            if (entry.TryGetProperty("companion", out var comp))
+            {
+                companion = new CompanionSpec(
+                    comp.GetProperty("table").GetInt32(),
+                    [.. comp.GetProperty("columns").EnumerateArray().Select(c => new ReportColumn(c.GetProperty("field").GetString()!, c.GetProperty("caption").GetString()!, ReportSummary.None))]);
+            }
+
             var spec = new CustomPivotSpec(
                 entry.GetProperty("class").GetString()!,
                 sp.GetString()!,
@@ -72,7 +81,8 @@ public sealed class CustomPivotCatalog : ICustomPivotCatalog
                 entry.GetProperty("timeoutSeconds").GetInt32(),
                 entry.GetProperty("dataTable").GetInt32(),
                 Text(entry, "periodColumn"),
-                layout);
+                layout,
+                companion);
             result[spec.Class] = spec;
         }
 

@@ -157,7 +157,16 @@ public sealed class ReportService(IModuleDbFactory dbs, SingleFlightCache cache,
                 var subtitle = spec.SubtitleColumn is { } col && spec.DataTable > 0 && set.Tables[0].Rows.Count > 0 && set.Tables[0].Columns.Contains(col)
                     ? System.Convert.ToString(set.Tables[0].Rows[0][col], CultureInfo.InvariantCulture)?.Trim()
                     : null;
-                return new PivotRunResult(PivotBuilder.Build(layout, PivotQuery.FromRows(layout, set.Tables[spec.DataTable])), false, subtitle);
+                PivotCompanion? companion = null;
+                if (spec.Companion is { } comp && set.Tables.Count > comp.Table)
+                {
+                    var companionTable = set.Tables[comp.Table];
+                    companion = new PivotCompanion(
+                        [.. comp.Columns.Select(c => c.Caption)],
+                        [.. companionTable.Rows.Cast<DataRow>().Select(r => (IReadOnlyList<string>)[.. comp.Columns.Select(c => companionTable.Columns.Contains(c.Field) && r[c.Field] is not DBNull ? System.Convert.ToString(r[c.Field], CultureInfo.InvariantCulture)?.Trim() ?? string.Empty : string.Empty)])]);
+                }
+
+                return new PivotRunResult(PivotBuilder.Build(layout, PivotQuery.FromRows(layout, set.Tables[spec.DataTable])), false, subtitle, companion);
             }
 
             var types = await cache.GetOrCreateAsync($"rpt-types:{moduleId}:{report.Id}", DefinitionCache, async () =>

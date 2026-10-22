@@ -88,9 +88,9 @@ Satu mesin pivot (`Panin.Application/Reports/Pivot`) untuk kedua jenis report; D
 | `PivotBuilder` | Menyusun baris/kolom bertingkat, banyak ukuran, subtotal per level, total keseluruhan, urutan menurut ukuran bantu (`URUTAN`), persentase kolom/baris. Agregat dihitung dari agregat parsial (jumlah, banyak, min, maks) sehingga rata-rata di subtotal tepat (bukan rata-rata dari rata-rata). |
 | `PivotQuery` | **R2**: agregasi di SQL (`GROUP BY` semua field baris/kolom; `SUM/COUNT/MIN/MAX` hanya untuk kolom angka; interval tahun/bulan/hari hanya untuk kolom tanggal; tipe kolom diketahui lewat `SELECT TOP 0`). **R3**: pengelompokan baris hasil SP di memori. |
 | `PivotLayoutView` + `PivotView.razor` | Tabel HTML bertingkat dengan sel gabung; ekspor Excel datar (judul kolom digabung " / "). Tampilan dibatasi 30.000 sel; ekspor penuh. |
-| `CustomPivotCatalog` | `pivot-layouts.json` (resource tertanam) berisi SP, jumlah parameter, indeks result set, dan tata letak 53 kelas `PV_*`, diekstrak dari `*.Designer.cs` lama oleh `tools/ReportExtract/extract_pivot_layouts.py` (`python tools/ReportExtract/extract_pivot_layouts.py <repo-lama>`; dijalankan ulang bila kelas lama berubah). |
+| `CustomPivotCatalog` | `pivot-layouts.json` (resource tertanam) berisi SP, jumlah parameter, indeks result set, dan tata letak 54 kelas `PV_*`, diekstrak dari `*.Designer.cs` lama oleh `tools/ReportExtract/extract_pivot_layouts.py` (`python tools/ReportExtract/extract_pivot_layouts.py <repo-lama>`; dijalankan ulang bila kelas lama berubah). |
 
-Cakupan terhadap salinan lokal: seluruh set `DT` (13), `LE` (12), `LD` (12), `FR` (24), `WASIS` (1), `PRK` (4) dan `GEN` (26) tersedia; `KPM` 6 dari 7. Tes integrasi menjalankan 46 SP kustom plus semua pivot dinamis terhadap DB nyata tanpa galat.
+Cakupan terhadap salinan lokal: seluruh set `DT` (13), `LE` (12), `LD` (12), `FR` (24), `WASIS` (1), `PRK` (4) dan `GEN` (26) tersedia, begitu pula `KPM` (7 dari 7). Tes integrasi menjalankan 46 SP kustom plus semua pivot dinamis terhadap DB nyata tanpa galat.
 
 Beda/asumsi yang harus diketahui:
 
@@ -159,6 +159,6 @@ Namun SP Leading Edge per produk **perlu dioptimalkan di sisi DB** (atau dibatas
 | R1 Daftar dinamis | selesai |
 | R1b `PV_COND` (4), Letter Status, Collector Productivity (2) | selesai (lihat beda perilaku di atas) |
 | R2 Pivot dinamis | selesai (belum dibandingkan dengan keluaran lama pada data nyata) |
-| R3 Pivot dari SP | selesai untuk 53 kelas; `PV_Alasan_NPL` (pivot + daftar alasan, laporan berpita) belum |
+| R3 Pivot dari SP | selesai untuk 54 kelas, termasuk `PV_Alasan_NPL` (pivot + tabel keterangan alasan di bawahnya sebagai tabel pendamping) |
 | Pemeriksaan konsistensi + pengukuran waktu semua report (`Panin.ReportCheck`) | alat selesai; dijalankan di salinan lokal, belum di staging/produksi |
 | Perbandingan keluaran dengan layar lama (tampilan DevExpress) pada data nyata | belum (butuh akses ke aplikasi lama dan data produksi) |

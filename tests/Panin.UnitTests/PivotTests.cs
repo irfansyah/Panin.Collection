@@ -423,7 +423,7 @@ public class CustomPivotCatalogTests
     public void Catalog_loads_the_extracted_layouts()
     {
         Assert.True(Catalog.Count >= 50, $"hanya {Catalog.Count} layout");
-        Assert.Null(Catalog.Find("LOSCOLLECTION.Report.Template.PV_Alasan_NPL"));
+        Assert.NotNull(Catalog.Find("LOSCOLLECTION.Report.Template.PV_Alasan_NPL"));
         Assert.Null(Catalog.Find("tidak.ada"));
     }
 
@@ -483,5 +483,22 @@ public class CustomPivotCatalogTests
         var unknown = ReportDefinitionParser.Parse("P1", "x", null, null, null, null, null, "LOSCOLLECTION.Report.Template.Tidak_Ada", new DateOnly(2026, 10, 22), null, Catalog);
         Assert.Equal(ReportKind.Custom, unknown.Kind);
         Assert.NotNull(unknown.UnavailableReason);
+    }
+}
+
+public class CompanionTableTests
+{
+    [Fact]
+    public void Reason_report_has_a_pivot_table_and_a_companion_legend()
+    {
+        var spec = new Panin.Infrastructure.Reports.Custom.CustomPivotCatalog().Find("LOSCOLLECTION.Report.Template.PV_Alasan_NPL")!;
+
+        Assert.Equal("EXEC SP_VW_REKAP_REASON_BRANCH @1, @2", spec.CallSql);
+        Assert.Equal(1, spec.DataTable);
+        Assert.Equal(2, spec.Companion!.Table);
+        Assert.Equal(["REASON_ID", "REASON_DESC"], spec.Companion.Columns.Select(c => c.Field));
+        Assert.Equal(["Branch(KCU)"], spec.Layout.Rows.Select(f => f.Caption));
+        Assert.Equal(["Reason"], spec.Layout.Columns.Select(f => f.Caption));
+        Assert.False(spec.Layout.RowTotals);
     }
 }

@@ -1,7 +1,49 @@
 {
   "PV_Alasan_NPL": {
     "class": "LOSCOLLECTION.Report.Template.PV_Alasan_NPL",
-    "irregular": "1 panggilan data (Set); laporan berpita atau lebih dari satu dataset"
+    "sp": "SP_VW_REKAP_REASON_BRANCH",
+    "params": 2,
+    "timeoutSeconds": 1000,
+    "dataTable": 1,
+    "periodColumn": "PERIODE",
+    "companion": {
+      "table": 2,
+      "columns": [
+        {
+          "field": "REASON_ID",
+          "caption": "Reason Id"
+        },
+        {
+          "field": "REASON_DESC",
+          "caption": "Reason Desc"
+        }
+      ]
+    },
+    "fields": [
+      {
+        "area": "row",
+        "index": 0,
+        "caption": "Branch(KCU)",
+        "field": "BRANCH_NAME"
+      },
+      {
+        "area": "column",
+        "index": 0,
+        "caption": "Reason",
+        "field": "REASON_ID",
+        "sortBy": null
+      },
+      {
+        "area": "data",
+        "index": 0,
+        "caption": "Jml",
+        "cellFormat": "#,#",
+        "field": "CNT"
+      }
+    ],
+    "options": {
+      "rowTotals": false
+    }
   },
   "PV_DailyTracking_Branch": {
     "class": "LOSCOLLECTION.Report.Template.PV_DailyTracking_Branch",

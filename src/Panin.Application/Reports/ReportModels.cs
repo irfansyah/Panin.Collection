@@ -125,7 +125,7 @@ public static class ReportLimits
 
 /// <param name="GroupsTruncated">True bila jumlah kelompok data melampaui batas dan hasil dipotong.</param>
 /// <param name="Subtitle">Keterangan di atas laporan (mis. periode) yang dikembalikan SP kustom.</param>
-public sealed record PivotRunResult(PivotResult Table, bool GroupsTruncated, string? Subtitle = null);
+public sealed record PivotRunResult(PivotResult Table, bool GroupsTruncated, string? Subtitle = null, PivotCompanion? Companion = null);
 
 public interface IReportService
 {

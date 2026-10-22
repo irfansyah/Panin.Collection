@@ -40,7 +40,7 @@ for cls in classes:
 
     entry = {"class": f"LOSCOLLECTION.Report.Template.{cls}"}
     calls = re.findall(r'GetData(Table|Set)\(\s*"EXEC (\w+)((?: @\d+,?)*)"\s*,\s*(\w+)\s*,\s*(\d+)', code)
-    if len(calls) != 1 or "DetailReport" in code or "DataBindings" in code:
+    if len(calls) != 1 or (("DetailReport" in code or "DataBindings" in code) and calls[0][0] != "Set"):
         entry["irregular"] = f"{len(calls)} panggilan data ({', '.join(c[0] for c in calls) or 'tidak ada'}); laporan berpita atau lebih dari satu dataset"
         out[cls] = entry
         continue
@@ -62,6 +62,17 @@ for cls in classes:
             entry["periodColumn"] = header.group(2)
     else:
         entry["dataTable"] = 0
+
+    # laporan berpita pendamping: this.DetailReport.DataSource = dtN (dtN = ds.Tables[k]) dengan kolom dari DataBindings.Add("Text", dtN, "KOLOM")
+    detail = re.search(r"this\.DetailReport\.DataSource = (\w+);", code)
+    if detail:
+        idx = re.search(rf"DataTable {detail.group(1)} = \w+\.Tables\[(\d+)\]", code)
+        bindings = re.findall(rf'DataBindings\.Add\("Text", {detail.group(1)}, "(\w+)"\)', code)
+        if idx and bindings:
+            entry["companion"] = {
+                "table": int(idx.group(1)),
+                "columns": [{"field": b, "caption": b.replace("_", " ").title()} for b in bindings],
+            }
 
     fields = {}
     for m in re.finditer(r"this\.(\w+)\.([\w.]+) = (.+?);\s*$", designer, re.M):

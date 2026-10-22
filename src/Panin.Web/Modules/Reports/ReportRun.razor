@@ -151,6 +151,31 @@
             {
                 <PivotView Result="_pivot.Table" />
             }
+
+            @if (_pivot.Companion is { Rows.Count: > 0 } companion)
+            {
+                <table class="mt-3 w-auto border-collapse text-sm">
+                    <thead class="bg-slate-100 text-slate-700">
+                        <tr>
+                            @foreach (var h in companion.Headers)
+                            {
+                                <th class="border border-slate-200 px-3 py-1.5 text-left font-semibold">@h</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in companion.Rows)
+                        {
+                            <tr>
+                                @foreach (var cell in row)
+                                {
+                                    <td class="border border-slate-200 bg-white px-3 py-1.5">@cell</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
         }
         else if (_result is not null)
         {
