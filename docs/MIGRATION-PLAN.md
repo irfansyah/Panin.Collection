@@ -268,7 +268,7 @@ Prinsip:
 - Buat solution skeleton, CI build, konvensi kode, logging (Serilog), error log (`USP_ERRORLOG_SAVE`).
 - Siapkan lisensi & feed DevExpress; PoC grid + 1 report pada Blazor Server.
 - Pindahkan semua kredensial ke secrets; **rotasi password `sa`** yang sudah ada di git.
-- Buat repo GitHub baru (bagian 2B) dengan CI dan secret scanning.
+- Buat repo GitHub baru (bagian 2B). **CI dan Dependabot ditunda** (workflow hanya manual); diaktifkan belakangan.
 - Dump skema **dari server** (view/SP/FNC) dan cocokkan dengan objek yang dipanggil kode branch `multibrowser`.
 - Keluaran: `Panin.Infrastructure` dengan `IDb` pengganti `DbConnection`, test terhadap DB dev.
 
