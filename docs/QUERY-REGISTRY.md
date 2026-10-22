@@ -32,6 +32,13 @@ Angka login/logout di bawah diambil dari pengamat query aplikasi (`/_diag/querie
 | `SP_SEARCH_DEBITUR` | Inquiry Status Debitur | nama pendek **56 s / 335 ribu baris**; tanpa kriteria **116 s / 760 ribu baris**; nama biasa ±14 s hingga baris pertama; no. rekening 0,3–0,7 s; prefiks 5 digit 6,5 s / 47 ribu baris | **Tulis ulang** (`DebiturSearchService`) | Query setara tanpa `LEFT JOIN TREATMENT_HISTORY` (kolomnya tidak dipakai SP) dan dengan `TOP 500`: 0,1–5 s. Divalidasi 24/24 identik terhadap SP (himpunan rekening dan nilai kolom). |
 | `VW_SEARCH_DEBITUR_LEFT` | pencarian debitur | `TOP 200` nama: ±100 ms; `count(*)` nama: ±1 s; nama jarang (SUHARTO) ±5 s (memindai seluruh data) | Pakai dengan `TOP` | nama jarang tetap memindai; kandidat indeks/ pencarian teks bila perlu |
 | `ACCOUNT_MASTER` (join status) | pencarian debitur | ikut dalam query di atas | Pakai | |
+| `VW_ACCOUNT_SURAT` | Detail debitur (kredit, tunggakan) | `SELECT *` (74 kolom) **276 ms**; hanya 45 kolom yang dipakai **171 ms** (terbaik dari 3 di DB dev); panggilan pertama di aplikasi ±600 ms | Pakai, kolom dipilih satu per satu | Layar lama memanggil `SELECT *` dua kali berurutan (`VW_ACCOUNT_SURAT` dan `VW_CUSTOMER_SURAT` ±254 ms); halaman baru hanya satu view dan nama/cabang diambil dari kolomnya |
+| `VW_CUSTOMER_PERSONALINFO` | tab Info Personal (dimuat saat dibuka) | ±263 ms (pertama di aplikasi ±480 ms) | Pakai (`SELECT *` perlu dipersempit) | |
+| `SP_JOB_INFO`, `SP_SPOUSE_INFO`, `SP_SPOUSE_JOB` | tab Pekerjaan, Pasangan, Pekerjaan Pasangan | 21–34 ms | Pakai (baca-saja, diperiksa) | dimuat hanya saat tab dibuka |
+| `SP_GET_CONTACT_INFO` | tab Kontak | ±26 ms | Pakai (baca-saja) | |
+| `USP_VWDELINQHIST` | riwayat kolektibilitas | ±27 ms (pertama di aplikasi ±1 s) | Pakai (baca-saja) | |
+| `LOAN_MASTER` ⨝ `RFPRODUCT` (APP_TYPE) | sorotan PRK | ms (pertama di aplikasi ±550 ms, 0 baris untuk rekening tanpa produk) | Pakai | |
+| `SP_VIEW_OTHER_RELATION` | tab Relasi lain | 30 ms | **Tunda** | parameter `@FUNC` belum jelas artinya |
 
 ## Belum diukur / menunggu halaman
 

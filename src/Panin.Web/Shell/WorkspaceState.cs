@@ -2,6 +2,14 @@ using Panin.Application.Modules;
 
 namespace Panin.Web.Shell;
 
+/// <summary>Satu halaman di tumpukan tab modul. Dibandingkan dengan identitas objek (dipakai sebagai kunci render).</summary>
+public sealed class PageEntry(Type? pageType, IDictionary<string, object?> parameters)
+{
+    public Type? PageType { get; } = pageType;
+
+    public IDictionary<string, object?> Parameters { get; } = parameters;
+}
+
 /// <summary>State satu tab modul. Tetap hidup selama sirkuit, sehingga pindah tab tidak menghilangkan halaman.</summary>
 public sealed class ModuleWorkspace(AccessibleModule module)
 {
@@ -9,9 +17,26 @@ public sealed class ModuleWorkspace(AccessibleModule module)
 
     public IReadOnlyList<MenuNode>? Menu { get; set; }
 
-    public Type? PageType { get; set; }
+    /// <summary>
+    /// Tumpukan halaman tab ini. Halaman di bawah teratas tetap hidup (disembunyikan) sehingga Kembali mengembalikan
+    /// halaman persis seperti ditinggalkan, mis. hasil pencarian. Kedalaman dibatasi agar memori sirkuit terjaga.
+    /// </summary>
+    public List<PageEntry> Pages { get; } = [];
 
-    public IDictionary<string, object?> PageParameters { get; } = new Dictionary<string, object?>();
+    public const int MaxDepth = 4;
+
+    public PageEntry? Current => Pages.Count > 0 ? Pages[^1] : null;
+
+    public Type? PageType => Current?.PageType;
+
+    /// <summary>Mengganti seluruh tumpukan dengan satu halaman (pilihan menu / halaman awal modul).</summary>
+    public void SetRoot(Type? page, IDictionary<string, object?>? parameters = null)
+    {
+        Pages.Clear();
+        Pages.Add(new PageEntry(page, parameters ?? new Dictionary<string, object?>()));
+    }
+
+    public IModuleNavigator Navigator { get; set; } = null!;
 
     public string? ActiveMenuId { get; set; }
 
@@ -41,6 +66,7 @@ public sealed class WorkspaceState
         if (!_opened.ContainsKey(module.Id))
         {
             created = new ModuleWorkspace(module);
+            created.Navigator = new ModuleNavigator(created, Notify);
             _opened[module.Id] = created;
         }
 

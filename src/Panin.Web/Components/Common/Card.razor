@@ -1,0 +1,13 @@
+<section class="rounded-lg border border-slate-200 bg-white">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h2 class="border-b border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">@Title</h2>
+    }
+    <div class="p-4">@ChildContent</div>
+</section>
+
+@code {
+    [Parameter] public string? Title { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

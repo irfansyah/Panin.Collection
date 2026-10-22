@@ -20,6 +20,7 @@
     <ProjectReference Include="..\..\src\Panin.Domain\Panin.Domain.csproj" />
     <ProjectReference Include="..\..\src\Panin.Application\Panin.Application.csproj" />
     <ProjectReference Include="..\..\src\Panin.Infrastructure\Panin.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Panin.Web\Panin.Web.csproj" />
   </ItemGroup>
 
 </Project>

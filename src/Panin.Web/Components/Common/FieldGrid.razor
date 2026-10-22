@@ -1,0 +1,22 @@
+@using Panin.Application.Collection
+
+<dl class="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+    @foreach (var f in Fields)
+    {
+        var value = Record?.Text(f.Column);
+        var emphasized = Emphasize?.Contains(f.Column) == true;
+        <div @key="f.Column" class="@(emphasized ? "rounded bg-sky-50 px-2 py-1 ring-1 ring-sky-100" : "px-2 py-1") min-w-0">
+            <dt class="text-xs text-slate-500">@f.Label</dt>
+            <dd class="@(emphasized ? "font-semibold text-slate-900" : "text-slate-800") break-words text-sm">@(string.IsNullOrWhiteSpace(value) ? "-" : value)</dd>
+        </div>
+    }
+</dl>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<DetailField> Fields { get; set; } = [];
+
+    [Parameter] public DetailRecord? Record { get; set; }
+
+    /// <summary>Kolom yang disorot (mis. total tunggakan, atau cerukan untuk rekening PRK).</summary>
+    [Parameter] public ISet<string>? Emphasize { get; set; }
+}

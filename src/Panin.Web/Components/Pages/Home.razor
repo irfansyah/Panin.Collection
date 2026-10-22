@@ -65,9 +65,16 @@
                 @foreach (var ws in State.Opened)
                 {
                     <div @key="ws.Module.Id" class="@(ws.Module.Id == State.ActiveModuleId ? "" : "hidden")">
-                        @if (ws.PageType is not null)
+                        @foreach (var entry in ws.Pages)
                         {
-                            <DynamicComponent Type="ws.PageType" Parameters="ws.PageParameters" />
+                            <div @key="entry" class="@(entry == ws.Current ? "" : "hidden")">
+                                @if (entry.PageType is not null)
+                                {
+                                    <CascadingValue Value="ws.Navigator" IsFixed="true">
+                                        <DynamicComponent Type="entry.PageType" Parameters="entry.Parameters" />
+                                    </CascadingValue>
+                                }
+                            </div>
                         }
                     </div>
                 }
@@ -201,7 +208,7 @@
             created.Menu = [];
         }
 
-        created.PageType = Pages.Home(module.Id, module.HomeRoute);
+        created.SetRoot(Pages.Home(module.Id, module.HomeRoute));
         State.Notify();
     }
 
@@ -209,16 +216,17 @@
     {
         ws.ActiveMenuId = node.Id;
         var page = Pages.Resolve(ws.Module.Id, node.Url);
-        ws.PageParameters.Clear();
         if (page.PageType is not null)
         {
-            ws.PageType = page.PageType;
+            ws.SetRoot(page.PageType);
         }
         else
         {
-            ws.PageType = typeof(NotMigrated);
-            ws.PageParameters[nameof(NotMigrated.Title)] = node.Text;
-            ws.PageParameters[nameof(NotMigrated.LegacyUrl)] = page.Route;
+            ws.SetRoot(typeof(NotMigrated), new Dictionary<string, object?>
+            {
+                [nameof(NotMigrated.Title)] = node.Text,
+                [nameof(NotMigrated.LegacyUrl)] = page.Route,
+            });
         }
 
         return Task.CompletedTask;

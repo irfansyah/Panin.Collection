@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddSingleton<IDataStatusService, DataStatusService>();
         services.AddSingleton<IWarningService, WarningService>();
         services.AddSingleton<IDebiturSearchService, DebiturSearchService>();
+        services.AddSingleton<IDebiturDetailService, DebiturDetailService>();
         services.AddSingleton<IExcelExporter, NpoiExcelExporter>();
         services.AddSingleton<LogoutWriter>();
         services.AddSingleton<ILogoutRecorder>(sp => sp.GetRequiredService<LogoutWriter>());

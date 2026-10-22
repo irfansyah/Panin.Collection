@@ -9,6 +9,9 @@ namespace Panin.Infrastructure.Modules;
 
 public sealed class ModuleDbFactory(IConfiguration configuration, IModuleRegistry registry, IQueryObserver observer) : IModuleDbFactory
 {
+    /// <summary>SP yang sudah diperiksa tidak menulis (tanpa INSERT/UPDATE/DELETE); daftar utama ada di appsettings <c>DataAccess:ReadOnlyProcedures</c>.</summary>
+    private static readonly string[] DefaultReadOnlyProcedures = ["SP_VW_WARNINGCONTENT"];
+
     private readonly ConcurrentDictionary<string, IDb> _cache = new();
 
     public async Task<IDb> GetDataDbAsync(string moduleId, CancellationToken ct = default)
@@ -62,7 +65,7 @@ public sealed class ModuleDbFactory(IConfiguration configuration, IModuleRegistr
             return db;
         }
 
-        var allowed = configuration.GetSection("DataAccess:ReadOnlyProcedures").Get<string[]>() ?? ["SP_VW_WARNINGCONTENT"];
+        var allowed = configuration.GetSection("DataAccess:ReadOnlyProcedures").Get<string[]>() ?? DefaultReadOnlyProcedures;
         return new ReadOnlyDb(db, new HashSet<string>(allowed, StringComparer.OrdinalIgnoreCase), $"modul {moduleId}");
     }
 }

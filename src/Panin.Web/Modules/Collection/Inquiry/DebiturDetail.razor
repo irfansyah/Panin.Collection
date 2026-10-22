@@ -1,0 +1,229 @@
+@attribute [ModulePage("60", "/collection/debitur/detail")]
+@implements IDisposable
+@using Panin.Application.Collection
+@using Panin.Web.Components.Common
+@inject IDebiturDetailService Detail
+@inject ILogger<DebiturDetail> Logger
+
+<section class="space-y-4">
+    <div class="flex items-center justify-between gap-3">
+        <h1 class="text-xl font-semibold text-slate-800">Monitoring Collection</h1>
+        @if (Navigator is { CanGoBack: true })
+        {
+            <button type="button" @onclick="Navigator.Back" class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                ← Kembali
+            </button>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat data debitur...</p>
+    }
+    else if (_error is not null)
+    {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">@_error</div>
+    }
+    else if (_account is null)
+    {
+        <div class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="status">Rekening @AccountNo tidak ditemukan.</div>
+    }
+    else
+    {
+        <div class="grid gap-4 lg:grid-cols-2">
+            <Card Title="Nasabah"><FieldGrid Fields="DebiturDetailFields.Customer" Record="_account" /></Card>
+            <Card Title="Kredit"><FieldGrid Fields="DebiturDetailFields.Credit" Record="_account" /></Card>
+        </div>
+        <Card Title="Tunggakan dan Kewajiban"><FieldGrid Fields="DebiturDetailFields.Arrears" Record="_account" Emphasize="_emphasis" /></Card>
+
+        @if (_delinquency.Count > 0)
+        {
+            <Card Title="Riwayat Kolektibilitas">
+                <ol class="flex flex-wrap gap-2" aria-label="Riwayat kolektibilitas per bulan">
+                    @foreach (var m in _delinquency)
+                    {
+                        <li @key="m.Period" class="@(m.Code is "1" or "01" or "" ? "border-slate-200 bg-white text-slate-700" : "border-red-200 bg-red-50 text-red-700") rounded border px-2 py-1 text-center text-xs" title="@(m.Dpd is { } dpd ? $"DPD {dpd}" : "")">
+                            <div class="text-[10px] text-slate-500">@m.Period</div>
+                            <div class="font-semibold">@m.Code</div>
+                        </li>
+                    }
+                </ol>
+            </Card>
+        }
+
+        <Card Title="Lainnya"><FieldGrid Fields="DebiturDetailFields.Other" Record="_account" Emphasize="_otherEmphasis" /></Card>
+
+        <div class="rounded-lg border border-slate-200 bg-white">
+            <div role="tablist" class="flex flex-wrap gap-1 border-b border-slate-200 px-3 pt-2">
+                @foreach (var t in Tabs)
+                {
+                    <button type="button" role="tab" aria-selected="@(_tab == t.Key)" @onclick="() => SelectTabAsync(t.Key)"
+                            class="@(_tab == t.Key ? "border-sky-700 text-sky-800" : "border-transparent text-slate-600 hover:text-slate-900") -mb-px rounded-t border-b-2 px-3 py-2 text-sm font-medium">
+                        @t.Title
+                    </button>
+                }
+            </div>
+            <div role="tabpanel" class="p-4">
+                @switch (_tab)
+                {
+                    case "personal":
+                        <FieldGrid Fields="DebiturDetailFields.Personal" Record="_personal" />
+                        break;
+                    case "job":
+                        <FieldGrid Fields="DebiturDetailFields.Job" Record="_job" />
+                        break;
+                    case "spouse":
+                        <FieldGrid Fields="DebiturDetailFields.Spouse" Record="_spouse" />
+                        break;
+                    case "spousejob":
+                        <FieldGrid Fields="DebiturDetailFields.SpouseJob" Record="_spouseJob" />
+                        break;
+                    case "contacts":
+                        <DataGrid TItem="DetailRecord" Items="_contacts" Columns="_contactColumns" EmptyText="Belum ada kontak." />
+                        break;
+                }
+                @if (_tabLoading)
+                {
+                    <p class="mt-2 text-xs text-slate-500" role="status">Memuat...</p>
+                }
+                @if (_tabError is not null)
+                {
+                    <p class="mt-2 text-sm text-red-700" role="alert">@_tabError</p>
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    private static readonly (string Key, string Title)[] Tabs =
+    [
+        ("personal", "Info Personal"),
+        ("job", "Pekerjaan"),
+        ("spouse", "Pasangan"),
+        ("spousejob", "Pekerjaan Pasangan"),
+        ("contacts", "Kontak"),
+    ];
+
+    // Kolom yang disorot mengikuti layar lama: rekening PRK menonjolkan cerukan/bunga, lainnya total tunggakan dan angsuran.
+    private static readonly HashSet<string> NormalEmphasis = new(["TOTAL_TUNGGAKAN", "ANGSURAN_PERBULAN"], StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> RevolvingEmphasis = new(["CERUKAN", "SALDO_MINIMUM", "DAILY_INT_FACTOR", "TOT_CRKN_SMP_HR_INI"], StringComparer.OrdinalIgnoreCase);
+
+    private readonly CancellationTokenSource _cts = new();
+    private readonly IReadOnlyList<GridColumn<DetailRecord>> _contactColumns =
+    [
+        new() { Header = "Nama", Value = r => r.Text("Name") },
+        new() { Header = "Hubungan", Value = r => r.Text("RelationShip") },
+        new() { Header = "Alamat", Value = r => r.Text("Address") },
+        new() { Header = "Telepon", Value = r => r.Text("Telp") },
+        new() { Header = "Prioritas", Value = r => r.Text("Priority"), Numeric = true },
+    ];
+
+    private DetailRecord? _account, _personal, _job, _spouse, _spouseJob;
+    private IReadOnlyList<DelinquencyMonth> _delinquency = [];
+    private IReadOnlyList<DetailRecord> _contacts = [];
+    private ISet<string> _emphasis = NormalEmphasis;
+    private ISet<string> _otherEmphasis = new HashSet<string>();
+    private HashSet<string> _loadedTabs = [];
+    private string _tab = "personal";
+    private string? _error, _tabError, _loadedFor;
+    private bool _loading = true, _tabLoading;
+
+    [Parameter] public string AccountNo { get; set; } = string.Empty;
+
+    [Parameter] public string? CustomerRef { get; set; }
+
+    [CascadingParameter] private IModuleNavigator? Navigator { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedFor == AccountNo)
+        {
+            return;
+        }
+
+        _loadedFor = AccountNo;
+        _loading = true;
+        _error = null;
+        _loadedTabs = [];
+        _tab = "personal";
+        try
+        {
+            // Tiga query kecil berjalan paralel; tab info dimuat saat dibuka.
+            var account = Detail.GetAccountAsync(AccountNo, _cts.Token);
+            var revolving = Detail.IsRevolvingAsync(AccountNo, _cts.Token);
+            var delinquency = Detail.GetDelinquencyAsync(AccountNo, _cts.Token);
+            await Task.WhenAll(account, revolving, delinquency);
+            _account = account.Result;
+            _delinquency = delinquency.Result;
+            _emphasis = revolving.Result ? new HashSet<string>() : NormalEmphasis;
+            _otherEmphasis = revolving.Result ? RevolvingEmphasis : new HashSet<string>();
+            if (_account is not null)
+            {
+                await LoadTabAsync("personal");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Gagal memuat detail debitur");
+            _error = "Data debitur gagal dimuat. Coba lagi; jika berulang hubungi administrator.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SelectTabAsync(string key)
+    {
+        _tab = key;
+        await LoadTabAsync(key);
+    }
+
+    private async Task LoadTabAsync(string key)
+    {
+        if (_loadedTabs.Contains(key))
+        {
+            return;
+        }
+
+        _tabLoading = true;
+        _tabError = null;
+        try
+        {
+            switch (key)
+            {
+                case "personal": _personal = await Detail.GetPersonalAsync(AccountNo, _cts.Token); break;
+                case "job": _job = await Detail.GetJobAsync(AccountNo, _cts.Token); break;
+                case "spouse": _spouse = await Detail.GetSpouseAsync(AccountNo, _cts.Token); break;
+                case "spousejob": _spouseJob = await Detail.GetSpouseJobAsync(AccountNo, _cts.Token); break;
+                case "contacts": _contacts = await Detail.GetContactsAsync(CustomerRef ?? _account?.Text("CIF NO.") ?? string.Empty, _cts.Token); break;
+            }
+
+            _loadedTabs.Add(key);
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Gagal memuat tab {Tab}", key);
+            _tabError = "Data gagal dimuat.";
+        }
+        finally
+        {
+            _tabLoading = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

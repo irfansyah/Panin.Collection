@@ -70,10 +70,16 @@
     private readonly CancellationTokenSource _cts = new();
     private DebiturSearchResult? _result;
     private DataGrid<DebiturRow>? _grid;
+    [CascadingParameter] private IModuleNavigator? Navigator { get; set; }
+
     private string? _error;
     private bool _busy;
 
-    private readonly IReadOnlyList<GridColumn<DebiturRow>> _columns =
+    private IReadOnlyList<GridColumn<DebiturRow>> _columns = [];
+
+    protected override void OnInitialized() => _columns = BuildColumns();
+
+    private IReadOnlyList<GridColumn<DebiturRow>> BuildColumns() =>
     [
         new() { Header = "Nomor Rekening", Value = r => r.AccountNo },
         new() { Header = "Nama Nasabah", Value = r => r.CustomerName },
@@ -86,7 +92,11 @@
         new() { Header = "Rekomendasi", Value = r => r.Recommendation },
         new() { Header = "Officer", Value = r => r.Officer },
         new() { Header = "CIF", Value = r => r.CustomerRef },
+        new() { Header = "Aksi", Value = r => r.AccountNo, ActionOnly = true, Sortable = false, Template = r => @<button type="button" @onclick="() => OpenDetail(r)" class="rounded border border-sky-300 px-2 py-0.5 text-xs font-medium text-sky-800 hover:bg-sky-50">Detail</button> },
     ];
+
+    private void OpenDetail(DebiturRow row)
+        => Navigator?.Open<DebiturDetail>(new Dictionary<string, object?> { [nameof(DebiturDetail.AccountNo)] = row.AccountNo, [nameof(DebiturDetail.CustomerRef)] = row.CustomerRef });
 
     private async Task SearchAsync()
     {
