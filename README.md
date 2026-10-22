@@ -31,7 +31,10 @@ dotnet run --project src/Panin.Web
 
 Perlu .NET SDK 10 (lihat `global.json`) dan Node.js 20+ (build Tailwind CSS otomatis saat `dotnet build`; lewati dengan `-p:SkipTailwind=true`).
 
+## Konvensi
 
+- UI: Blazor Server + **Tailwind CSS** (tanpa Bootstrap). Sumber `src/Panin.Web/Styles/tailwind.css`, hasil `wwwroot/css/site.css` (tidak di-commit). Saat pengembangan: `npm run watch:css` di `src/Panin.Web`.
+- Data: **Dapper** lewat `IDb` (parameter posisional `@1..@n`, selalu parameter SQL sungguhan). Tanpa EF Core.
 
 ## Konfigurasi & rahasia
 
