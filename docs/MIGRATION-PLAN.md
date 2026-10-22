@@ -90,6 +90,81 @@ Alasan: aplikasi lama sangat bergantung pada template **`.xls` (BIFF)** (`Upload
 
 Catatan: NPOI **tidak menghitung ulang formula kompleks atau merender/print** seperti Excel; bila ada template yang bergantung pada itu, hasil dibandingkan per template di UAT. Konversi `.xls` → `.xlsx` boleh dilakukan bertahap untuk template baru, tetapi `.xls` lama tetap didukung.
 
+## 2D. Model host tunggal, modul sebagai tab, dan dua database
+
+Dibaca dari `LOSLOGIN/Login.aspx.cs`, `LOSCOLLECTION/{authenticate,Body,Footer,Logout}.aspx.cs`, `main.html`, `warning.html`, dan `Web.config` semua project (branch `multibrowser`).
+
+### Yang sebenarnya terjadi di sistem lama
+
+Sistem lama terlihat seperti satu aplikasi, tetapi sebenarnya **beberapa web app terpisah** yang disambung oleh SSO berbasis token:
+
+| ModuleID | App | Isi |
+|---|---|---|
+| `00` | LOSLOGIN | Portal login |
+| `60` | LOSCOLLECTION | Collection / Recovery |
+| `70` | LOSMIS | MIS / report |
+| `99` | LOSMNT | Maintenance user, group, menu, parameter (`MaintainedModuleIDs` = `60;99`) |
+
+**Dua jenis database**
+1. **DB LOGIN** (`LOSPANINLOGIN`; dev: `..._DEV`). Setiap app membukanya lewat `eSecurityConnectString`. Isinya: user (`SCUSER`, `SCALLUSER`, `SCALLUSERFLAG`), group (`SCALLGROUP`), **daftar modul `RFMODULE`**, hak akses modul per group (`VW_GRPACCESSMODULE`), **menu per modul dan group (`RFMENUX` + `GRPMENUX`)**, token SSO (`ES_APPTOKEN`, `VW_ES_APPTOKEN`), log aktivitas (`SU_ALLUSERACTIVITY`, `SU_MONITORACTIVITY`), berita (`VW_NEWS`), area user (`VW_AUTH_USERAREA`).
+2. **DB DATA** per modul (mis. `LOSPANINCOLLECTION` untuk modul 60; SP dan view bisnis seperti `ACCOUNT_MASTER`, `VW_RECOVERY`, `SP_*`). Alamat DB DATA **tidak ada di config aplikasi**: tersimpan di baris `RFMODULE` pada DB LOGIN (`LOGIN_SCR`, `DB_IP`, `DB_NAMA`, `DB_LOGINID`, `DB_LOGINPWD`).
+
+**Alur login dan pindah modul**
+1. User login di LOSLOGIN → `exec SU_USERLOGINGIN user, ip` (SHA1, revoke/lock, `SU_LOGON`, password default/expired, hitung salah password) → `SU_LOGINSTARTED` → `ES_SAVETOKEN(token, user)` mengembalikan `LOGIN_SCR` (URL modul pertama) → redirect `URL?tkn=<guid>&urllogin=1`.
+2. Modul menerima `authenticate.aspx?tkn=`: baca `VW_ES_APPTOKEN` (USERID, GROUPID, MODULEID, DB_IP, DB_NAMA, DB_LOGINID, DB_LOGINPWD), **hapus token (sekali pakai)**, rakit connection string DATA dari kolom `DB_*`, isi Session (`UserID`, `FullName`, `GroupID`, `ModuleID`, `ConnString` (= DATA), `dbTimeOut`, `LoginTime`) dan area user (`AreaID`, `CityID`, `BranchID` dari `VW_AUTH_USERAREA` di DB DATA).
+3. `Body.aspx` memuat **tab modul** (`VW_GRPACCESSMODULE` untuk group user; modul aktif tidak bisa diklik; bila hanya 1 modul, deretan tab disembunyikan) dan **menu modul aktif** dari DB LOGIN (`RFMENUX` join `GRPMENUX` menurut `TYPEID = ModuleID` dan `GROUPID`, hierarki lewat `MENUPARENT`/`MENUPOSITION`, ditambah item `Logout`). Menu kosong → logout dengan pesan "Menu Access Not Yet Defined".
+4. Klik tab modul lain → `ES_SAVETOKEN(token, user, moduleId)` → redirect ke `LOGIN_SCR` modul itu dengan token baru; **Session lama dibuang**. Jadi pindah modul = keluar dari app lama dan masuk app lain (state hilang).
+5. Logout: `SU_ALLUSERACTIVITY` (catat logout) → bersihkan Session → redirect ke `LOGIN_SCR` modul 00.
+
+**Kerangka halaman** (`main.html`): frameset 3 baris: header (logo), `Body.aspx` (menu + tab modul + isi dalam iframe), footer. Footer menampilkan nama lengkap, nama group, user ID, jam, serta menjalankan:
+- **Heartbeat/monitor sesi** → `SU_MONITORACTIVITY(user, ip)`; bila hasil `0` → paksa logout (mengakhiri sesi ganda/dicabut admin).
+- **Peringatan idle**: dialog "idle 20 menit, sesi ditutup otomatis dalam N menit" (`warning.html`), tertutup bila user bergerak; lalu `Logout`.
+- **Cek kesegaran data**: `max(AS_OF_DATE)` di `ACCOUNT_MASTER` (DB DATA); bila tertinggal → alert "Tanggal update data terakhir …".
+- **Cek warning**: `SP_VW_WARNINGCONTENT(user)` di DB DATA; bila ada baris → tampilkan pop-up warning.
+- `onepost.js`: pencegah double-submit.
+
+**Aturan bisnis login yang harus dipertahankan**
+- Hanya satu login aktif per user (`SU_LOGON=1` → "User is currently logged in!"); karena itu logout/timeout/heartbeat wajib menurunkan flag.
+- Password default → paksa `ChangePassword?initial`; kedaluwarsa → `ChangePassword?expired`.
+- Revoke/lock setelah N salah password (`SU_FALSEPWDCOUNT`, `app_parameter.loginmaxattempt`), pesan berbeda untuk "terkunci" dan "baru saja terkunci".
+- Login memakai SHA1 tanpa salt (`SU_PWD`); tidak diubah di Fase 1.
+
+### Desain di sistem baru
+
+**Satu host Blazor Server**; modul menjadi bagian dalam host yang sama, **tanpa redirect antar-app dan tanpa token untuk pindah modul**.
+
+```
+Panin.Web (satu proses)
+ ├─ Auth             login, ganti password, logout, timeout idle, heartbeat
+ ├─ Shell            header, tab modul, menu modul aktif, area konten, footer
+ └─ Modul (area)     60 Collection, 70 MIS, 99 Maintenance  (terdaftar lewat IModule)
+```
+
+Komponen kunci (sebagian di `Panin.Application`, implementasi di `Panin.Infrastructure`):
+
+| Komponen | Tugas |
+|---|---|
+| `ILoginDb` (`IDb` terdaftar dengan nama "Login") | Akses DB LOGIN; connection string dari secrets (`ConnectionStrings:Login`), bukan dari baris DB |
+| `IModuleRegistry` | Baca `RFMODULE` dari DB LOGIN (cache); modul yang dikenal host dipasangkan dengan `IModule` di kode (`ModuleId`, rute dasar, nama) |
+| `IModuleDbFactory` | `GetDataDb(moduleId)` → `IDb` ke DB DATA modul itu. Prioritas: (1) override dari config/secrets `ConnectionStrings:Data:<moduleId>`, (2) baris `RFMODULE` (`DB_*`). Opsi (2) hanya untuk paritas dengan sistem lama |
+| `IUserSession` (scoped per sirkuit Blazor) | `UserId`, `FullName`, `GroupId`, `GroupName`, `Area/City/Branch`, `LoginTime`, daftar modul diizinkan, modul aktif, per-modul state |
+| `IMenuService` | Menu modul dari `RFMENUX`/`GRPMENUX` (tree) + `Logout`; cache per (modul, group); pemetaan `MENUURL` lama → rute Blazor |
+| `ISessionMonitor` | Heartbeat `SU_MONITORACTIVITY`, hitung idle, dialog peringatan, logout otomatis, panggil `SU_ALLUSERACTIVITY` saat keluar |
+
+**Tab modul**: tampil bila group punya lebih dari satu modul (sama seperti lama). Tab menyimpan state modulnya masing-masing selama sesi (beda dari lama yang kehilangan state saat pindah) dan modul dimuat malas saat pertama dibuka. Setiap modul memakai `IDb` DATA-nya sendiri; hak akses menu tetap dari DB LOGIN.
+
+**Menu URL**: `RFMENUX.MENUURL` berisi path halaman WebForms (mis. `~/Main/Main.aspx?...`). Migrasi butuh tabel pemetaan `url lama → rute baru` di kode (bukan mengubah DB). Menu yang belum dimigrasi tampil nonaktif atau disembunyikan lewat konfigurasi. Selama jalan paralel, menu bisa mengarah ke app lama dengan token.
+
+**Token SSO**: tidak dipakai di dalam host. Tetap didukung (opsional) untuk dua hal: (a) menerima login dari LOSLOGIN lama selama masa paralel, (b) mengarahkan menu yang belum dimigrasi ke app lama. Kedua-duanya memakai `ES_SAVETOKEN`/`VW_ES_APPTOKEN`/`ES_APPTOKEN_DELETE` apa adanya.
+
+**Kredensial DB DATA di `RFMODULE`**: sistem lama menyimpan dan memakai `DB_LOGINPWD` apa adanya (plaintext) lalu menyambungkannya ke connection string. Host baru memakai override dari secrets sebagai jalur utama dan menjadikan `RFMODULE` hanya fallback; kolom itu sebaiknya dikosongkan setelah cutover.
+
+### Dampak ke fase
+
+- **Fase 1** (Auth & shell) mencakup login, ganti password, logout, heartbeat/idle, tab modul + menu, dan `IModuleDbFactory` (lihat di bawah).
+- **Fase 5** (Maintenance, modul 99) memakai DB LOGIN sebagai data utamanya (mengelola user/group/menu/parameter untuk modul 60 dan 99); `MaintainedModuleIDs` menjadi konfigurasi modul.
+- Aplikasi MIS (70) dan Maintenance (99) menjadi area dalam host yang sama, bukan project terpisah.
+
 ## 3. Arsitektur target
 
 ```
@@ -110,9 +185,9 @@ Prinsip:
 - **Dapper, bukan EF Core**: skema tidak boleh berubah, logika ada di view/SP; Dapper memanggil mereka apa adanya dan lebih mudah dipetakan 1:1 dari SQL lama. EF hanya jika ada kebutuhan khusus.
 - **Semua SQL berparameter**; framework dinamis disusun ulang dengan whitelist nama tabel/kolom (bukan konkatenasi input).
 - **Satu codebase untuk Collection + MIS** dibedakan oleh konfigurasi/modul, menghapus duplikasi.
-- Connection string dinamis per user disimpan di sisi server (circuit/scoped service), **tidak** di-session client.
-- Auth: cookie authentication + claims (UserID, GroupID, ModuleID, area). Alur token SSO dipertahankan agar bisa jalan paralel dengan aplikasi lama.
-- Layout Blazor (nav menu dinamis, tab/halaman) menggantikan iframe.
+- **Satu host, dua jenis database** (bagian 2D): DB LOGIN lewat secrets; DB DATA per modul lewat `IModuleDbFactory` (override secrets, fallback `RFMODULE`). Connection string tidak pernah dikirim ke klien.
+- Auth: cookie authentication + claims (UserID, GroupID, area). Pindah modul tidak memakai token; token SSO hanya untuk masa paralel dengan aplikasi lama.
+- Layout Blazor (header, tab modul, menu modul aktif, area konten, footer) menggantikan frameset/iframe.
 - Konfigurasi rahasia via User Secrets / environment variable / vault.
 
 ## 4. Fase
@@ -128,12 +203,15 @@ Prinsip:
 - Keluaran: `Panin.Infrastructure` dengan `IDb` pengganti `DbConnection`, test terhadap DB dev.
 
 ### Fase 1 — Auth & shell (±2 minggu)
-- Login (replika `SU_USERLOGINGIN`, cek revoke/lock/false-password-count, password default/expired).
+- **Akses dua database**: `ILoginDb`, `IModuleRegistry` (baca `RFMODULE`), `IModuleDbFactory` (DB DATA per modul), cache modul.
+- Login di host yang sama (replika `SU_USERLOGINGIN` → `SU_LOGINSTARTED`; revoke/lock, `SU_LOGON` login tunggal, false-password-count, password default/expired → ganti password).
 - Kompatibilitas SHA1 hash; upgrade ke hash kuat bertahap saat login (butuh persetujuan karena ubah data kolom).
-- Penerbitan & konsumsi token SSO (`ES_SAVETOKEN`, `VW_ES_APPTOKEN`, `ES_APPTOKEN_DELETE`).
-- Change password, logout, log aktivitas (`SU_ALLUSERACTIVITY`, `SP_LOGUSER`).
-- Layout, menu dinamis per group, switch modul, halaman news (`VW_NEWS`), otorisasi menu (`ES_AUTHUSERMENU`).
-- Kriteria selesai: user bisa login di aplikasi baru dan lama dengan akun yang sama.
+- `IUserSession` (scoped per sirkuit): user, group, area/kota/cabang (`VW_AUTH_USERAREA` di DB DATA), modul diizinkan (`VW_GRPACCESSMODULE`), modul aktif.
+- Shell: header, **tab modul** (disembunyikan bila hanya 1 modul), **menu modul aktif** (`RFMENUX` + `GRPMENUX`, hierarki, item Logout, pemetaan `MENUURL` lama → rute baru), area konten, footer (nama, group, jam).
+- `ISessionMonitor`: heartbeat `SU_MONITORACTIVITY` (paksa logout bila 0), peringatan idle 20 menit + logout otomatis, `SU_ALLUSERACTIVITY` saat logout/timeout, penurunan flag `SU_LOGON` saat sirkuit terputus.
+- Footer: cek kesegaran data (`ACCOUNT_MASTER.AS_OF_DATE`), cek warning (`SP_VW_WARNINGCONTENT`), halaman news (`VW_NEWS`), otorisasi menu (`ES_AUTHUSERMENU`).
+- Token SSO (`ES_SAVETOKEN`, `VW_ES_APPTOKEN`, `ES_APPTOKEN_DELETE`) hanya sebagai jembatan ke aplikasi lama selama paralel.
+- Kriteria selesai: user login di host baru dengan akun yang sama, melihat tab modul dan menu sesuai group, dan sesi/heartbeat/logout berperilaku seperti lama.
 
 ### Fase 2 — Inti Collection (±6–8 minggu)
 Urutan berdasarkan ketergantungan:
@@ -187,6 +265,10 @@ Total estimasi kasar (dinaikkan karena modul baru): **±9–11 bulan** untuk 1 t
 | 9 | Blazor Server: state in-memory per user, koneksi SignalR (jaringan internal/proxy) | Sedang | Uji ke load balancer/reverse proxy, sticky session, batasi payload grid (paging server-side) |
 | 10 | Duplikasi Collection vs MIS, kode mati | Rendah | Satu codebase; buang `.bak` & kode komentar |
 | 11 | Lisensi/eligibility DevExpress terbaru | Sedang | Konfirmasi lisensi sebelum Fase 0 selesai |
+| 16 | `SU_LOGON` login tunggal: sirkuit Blazor yang terputus/ditutup tanpa logout membuat user "masih login" dan terkunci | Tinggi | Heartbeat + timeout sisi server, turunkan flag saat sirkuit disposed/idle, jalur admin untuk reset; uji tab ditutup, jaringan putus, restart server |
+| 17 | `MENUURL` di `RFMENUX` menunjuk halaman WebForms lama; menu tak bisa diubah (DB tidak boleh disentuh) | Sedang | Tabel pemetaan di kode; menu belum termigrasi disembunyikan/dinonaktifkan atau mengarah ke app lama via token selama paralel |
+| 18 | DB DATA ditentukan dari `RFMODULE` (password plaintext di DB LOGIN) | Sedang | Override via secrets sebagai jalur utama; `RFMODULE` hanya fallback; kosongkan kolom setelah cutover |
+| 19 | Satu host berarti satu titik gagal untuk semua modul dan memori sirkuit bertambah dengan banyak tab | Sedang | Modul dimuat malas, batasi state per tab, pantau memori, siapkan skala (sticky session) |
 | 13 | Office Interop (Excel/Word) dan OleDb upload butuh Office/Jet di server | Sedang | Diganti NPOI (lihat 2C); uji dengan file template/upload nyata (AYDA, Visit, Surat, Bulk Surat) dan bandingkan output dengan versi lama |
 | 14 | Perubahan SP/view di server tidak ada di repo (`Script/` hanya 1 file) | Tinggi | Dump skema dari server; kunci versi skema |
 | 15 | Modul baru (Recovery/AYDA/Lelang) baru lewat SIT/UAT dan masih berubah (commit terakhir 2025-07) | Sedang | Bekukan baseline commit, catat perubahan sesudahnya, koordinasi dengan pengembang aktif |
@@ -194,6 +276,9 @@ Total estimasi kasar (dinaikkan karena modul baru): **±9–11 bulan** untuk 1 t
 
 ## 6. Pertanyaan terbuka
 0. Apakah repo `irfansyah/Panin.Collection` perlu private, dan siapa saja yang diberi akses? (Repo lama dibiarkan apa adanya.)
+0a. Tab modul: state tiap modul dipertahankan selama sesi (usulan) atau dimulai ulang saat berpindah seperti sistem lama?
+0c. DB DATA modul 99 (Maintenance): apakah sama dengan DB LOGIN? Berapa DB DATA yang ada selain `LOSPANINCOLLECTION`, dan apakah modul 70 (MIS) memakai DB yang sama dengan 60?
+0d. Apakah user boleh login di lebih dari satu perangkat/tab (aturan `SU_LOGON` lama melarangnya)?
 0b. Apakah pengembangan di `multibrowser` masih berjalan (UAT/produksi)? Apakah branch itu sudah yang dipakai di produksi?
 1. Apakah ada akses ke DB dev/UAT dan backup skema (agar bisa dump view/SP)?
 2. Lisensi DevExpress yang dimiliki (Blazor + Reporting + Office File API)?
