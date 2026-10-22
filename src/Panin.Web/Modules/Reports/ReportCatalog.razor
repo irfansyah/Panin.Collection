@@ -1,0 +1,106 @@
+@attribute [ModulePage("60", "/reports")]
+@attribute [ModulePage("70", "/reports")]
+@implements IDisposable
+@using Panin.Application.Reports
+@using Panin.Web.Components.Common
+@inject IReportService Reports
+@inject ILogger<ReportCatalog> Logger
+
+<section class="space-y-4">
+    <h1 class="text-xl font-semibold text-slate-800">@Title</h1>
+
+    @if (_loading)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500" role="status">Memuat...</p>
+    }
+    else if (_error is not null)
+    {
+        <div class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">@_error</div>
+    }
+    else if (_items.Count == 0)
+    {
+        <p class="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-500">Tidak ada report pada menu ini.</p>
+    }
+    else
+    {
+        <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            @foreach (var item in _items)
+            {
+                <li>
+                    @if (item.Available)
+                    {
+                        <button type="button" @onclick="() => Open(item)"
+                                class="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-sky-800 hover:border-sky-300 hover:bg-sky-50">
+                            @item.Title
+                        </button>
+                    }
+                    else
+                    {
+                        <div class="w-full rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-500" title="@item.UnavailableReason">
+                            <span class="font-medium">@item.Title</span>
+                            <span class="mt-1 block text-xs">Belum tersedia: @item.UnavailableReason</span>
+                        </div>
+                    }
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    private static readonly Dictionary<string, string> Titles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["GEN"] = "Report",
+        ["DT"] = "Daily Tracking",
+        ["LE"] = "Leading Edge",
+        ["LD"] = "Lag Delinquency",
+        ["FR"] = "Flow Rate",
+        ["WASIS"] = "Was Is Report",
+        ["PRK"] = "Daily Tracking PRK",
+        ["KPM"] = "Report Khusus KPM",
+    };
+
+    private readonly CancellationTokenSource _cts = new();
+    private IReadOnlyList<ReportListItem> _items = [];
+    private string? _error;
+    private bool _loading = true;
+
+    /// <summary>Kode set report (<c>GEN</c>, <c>DT</c>, ...); datang dari peta URL menu lama (<c>?setid=</c>).</summary>
+    [Parameter] public string SetId { get; set; } = "GEN";
+
+    [CascadingParameter(Name = "ModuleId")] private string ModuleId { get; set; } = "60";
+
+    [CascadingParameter] private Panin.Web.Shell.IModuleNavigator? Navigator { get; set; }
+
+    private string Title => Titles.TryGetValue(SetId, out var t) ? t : $"Report {SetId}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = await Reports.ListAsync(ModuleId, SetId, _cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // halaman ditutup
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Daftar report {Set} gagal dimuat", SetId);
+            _error = $"Daftar report gagal dimuat. Coba lagi atau hubungi administrator. {ErrorReference.Tag}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void Open(ReportListItem item)
+        => Navigator?.Open<ReportRun>(new Dictionary<string, object?> { [nameof(ReportRun.ReportId)] = item.Id, [nameof(ReportRun.ReportTitle)] = item.Title });
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+}

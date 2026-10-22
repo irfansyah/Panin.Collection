@@ -50,11 +50,41 @@ Ekspor: Excel (NPOI, sudah ada) untuk semuanya; PDF hanya bila operasional memin
 - **Menu modul 70 (MIS).** Menu Reporting yang sama ada di modul 70; sumbernya `LOSMIS` (ada `PV_Alasan_NPL`, `PV_Outs_Due_Npl`, `PV_Rincian_NPL` sendiri). Perlu dicek apakah set data/DB-nya sama dengan modul 60.
 - **Laporan di luar `Report/`**: tautan di layar Recovery/Facility (`ReportHapusBuku`, `ReportHapusTagih`, `ReportRestrukturisasi`, `AYDA`, `SKPM`) dan memo `Recovery_Memo` belum dipetakan; mereka bagian dari Fase 3, bukan R1–R3.
 
+## R1 — Daftar dinamis (selesai)
+
+Menu Reporting (modul 60 dan 70) membuka `/reports?SetId=<GEN|DT|LE|LD|FR|WASIS|PRK|KPM>`: daftar report dalam set itu. Yang belum bisa dijalankan tetap tampil
+bersama **alasannya** (pivot, kustom, kondisi kustom, view campuran). Memilih report membuka formulir filter + hasil + ekspor Excel.
+
+Cara kerja: `ReportDefinitionParser` membaca `PIVOTLIST` → `ReportDefinition`; `ReportSqlBuilder` menyusun `SELECT TOP (n) [VIEW].[KOLOM] AS c0.. FROM [VIEW] WHERE 1=1 <filter>`;
+`ReportService` menjalankan lewat `IModuleDbFactory` (DB modul), cache definisi 5 menit, pilihan filter 2 menit, maksimum 6 report bersamaan.
+
+| Aspek | Perilaku |
+|---|---|
+| Nama view/kolom | hanya huruf/angka/spasi/titik/garis/`_`, selalu dikutip `[..]`; selain itu report ditandai tidak tersedia |
+| Nilai filter | selalu parameter posisional `@1..@n`, tidak pernah disisipkan ke SQL |
+| SQL pilihan filter (`:l:SELECT kode,, teks FROM ...`) | hanya SELECT sederhana: tanpa `;`, komentar, `INTO`, `EXEC`, `sys.*`, `sp_*`, `OPENROWSET`, dll.; `WHERE x=@n` merujuk filter sebelumnya (filter bertingkat KCU → KCP) |
+| Batas baris | layar 5.000, ekspor 100.000 (pesan bila terpotong) |
+| Total kolom | `SUM/COUNT/AVG/MIN/MAX` dari definisi kolom; `groupby` lama tidak ditiru |
+| Rentang bulan–tahun (`mr`) | dibandingkan sebagai (tahun, bulan) utuh. **Beda dari lama**: layar lama membandingkan bulan dan tahun terpisah sehingga rentang lintas tahun (Nov 2025–Feb 2026) salah |
+| Filter kosong | diabaikan (NULL), seperti lama |
+| Menjalankan | tombol TAMPILKAN (lama menjalankan langsung saat halaman dibuka tanpa filter → seluruh view) |
+
+Hasil terhadap salinan lokal (DB modul 60): set `GEN` = 26 definisi → **15 tersedia** (Ad Hock, Audittrail, Call/Letter/Visit/Recovery History, Detail Tunggakan,
+Laporan Nasabah Akan NPL, Monitoring Debitur, Payment, Pending Item, Report Tunggakan, Report Upload, Unregistered Branch (2)). Yang belum:
+4 dengan `PV_COND` (Ad Hock Recovery, Ad Hock Recovery KPM, Report NPL, Report NPL KPM: logika "baris terakhir per loan" memakai `@1`/`@5` mentah),
+Letter Status Report (filter dari dua view), 2 kustom (Collector Productivity) dan 3 pivot (R2/R3). Setiap query tiap report tersedia, termasuk SQL pilihan filter,
+dijalankan oleh tes integrasi terhadap view asli tanpa galat; uji browser: formulir, filter tanggal, filter bertingkat KCU→KCP (64 → 20 opsi), hasil, ekspor Excel.
+
+**Belum terukur/teruji:** waktu query pada data produksi (view report bisa besar; salinan lokal 40 ribu pinjaman); modul 70 (halaman dan rute sama, DB modul 70 belum ada di lokal);
+definisi `PV_COND` yang memerlukan keputusan (tulis ulang per report); `FRAMEWORK_FORMULAFIELD/FOREIGNKEY/LINDEDSERVER` (kosong di salinan lokal — bila produksi mengisinya,
+kolom rumus dan join antar-view akan membuat report ditandai tidak tersedia sampai didukung).
+
 ## Status
 
 | Item | Status |
 |---|---|
-| Inventaris definisi dan jenis mesin | selesai (dokumen ini) |
-| R1 Daftar dinamis | belum |
+| Inventaris definisi dan jenis mesin | selesai |
+| R1 Daftar dinamis | selesai (15 dari 26 di set GEN; set lain isinya pivot/kustom) |
+| R1b `PV_COND` (4 report recovery/KPM) + Letter Status | belum |
 | R2 Pivot dinamis | belum |
 | R3 Pivot dari SP (ekstraksi tata letak) | belum |

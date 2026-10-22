@@ -7,6 +7,7 @@ using Panin.Application.Export;
 using Panin.Application.Letters;
 using Panin.Application.Maintenance;
 using Panin.Application.Modules;
+using Panin.Application.Reports;
 using Panin.Application.Sessions;
 using Panin.Application.Status;
 using Panin.Infrastructure.Auth;
@@ -50,6 +51,7 @@ public static class DependencyInjection
         services.AddSingleton<IWorklistService, WorklistService>();
         services.AddSingleton<ILetterService, LetterService>();
         services.AddSingleton<IActivityMonitoringService, ActivityMonitoringService>();
+        services.AddSingleton<IReportService, Panin.Infrastructure.Reports.ReportService>();
         services.Configure<Maintenance.MaintenanceOptions>(configuration.GetSection(Maintenance.MaintenanceOptions.SectionName));
         services.Configure<ParallelRunOptions>(configuration.GetSection(ParallelRunOptions.SectionName));
         services.Configure<BulkLetterOptions>(configuration.GetSection(BulkLetterOptions.SectionName));

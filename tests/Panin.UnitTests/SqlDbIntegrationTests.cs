@@ -82,4 +82,44 @@ public class SqlDbIntegrationTests
             Assert.False(string.IsNullOrEmpty(r.CustomerRef));
         });
     }
+
+    [Fact]
+    public async Task Every_supported_list_report_and_its_filter_options_run_against_the_real_views()
+    {
+        if (Connect() is not { } db)
+        {
+            return;
+        }
+
+        var table = await db.QueryTableAsync("SELECT PV_ID, PV_DESC, PV_COLUMNLIST, PV_ROWLIST, PV_DATALIST, PV_FILTERLIST, PV_COND, AssemblyObj FROM VW_REPORTSET", []);
+        var failures = new List<string>();
+        var supported = 0;
+        foreach (System.Data.DataRow r in table.Rows)
+        {
+            string? T(string c) => r[c] is DBNull ? null : Convert.ToString(r[c], System.Globalization.CultureInfo.InvariantCulture);
+            var parsed = Panin.Application.Reports.ReportDefinitionParser.Parse(T("PV_ID")!, T("PV_DESC") ?? string.Empty, T("PV_COLUMNLIST"), T("PV_ROWLIST"), T("PV_DATALIST"), T("PV_FILTERLIST"), T("PV_COND"), T("AssemblyObj"), DateOnly.FromDateTime(DateTime.Today));
+            if (parsed.Definition is not { } def)
+            {
+                continue;
+            }
+
+            supported++;
+            try
+            {
+                var args = new object?[def.ParamCount];
+                await db.QueryTableAsync(Panin.Application.Reports.ReportSqlBuilder.Select(def, 3), args);
+                foreach (var f in def.Filters.Where(f => f.OptionsSql is not null))
+                {
+                    await db.QueryTableAsync(f.OptionsSql!, args);
+                }
+            }
+            catch (Exception ex)
+            {
+                failures.Add($"{def.Id} {def.Title}: {ex.Message}");
+            }
+        }
+
+        Assert.True(supported > 0, "tidak ada report daftar yang didukung");
+        Assert.True(failures.Count == 0, $"{failures.Count} dari {supported} report gagal:{Environment.NewLine}{string.Join(Environment.NewLine, failures)}");
+    }
 }

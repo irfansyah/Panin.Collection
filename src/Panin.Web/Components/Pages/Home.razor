@@ -71,9 +71,11 @@
                                 @if (entry.PageType is not null)
                                 {
                                     <CascadingValue Value="ws.Navigator" IsFixed="true">
-                                        <PaninErrorBoundary>
-                                            <DynamicComponent Type="entry.PageType" Parameters="entry.Parameters" />
-                                        </PaninErrorBoundary>
+                                        <CascadingValue Name="ModuleId" Value="ws.Module.Id" IsFixed="true">
+                                            <PaninErrorBoundary>
+                                                <DynamicComponent Type="entry.PageType" Parameters="entry.Parameters" />
+                                            </PaninErrorBoundary>
+                                        </CascadingValue>
                                     </CascadingValue>
                                 }
                             </div>
@@ -220,7 +222,7 @@
         var page = Pages.Resolve(ws.Module.Id, node.Url);
         if (page.PageType is not null)
         {
-            ws.SetRoot(page.PageType);
+            ws.SetRoot(page.PageType, page.Parameters is null ? null : new Dictionary<string, object?>(page.Parameters));
         }
         else
         {
