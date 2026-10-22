@@ -65,7 +65,7 @@ Jadwalkan (Task Scheduler) tiap beberapa menit dengan `--apply`, atau jalankan m
 
 ## Cutover (aplikasi lama dimatikan)
 
-Prasyarat: semua fitur yang dipakai operasional sudah ada di aplikasi baru. **Per hari ini belum:** perbandingan keluaran semua report dengan aplikasi lama pada data nyata (status dan beda perilaku di `docs/REPORTS.md`), serta fitur tulis di sekitar Monitoring (Add News dengan editor HTML, Upload Data AYDA, Upload Visit, Manual Update). Janji Debitur dan News View sudah ada. Pekerjaan latar PANINSVC sudah digantikan `Panin.Worker` (lihat `docs/WORKER.md`; aktifkan hanya saat cutover). Itu harus selesai, atau dipastikan tidak dipakai, sebelum langkah di bawah.
+Prasyarat: semua fitur yang dipakai operasional sudah ada di aplikasi baru. **Per hari ini belum:** perbandingan keluaran semua report dengan aplikasi lama pada data nyata, serta fitur tulis di sekitar Monitoring (Add News dengan editor HTML, Upload Data AYDA, Upload Visit, Manual Update); Janji Debitur dan News View sudah ada (status dan beda perilaku di `docs/REPORTS.md`), serta fitur tulis di sekitar Monitoring (Add News dengan editor HTML, Upload Data AYDA, Upload Visit, Manual Update). Janji Debitur dan News View sudah ada. Pekerjaan latar PANINSVC sudah digantikan `Panin.Worker` (lihat `docs/WORKER.md`; aktifkan hanya saat cutover). Itu harus selesai, atau dipastikan tidak dipakai, sebelum langkah di bawah.
 
 Cara paling sederhana adalah **menukar nama DB**, karena nama DB LOGIN tertanam di view DATA:
 
