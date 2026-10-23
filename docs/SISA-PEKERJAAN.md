@@ -37,6 +37,19 @@ aplikasi baru belum setara aplikasi lama, jadi **cutover belum boleh** (`docs/CU
 | Keamanan | Tempat menyimpan rahasia produksi; rotasi credential lama; tinjauan keamanan; sertifikat HTTPS. |
 | UAT dan pelatihan | Jadwal UAT per peran, staging mirip produksi, jendela perawatan. |
 
+## D. Dashboard dan sisa pekerjaan tampilan
+
+Dikerjakan: menu samping rel ikon (D1), komponen dashboard (D2), dashboard Maintenance (D3). Yang belum, lengkapnya di `docs/BACKLOG.md` B19 dan B22–B29:
+
+| Hal | Yang saya butuhkan |
+|---|---|
+| **Dashboard Collection (D4)** | Aturan prioritas daftar "Perlu tindakan" dan definisi "belum disentuh"/"janji terlewat"; akun uji kolektor dan supervisor yang worklist-nya berisi; ukuran waktu muat worklist supervisor teratas. |
+| **Dashboard MIS (D5)** | Definisi rasio NPL dan "recovery"; izin membuat tabel ringkasan harian di DB DATA dan job pengisinya; DB modul 70 dan akun baca; tim MIS untuk mencocokkan angka. |
+| Mode gelap, kotak cari, toast (D6) | Keputusan mode gelap; aturan pencarian global. |
+| Ekspor/cetak di perangkat pemakai | Pemakai mencoba RTF di Word dan cetak ke printer; daftar peramban resmi (seret kolom di Firefox). |
+| Tangkapan layar dokumen | Keputusan menyamarkan atau menghapus yang berisi data debitur, lalu ambil ulang dengan shell baru. |
+| Skrip uji browser di repo | Persetujuan menyimpan skrip di `tools/Panin.E2E`. |
+
 ## Paritas komponen DevExpress
 
 Aplikasi lama memakai DevExpress luas (48 grid, 3 pivot, 116 kelas XtraReport, TreeList, HtmlEditor, dll.). Hasil pemeriksaan di `docs/DEVEXPRESS-PARITY.md`:
